@@ -23,4 +23,5 @@ public interface ProductService {
     ProductResponse create(ProductRequest request, MultipartFile image);
     void delete(Long id);
     Product findById(Long id);
+    ProductResponse update(ProductRequest productRequest, MultipartFile image, Long id);
 }

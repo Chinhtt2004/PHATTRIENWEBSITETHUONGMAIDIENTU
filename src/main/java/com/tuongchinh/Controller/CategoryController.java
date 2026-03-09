@@ -21,16 +21,17 @@ public class CategoryController {
         return ResponseEntity.ok(categoryService.getAll());
     }
 
-
 @PostMapping
 public ResponseEntity<String> create(@RequestBody CategoryRequest request) {
     return ResponseEntity.ok(categoryService.create(request));
 }
+
 @DeleteMapping("/{id}")
 public ResponseEntity<String> delete(@PathVariable Long id) {
     categoryService.delete(id);
     return ResponseEntity.ok("Xóa danh mục thành công");
 }
+
 @PutMapping("/{id}")
 public ResponseEntity<CategoryResponse> update(
         @PathVariable Long id,

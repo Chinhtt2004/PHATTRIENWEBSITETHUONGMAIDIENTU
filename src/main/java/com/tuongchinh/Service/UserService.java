@@ -1,7 +1,9 @@
 package com.tuongchinh.Service;
 
 import com.tuongchinh.DTO.RegisterRequest;
+import com.tuongchinh.Entity.Cart;
 import com.tuongchinh.Entity.User;
+import com.tuongchinh.Repository.CartRepository;
 import com.tuongchinh.Repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -12,6 +14,8 @@ public class UserService {
     private UserRepository userRepository;
     @Autowired
     private JwtService jwtService;
+    @Autowired
+    CartRepository cartRepository;
     @Autowired
     private PasswordEncoder passwordEncoder;
     public String login(String email, String password) {
@@ -34,9 +38,10 @@ public class UserService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
 
         user.setRole("USER");
-
+        Cart cart=new Cart();
+        cart.setUser(user);
         userRepository.save(user);
-
+        cartRepository.save(cart);
         return "Đăng ký thành công";
     }
     public User findByEmail(String email){

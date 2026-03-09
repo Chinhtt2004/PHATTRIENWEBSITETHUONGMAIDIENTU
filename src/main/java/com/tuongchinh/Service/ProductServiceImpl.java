@@ -88,4 +88,23 @@ public class ProductServiceImpl implements ProductService {
         response.setCreatedAt(product.getCreatedAt());
         return response;
     }
+    @Override
+    public ProductResponse update(ProductRequest request, MultipartFile image, Long id){
+        Product product=findById(id);
+        Category category = categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục: " + request.getCategoryId()));
+
+        String imageUrl = null;
+        if (image != null && !image.isEmpty()) {
+            imageUrl = cloudinaryService.uploadImage(image);
+        }
+        product.setName(request.getName());
+        product.setDescription(request.getDescription());
+        product.setPrice(request.getPrice());
+        product.setStockQuantity(request.getStockQuantity());
+        product.setCategory(category);
+        product.setImageUrl(imageUrl);
+        productRepository.save(product);
+        return mapToResponse(product);
+    }
 }

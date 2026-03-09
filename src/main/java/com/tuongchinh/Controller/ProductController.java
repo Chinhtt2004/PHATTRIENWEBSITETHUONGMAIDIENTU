@@ -51,23 +51,23 @@ public class ProductController {
             @RequestPart("product") ProductRequest request,
             @RequestPart(value = "image", required = false) MultipartFile image
     ) {
-        return ResponseEntity.ok(productService.create(request, image));
+        return productService.create(request, image);
     }
-    @PutMapping("/{id}")
-    public Product update(@PathVariable Long id,
-                          @RequestBody Product product) {
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ProductResponse> update(
+            @PathVariable Long id,
+            @RequestPart("product") ProductRequest request,
+            @RequestPart(value = "image", required = false) MultipartFile image
+    ) {
 
-        Product existing = productService.getById(id);
+        ProductResponse response = productService.update(request, image, id);
 
-        existing.setName(product.getName());
-        existing.setPrice(product.getPrice());
-        existing.setDescription(product.getDescription());
-        existing.setCategory(product.getCategory());
-
-
+        return ResponseEntity.ok(response);
     }
+
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {
         productService.delete(id);
     }
+
 }
