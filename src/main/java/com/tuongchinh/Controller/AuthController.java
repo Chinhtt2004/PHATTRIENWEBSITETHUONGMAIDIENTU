@@ -1,6 +1,4 @@
 package com.tuongchinh.Controller;
-
-
 import com.tuongchinh.DTO.LoginRequest;
 import com.tuongchinh.DTO.RegisterRequest;
 import com.tuongchinh.Entity.User;
@@ -21,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/author")
 public class AuthController {
     @Autowired
     private UserService userService;

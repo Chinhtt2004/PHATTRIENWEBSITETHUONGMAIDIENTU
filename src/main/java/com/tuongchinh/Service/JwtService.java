@@ -11,13 +11,10 @@ import java.util.Date;
 
 @Service
 public class JwtService {
-    private static final String SECRET_KEY =
-            "mysecretkeymysecretkeymysecretkey12345";
-
+    private static final String SECRET_KEY = "mysecretkeymysecretkeymysecretkey12345";
     private Key getSignKey() {
         return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
     }
-
     public String generateToken(String id) {
         return Jwts.builder()
                 .setSubject(id)

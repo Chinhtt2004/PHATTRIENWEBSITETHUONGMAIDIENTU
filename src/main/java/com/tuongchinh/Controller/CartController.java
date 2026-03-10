@@ -3,6 +3,7 @@ import com.tuongchinh.DTO.CartItemDTO;
 import com.tuongchinh.Entity.Cart;
 import com.tuongchinh.Service.JwtService;
 import com.tuongchinh.Service.CartService;
+import com.tuongchinh.Service.UserService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -12,19 +13,20 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/auth/cart")
+@RequestMapping("/api/user/cart")
 @RequiredArgsConstructor
 public class CartController {
     private final CartService cartService;
     private final JwtService jwtService;
-    @PostMapping("/add")
+    private final UserService userService;
+    @PostMapping
     public ResponseEntity<?> addToCart(
             @RequestParam Long productId,
             @RequestParam int quantity,
             HttpServletRequest request
     ) {
 
-        String token = extractToken(request);
+        String token = userService.extractToken(request);
         Long userId = jwtService.extractUserId(token);
 
         cartService.addToCart(userId, productId, quantity);
@@ -35,7 +37,7 @@ public class CartController {
     // Controller
     @GetMapping
     public ResponseEntity<?> getMyCart(HttpServletRequest request) {
-        String token = extractToken(request);
+        String token = userService.extractToken(request);
         Long userId = jwtService.extractUserId(token);
         Cart cart = cartService.findCartByUserId(userId);
 
@@ -53,32 +55,18 @@ public class CartController {
         return ResponseEntity.ok(result);
     }
 
-    @DeleteMapping("/remove/{productId}")
+    @DeleteMapping("/{productId}")
     public ResponseEntity<?> removeFromCart(
             @PathVariable Long productId,
             HttpServletRequest request
     ) {
 
-        String token = extractToken(request);
+        String token = userService.extractToken(request);
         Long userId = jwtService.extractUserId(token);
 
         cartService.moveFromCart(userId, productId);
 
         return ResponseEntity.ok("Removed successfully");
     }
-    
-private String extractToken(HttpServletRequest request) {
 
-    Cookie[] cookies = request.getCookies();
-
-    if (cookies != null) {
-        for (Cookie cookie : cookies) {
-            if ("token".equals(cookie.getName())) {
-                return cookie.getValue();
-            }
-        }
-    }
-
-    throw new RuntimeException("Token not found in cookies");
-}
 }

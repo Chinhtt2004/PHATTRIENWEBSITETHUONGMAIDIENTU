@@ -5,6 +5,8 @@ import com.tuongchinh.Entity.Cart;
 import com.tuongchinh.Entity.User;
 import com.tuongchinh.Repository.CartRepository;
 import com.tuongchinh.Repository.UserRepository;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -36,8 +38,7 @@ public class UserService {
         user.setName(request.getName());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-
-        user.setRole("USER");
+        user.setRole(request.getRole());
         Cart cart=new Cart();
         cart.setUser(user);
         userRepository.save(user);
@@ -49,5 +50,19 @@ public class UserService {
     }
     public User findById(Long id){
         return userRepository.findById(id).orElse(null);
+    }
+    public String extractToken(HttpServletRequest request) {
+
+        Cookie[] cookies = request.getCookies();
+
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if ("token".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+
+        throw new RuntimeException("Token not found in cookies");
     }
 }
