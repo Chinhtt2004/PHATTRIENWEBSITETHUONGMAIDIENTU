@@ -1,11 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Heart, ShoppingBag, Star, Sparkles, Crown, Flame, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { type Product, formatPrice, getDiscountPercentage, getBadgeLabel } from "@/lib/data";
+import { addToCart } from "@/lib/api";
+import { toast } from "sonner";
 
 interface ProductCardProps {
   product: Product;
@@ -13,7 +17,32 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, priority = false }: ProductCardProps) {
+  const router = useRouter();
+  const [isAdding, setIsAdding] = useState(false);
   const discount = getDiscountPercentage(product.price, product.compareAtPrice);
+
+  const handleAddToCart = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    try {
+      setIsAdding(true);
+      await addToCart(Number(product.id), 1);
+      toast.success("Đã thêm vào giỏ hàng!", {
+        description: product.name,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Không thể thêm vào giỏ hàng";
+      if (message.includes("403") || message.includes("401") || /token/i.test(message)) {
+        toast.error("Vui lòng đăng nhập để thêm vào giỏ hàng");
+        router.push("/account/login");
+        return;
+      }
+      toast.error(message);
+    } finally {
+      setIsAdding(false);
+    }
+  };
 
   return (
     <article className="group relative bg-gradient-to-br from-white via-primary-light/20 to-secondary/10 rounded-2xl overflow-hidden border border-primary/10 hover:border-primary/30 hover:shadow-[0_8px_30px_rgba(183,110,121,0.15)] transition-all duration-500 hover:-translate-y-1.5">
@@ -70,11 +99,13 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
         {/* Add to Cart - Desktop on Hover */}
         <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-primary/40 via-rose-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 hidden sm:block">
           <Button
+            onClick={handleAddToCart}
+            disabled={isAdding}
             className="w-full bg-white/95 backdrop-blur-sm text-primary hover:bg-primary hover:text-white rounded-full shadow-lg transition-all duration-300 font-medium"
             size="sm"
           >
             <ShoppingBag className="h-4 w-4 mr-2" />
-            Thêm vào giỏ
+            {isAdding ? "Đang thêm..." : "Thêm vào giỏ"}
           </Button>
         </div>
       </Link>
@@ -123,11 +154,13 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
 
         {/* Mobile Add to Cart */}
         <Button
+          onClick={handleAddToCart}
+          disabled={isAdding}
           className="w-full mt-3 sm:hidden rounded-full bg-gradient-to-r from-primary to-primary-hover hover:from-primary-hover hover:to-primary text-white shadow-md shadow-primary/20"
           size="sm"
         >
           <ShoppingBag className="h-4 w-4 mr-2" />
-          Thêm vào giỏ
+          {isAdding ? "Đang thêm..." : "Thêm vào giỏ"}
         </Button>
       </div>
     </article>

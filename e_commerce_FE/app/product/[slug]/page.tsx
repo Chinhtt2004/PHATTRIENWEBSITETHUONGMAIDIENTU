@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { ProductDetail } from "@/components/product/product-detail";
-import { products } from "@/lib/data";
+import { fetchStorefrontData } from "@/lib/api";
 
 interface ProductPageProps {
   params: Promise<{
@@ -12,6 +12,7 @@ interface ProductPageProps {
 
 export async function generateMetadata({ params }: ProductPageProps) {
   const { slug } = await params;
+  const { products } = await fetchStorefrontData();
   const product = products.find((p) => p.slug === slug);
 
   if (!product) {
@@ -33,6 +34,7 @@ export async function generateMetadata({ params }: ProductPageProps) {
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const { slug } = await params;
+  const { products } = await fetchStorefrontData();
   const product = products.find((p) => p.slug === slug);
 
   if (!product) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Search, ShoppingBag, User, Menu, X, Heart, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { categories } from "@/lib/data";
+import { type Category } from "@/lib/data";
+import { fetchCategories } from "@/lib/api";
 
 const navigation = [
   { name: "Trang chủ", href: "/", highlight: false },
@@ -32,9 +33,18 @@ const navigation = [
 ];
 
 export function Header() {
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const cartItemCount = 3; // This would come from cart state
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchCategories()
+      .then((data) => { if (!cancelled) setCategories(data); })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

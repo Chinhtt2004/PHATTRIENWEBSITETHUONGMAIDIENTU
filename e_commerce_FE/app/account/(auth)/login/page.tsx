@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { loginUser } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -27,11 +28,16 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate login
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    toast.success("Đăng nhập thành công!");
-    router.push("/account");
+    try {
+      await loginUser(formData.email, formData.password);
+      toast.success("Đăng nhập thành công!");
+      router.push("/account");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Đăng nhập thất bại";
+      toast.error(message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

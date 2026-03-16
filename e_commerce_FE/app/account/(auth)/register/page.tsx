@@ -45,11 +45,32 @@ export default function RegisterPage() {
 
     setIsLoading(true);
 
-    // Simulate register
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const res = await fetch("http://localhost:8081/api/author/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: `${formData.lastName} ${formData.firstName}`.trim(),
+          email: formData.email,
+          password: formData.password,
+          role: "USER",
+        }),
+      });
 
-    toast.success("Đăng ký thành công! Vui lòng đăng nhập.");
-    router.push("/account/login");
+      const data = await res.text();
+
+      if (data === "Email đã tồn tại") {
+        toast.error("Email đã được sử dụng, vui lòng chọn email khác!");
+        return;
+      }
+
+      toast.success("Đăng ký thành công! Vui lòng đăng nhập.");
+      router.push("/account/login");
+    } catch {
+      toast.error("Không thể kết nối đến server, vui lòng thử lại sau.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
