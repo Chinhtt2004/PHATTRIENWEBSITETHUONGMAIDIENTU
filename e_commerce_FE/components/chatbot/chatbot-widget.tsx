@@ -60,6 +60,7 @@ function generateAutoReply(userMessage: string): string {
 
 export function ChatbotWidget() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const [messages, setMessages] = useState<Message[]>(() => [
     {
       id: "welcome",
@@ -75,6 +76,10 @@ export function ChatbotWidget() {
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, []);
+
+  useEffect(() => {
+    setIsMounted(true);
   }, []);
 
   useEffect(() => {
@@ -190,19 +195,21 @@ export function ChatbotWidget() {
                     ? "bg-primary text-primary-foreground rounded-br-md"
                     : "bg-card border border-border text-foreground rounded-bl-md shadow-sm"
                 )}
-              >
-                <p className="whitespace-pre-line">{msg.content}</p>
-                <span
-                  className={cn(
-                    "block text-[10px] mt-1",
-                    msg.role === "user"
-                      ? "text-primary-foreground/60"
-                      : "text-muted-foreground"
-                  )}
                 >
-                  {formatTime(msg.timestamp)}
-                </span>
-              </div>
+                  <p className="whitespace-pre-line">{msg.content}</p>
+                  {isMounted && (
+                    <span
+                      className={cn(
+                        "block text-[10px] mt-1",
+                        msg.role === "user"
+                          ? "text-primary-foreground/60"
+                          : "text-muted-foreground"
+                      )}
+                    >
+                      {formatTime(msg.timestamp)}
+                    </span>
+                  )}
+                </div>
             </div>
           ))}
 

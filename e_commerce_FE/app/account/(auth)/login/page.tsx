@@ -29,9 +29,14 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
-      await loginUser(formData.email, formData.password);
+      const response = await loginUser(formData.email, formData.password);
       toast.success("Đăng nhập thành công!");
-      router.push("/account");
+      
+      if (response.role === "ADMIN") {
+        router.push("/admin");
+      } else {
+        router.push("/");
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Đăng nhập thất bại";
       toast.error(message);

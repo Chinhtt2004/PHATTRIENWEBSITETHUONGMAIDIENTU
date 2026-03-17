@@ -51,11 +51,42 @@ export interface BackendCartItem {
 export interface LoginResponse {
   message: string;
   email: string;
+  role: string;
 }
 
 export interface UserProfileResponse {
   name: string;
   email: string;
+}
+
+export interface Promotion {
+  id: number;
+  code: string;
+  description: string;
+  type: "PERCENTAGE" | "FIXED" | "SHIPPING";
+  value: number;
+  minOrderAmount: number | null;
+  maxDiscountAmount: number | null;
+  startDate: string;
+  endDate: string;
+  usageLimit: number | null;
+  usageCount: number;
+  isActive: boolean;
+  isCollected?: boolean;
+  isUsed?: boolean;
+}
+
+export interface PromotionRequest {
+  code: string;
+  description: string;
+  type: string;
+  value: number;
+  minOrderAmount?: number;
+  maxDiscountAmount?: number;
+  startDate: string;
+  endDate: string;
+  usageLimit?: number;
+  isActive: boolean;
 }
 
 // Request Types
@@ -340,7 +371,7 @@ export async function adminDeleteProduct(id: number) {
 export async function fetchCategories(providedProducts?: Product[]): Promise<Category[]> {
   const res = await fetch(`${API_BASE_URL}/api/public/categories`, { cache: "no-store" });
   const data = (await ensureOk(res)) as BackendCategory[];
-  
+
   let products = providedProducts;
   if (!products) {
     try {
@@ -373,7 +404,7 @@ export async function fetchCategories(providedProducts?: Product[]): Promise<Cat
     const totalCount = getCategoryCount(backendCat);
     const mapped = mapBackendCategory(backendCat, totalCount, index);
     flatCategories.push(mapped);
-    
+
     if (backendCat.children) {
       backendCat.children.forEach((child, childIndex) => {
         flattenCategories(child, childIndex);
@@ -480,14 +511,14 @@ export async function fetchProductsByCategoryRecursive(categoryId: number): Prom
 export async function testCategoryFetching() {
   const products = await fetchProducts();
   const categories = await fetchCategories(products);
-  
+
   console.log("=== Test Category Fetching ===");
   console.log(`Total Products: ${products.length}`);
   console.log(`Total Flattened Categories: ${categories.length}`);
   categories.forEach(cat => {
     console.log(`- ${cat.name} (ID: ${cat.id}): ${cat.productCount} products`);
   });
-  
+
   return { products, categories };
 }
 
@@ -497,3 +528,88 @@ export const fetchStorefrontData = cache(async () => {
   const categories = await fetchCategories(products);
   return { products, categories };
 });
+// Promotions
+export async function fetchPublicPromotions(): Promise<Promotion[]> {
+  const res = await fetch(`${API_BASE_URL}/api/public/promotions`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  return (await ensureOk(res)) as Promotion[];
+}
+
+export async function collectPromotion(id: number): Promise<Promotion> {
+  const res = await fetch(`${API_BASE_URL}/api/user/promotions/collect/${id}`, {
+    method: "POST",
+    credentials: "include",
+  });
+  return (await ensureOk(res)) as Promotion;
+}
+
+export async function fetchMyPromotions(): Promise<Promotion[]> {
+  const res = await fetch(`${API_BASE_URL}/api/user/my-promotions`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  return (await ensureOk(res)) as Promotion[];
+}
+
+// Admin Promotions
+export async function adminFetchPromotions(): Promise<Promotion[]> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/promotions`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  return (await ensureOk(res)) as Promotion[];
+}
+
+export async function adminCreatePromotion(data: PromotionRequest): Promise<Promotion> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/promotions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+  return (await ensureOk(res)) as Promotion;
+}
+
+export async function adminUpdatePromotion(id: number, data: PromotionRequest): Promise<Promotion> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/promotions/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+  return (await ensureOk(res)) as Promotion;
+}
+
+export async function adminDeletePromotion(id: number): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/promotions/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  await ensureOk(res);
+}
+
+export async function createVNPayPayment(orderId: number): Promise<{ data: string }> {
+  const res = await fetch(`${API_BASE_URL}/api/payment/create-vnpay-payment/${orderId}`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+  });
+  return (await ensureOk(res)) as { data: string };
+}
+
+export async function checkout(data: {
+  receiverName: string;
+  phone: string;
+  shippingAddress: string;
+  paymentMethod: string;
+}): Promise<any> {
+  const res = await fetch(`${API_BASE_URL}/api/user/checkout`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+  return ensureOk(res);
+}
