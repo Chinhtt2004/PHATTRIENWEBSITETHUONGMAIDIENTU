@@ -1,23 +1,28 @@
 package com.tuongchinh.Service;
 
+import com.tuongchinh.DTO.BestSellingProductDTO;
 import com.tuongchinh.DTO.ProductRequest;
 import com.tuongchinh.DTO.ProductResponse;
 import com.tuongchinh.Entity.Category;
 import com.tuongchinh.Entity.Product;
 import com.tuongchinh.Entity.ProductSpecification;
 import com.tuongchinh.Repository.CategoryRepository;
+import com.tuongchinh.Repository.OrderItemRepository;
 import com.tuongchinh.Repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final CloudinaryService cloudinaryService;
-
+    private final OrderItemRepository orderItemRepository;
     @Override
     public Page<Product> searchProducts(
             String keyword,
@@ -106,5 +111,24 @@ public class ProductServiceImpl implements ProductService {
         product.setImageUrl(imageUrl);
         productRepository.save(product);
         return mapToResponse(product);
+    }
+    @Override
+    public Product getProductDetail(Long id){
+        return productRepository.findById(id).orElseThrow(()->new RuntimeException("Product not found"));
+    }
+    @Override
+    public List<Product> getProductsByCategoryId(Long categoryId) {
+        return productRepository.findByCategoryId(categoryId);
+    }
+    @Override
+    public List<BestSellingProductDTO> getBestSellingProducts(int limit) {
+        Pageable pageable = PageRequest.of(0, limit);
+        return orderItemRepository.findBestSellingProducts(pageable);
+    }
+    @Override
+    public List<Product> getNewProducts(int limit) {
+        return productRepository.findAllByOrderByCreatedAtDesc(
+                PageRequest.of(0, limit)
+        );
     }
 }

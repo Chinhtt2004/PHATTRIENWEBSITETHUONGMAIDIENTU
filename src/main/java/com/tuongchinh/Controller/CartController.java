@@ -9,9 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
-
 @RestController
 @RequestMapping("/api/user/cart")
 @RequiredArgsConstructor
@@ -25,15 +23,11 @@ public class CartController {
             @RequestParam int quantity,
             HttpServletRequest request
     ) {
-
         String token = userService.extractToken(request);
         Long userId = jwtService.extractUserId(token);
-
         cartService.addToCart(userId, productId, quantity);
-
         return ResponseEntity.ok("Thêm vào giỏ hàng thành công");
     }
-
     // Controller
     @GetMapping
     public ResponseEntity<?> getMyCart(HttpServletRequest request) {
@@ -54,18 +48,14 @@ public class CartController {
 
         return ResponseEntity.ok(result);
     }
-
     @DeleteMapping("/{productId}")
     public ResponseEntity<?> removeFromCart(
             @PathVariable Long productId,
             HttpServletRequest request
     ) {
-
         String token = userService.extractToken(request);
         Long userId = jwtService.extractUserId(token);
-
         cartService.moveFromCart(userId, productId);
-
         return ResponseEntity.ok("Removed successfully");
     }
 

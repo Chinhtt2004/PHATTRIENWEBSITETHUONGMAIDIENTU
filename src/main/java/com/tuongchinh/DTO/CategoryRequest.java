@@ -8,5 +8,6 @@ import lombok.Setter;
 public class CategoryRequest {
     private String name;
     private String description;
-    private Long parentId; // null nếu là danh mục cha
+    private Long parentId;
+
 }

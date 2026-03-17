@@ -14,6 +14,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
@@ -23,7 +25,7 @@ public class ProductController {
     private final ProductService productService;
     private final UserService userService;
     private final JwtService jwtService;
-    @GetMapping("/products")
+    @GetMapping("public/products")
     public Page<Product> searchProducts(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Double minPrice,
@@ -46,12 +48,6 @@ public class ProductController {
                 sortDir
         );
     }
-
-    @GetMapping("/{id}")
-    public Product getById(@PathVariable Long id) {
-        return productService.getById(id);
-    }
-
     @PostMapping(value = "/admin/products", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ProductResponse create(
             @RequestPart("product") ProductRequest request,
@@ -71,10 +67,29 @@ public class ProductController {
 
         return ResponseEntity.ok(response);
     }
-
     @DeleteMapping("admin/products/{id}")
     public void delete(@PathVariable Long id) {
         productService.delete(id);
+    }
+    @GetMapping("public/product/{id}")
+    public Product getProductDetail(@PathVariable Long id) {
+        return productService.getProductDetail(id);
+    }
+    @GetMapping("public/product/category/{id}")
+    public List<Product> getProductByCategoryid(@PathVariable Long id){
+        return productService.getProductsByCategoryId(id);
+    }
+    @GetMapping("public/products/best-sellers")
+    public ResponseEntity<?> getBestSellingProducts(
+            @RequestParam(defaultValue = "10") int limit) {
+        return ResponseEntity.ok(productService.getBestSellingProducts(limit));
+    }
+
+    @GetMapping("/public/products/new")
+    public ResponseEntity<?> getNewProducts(
+            @RequestParam(defaultValue = "10") int limit) {
+
+        return ResponseEntity.ok(productService.getNewProducts(limit));
     }
 
 }
