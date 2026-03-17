@@ -20,7 +20,7 @@ public class Product {
     private Integer stockQuantity;
     @Column(name = "image_url", length = 500)
     private String imageUrl;
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
     private Category category;
     @Column(name = "created_at")

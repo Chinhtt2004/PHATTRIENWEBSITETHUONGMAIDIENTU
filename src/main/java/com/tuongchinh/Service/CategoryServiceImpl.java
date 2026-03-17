@@ -93,9 +93,9 @@ public void delete(Long id) {
         response.setName(category.getName());
         response.setDescription(category.getDescription());
         response.setParentId(category.getParent() != null ? category.getParent().getId() : null);
-        // Map danh mục con (đệ quy)
-        response.setChildren(category.getChildren()
-                .stream()
+        // Dùng groupByParent đã build sẵn thay vì gọi getChildren() (tránh N+1 lazy load)
+        List<Category> children = groupByParent.getOrDefault(category.getId(), List.of());
+        response.setChildren(children.stream()
                 .map(c -> mapToResponse(c, groupByParent))
                 .toList());
 

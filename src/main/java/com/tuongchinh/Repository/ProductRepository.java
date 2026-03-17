@@ -1,6 +1,10 @@
 package com.tuongchinh.Repository;
 
 import com.tuongchinh.Entity.Product;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
 import com.tuongchinh.Entity.User;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -10,6 +14,15 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpecificationExecutor<Product> {
+
+    // JOIN FETCH category trong 1 query → fix N+1 khi lấy danh sách sản phẩm
+    @Override
+    @EntityGraph(attributePaths = {"category"})
+    Page<Product> findAll(Specification<Product> spec, Pageable pageable);
+
+    // JOIN FETCH category khi lấy product theo ID
+    @Override
+    @EntityGraph(attributePaths = {"category"})
     Optional<Product> findById(Long id);
     List<Product> findByCategoryId(Long categoryId);
     List<Product> findAllByOrderByCreatedAtDesc(Pageable pageable);
