@@ -23,6 +23,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 const navigation = [
   { name: "Tổng quan", href: "/admin", icon: LayoutDashboard },
   { name: "Sản phẩm", href: "/admin/products", icon: Package },
+  { name: "Danh mục", href: "/admin/categories", icon: Tag },
   { name: "Đơn hàng", href: "/admin/orders", icon: ShoppingCart },
   { name: "Khách hàng", href: "/admin/customers", icon: Users },
   { name: "Khuyến mãi", href: "/admin/promotions", icon: Tag },

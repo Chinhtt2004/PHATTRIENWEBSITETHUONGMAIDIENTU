@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -11,6 +11,7 @@ import {
   Trash2,
   Eye,
   Filter,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,31 +39,74 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { products as mockProducts } from "@/lib/data";
+import { fetchProducts, fetchCategories, adminDeleteProduct } from "@/lib/api";
+import type { Product, Category } from "@/lib/data";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("vi-VN").format(amount) + "d";
 }
 
 export default function AdminProductsPage() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
-  const filteredProducts = mockProducts.filter((product) => {
-    const matchesSearch = product.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    const matchesCategory =
-      categoryFilter === "all" || product.categoryId === categoryFilter;
-    return matchesSearch && matchesCategory;
-  });
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const filters: any = { size: 100 };
+      if (searchQuery) filters.keyword = searchQuery;
+      if (categoryFilter !== "all") filters.categoryId = Number(categoryFilter);
+
+      const [productsData, categoriesData] = await Promise.all([
+        fetchProducts(filters),
+        fetchCategories(),
+      ]);
+      setProducts(productsData);
+      setCategories(categoriesData);
+    } catch (error) {
+      toast.error("Không thể tải dữ liệu sản phẩm");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [searchQuery, categoryFilter]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const handleDelete = async (id: string) => {
+    try {
+      await adminDeleteProduct(Number(id));
+      toast.success("Đã xóa sản phẩm thành công");
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+      setProductToDelete(null);
+    } catch (error) {
+      toast.error("Xóa sản phẩm thất bại");
+    }
+  };
 
   const toggleSelectAll = () => {
-    if (selectedProducts.length === filteredProducts.length) {
+    if (selectedProducts.length === products.length) {
       setSelectedProducts([]);
     } else {
-      setSelectedProducts(filteredProducts.map((p) => p.id));
+      setSelectedProducts(products.map((p) => p.id));
     }
   };
 
@@ -111,170 +155,215 @@ export default function AdminProductsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tất cả danh mục</SelectItem>
-                  <SelectItem value="cat_skincare">Chăm sóc da</SelectItem>
-                  <SelectItem value="cat_cleanser">Làm sạch</SelectItem>
-                  <SelectItem value="cat_suncare">Chống nắng</SelectItem>
-                  <SelectItem value="cat_makeup">Trang điểm</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          {selectedProducts.length > 0 && (
-            <div className="mb-4 flex items-center gap-4 rounded-lg bg-muted p-3">
-              <span className="text-sm">
-                Đã chọn {selectedProducts.length} sản phẩm
-              </span>
-              <Button variant="outline" size="sm">
-                Xuất Excel
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-destructive hover:text-destructive bg-transparent"
-              >
-                Xóa
-              </Button>
+          {isLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
+          ) : (
+            <>
+              {selectedProducts.length > 0 && (
+                <div className="mb-4 flex items-center gap-4 rounded-lg bg-muted p-3">
+                  <span className="text-sm">
+                    Đã chọn {selectedProducts.length} sản phẩm
+                  </span>
+                  <Button variant="outline" size="sm">
+                    Xuất Excel
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-destructive hover:text-destructive bg-transparent"
+                  >
+                    Xóa
+                  </Button>
+                </div>
+              )}
+
+              <div className="rounded-lg border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12">
+                        <Checkbox
+                          checked={
+                            selectedProducts.length === products.length &&
+                            products.length > 0
+                          }
+                          onCheckedChange={toggleSelectAll}
+                        />
+                      </TableHead>
+                      <TableHead>Sản phẩm</TableHead>
+                      <TableHead>SKU</TableHead>
+                      <TableHead>Giá</TableHead>
+                      <TableHead>Tồn kho</TableHead>
+                      <TableHead>Trạng thái</TableHead>
+                      <TableHead className="w-12"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {products.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                          Không tìm thấy sản phẩm nào.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      products.map((product) => (
+                        <TableRow key={product.id}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedProducts.includes(product.id)}
+                              onCheckedChange={() => toggleSelect(product.id)}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <div className="relative h-12 w-12 overflow-hidden rounded-lg bg-muted">
+                                <Image
+                                  src={product.images[0]?.url || "/placeholder.svg"}
+                                  alt={product.name}
+                                  fill
+                                  className="object-cover"
+                                />
+                              </div>
+                              <div>
+                                <p className="font-medium">{product.name}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {product.variants?.length || 0} biến thể
+                                </p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {product.sku}
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">
+                                {formatCurrency(product.price)}
+                              </p>
+                              {product.compareAtPrice && (
+                                <p className="text-sm text-muted-foreground line-through">
+                                  {formatCurrency(product.compareAtPrice)}
+                                </p>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span
+                              className={
+                                (product.inventory?.quantity || 0) < 10
+                                  ? "text-warning font-medium"
+                                  : ""
+                              }
+                            >
+                              {product.inventory?.quantity || 0}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                product.inventory?.available ? "default" : "secondary"
+                              }
+                              className={
+                                product.inventory?.available
+                                  ? "bg-success text-white"
+                                  : ""
+                              }
+                            >
+                              {product.inventory?.available ? "Còn hàng" : "Hết hàng"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem asChild>
+                                  <Link href={`/product/${product.slug}`} target="_blank">
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    Xem
+                                  </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem asChild>
+                                  <Link href={`/admin/products/${product.id}`}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Chỉnh sửa
+                                  </Link>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  className="text-destructive"
+                                  onSelect={() => setProductToDelete(product)}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Xóa
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
+                <span>
+                  Đang hiển thị {products.length} sản phẩm
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" disabled>
+                    Trước
+                  </Button>
+                  <Button variant="outline" size="sm" disabled>
+                    Sau
+                  </Button>
+                </div>
+              </div>
+            </>
           )}
-
-          <div className="rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">
-                    <Checkbox
-                      checked={
-                        selectedProducts.length === filteredProducts.length &&
-                        filteredProducts.length > 0
-                      }
-                      onCheckedChange={toggleSelectAll}
-                    />
-                  </TableHead>
-                  <TableHead>Sản phẩm</TableHead>
-                  <TableHead>SKU</TableHead>
-                  <TableHead>Giá</TableHead>
-                  <TableHead>Tồn kho</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                  <TableHead className="w-12"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredProducts.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedProducts.includes(product.id)}
-                        onCheckedChange={() => toggleSelect(product.id)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="relative h-12 w-12 overflow-hidden rounded-lg bg-muted">
-                          <Image
-                            src={product.images[0]?.url || "/placeholder.svg"}
-                            alt={product.name}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                        <div>
-                          <p className="font-medium">{product.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {product.variants.length} biến thể
-                          </p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">
-                      {product.sku}
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">
-                          {formatCurrency(product.price)}
-                        </p>
-                        {product.compareAtPrice && (
-                          <p className="text-sm text-muted-foreground line-through">
-                            {formatCurrency(product.compareAtPrice)}
-                          </p>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span
-                        className={
-                          product.inventory.quantity < 10
-                            ? "text-warning font-medium"
-                            : ""
-                        }
-                      >
-                        {product.inventory.quantity}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          product.inventory.available ? "default" : "secondary"
-                        }
-                        className={
-                          product.inventory.available
-                            ? "bg-success text-white"
-                            : ""
-                        }
-                      >
-                        {product.inventory.available ? "Còn hàng" : "Hết hàng"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link href={`/product/${product.slug}`} target="_blank">
-                              <Eye className="mr-2 h-4 w-4" />
-                              Xem
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link href={`/admin/products/${product.id}`}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Chỉnh sửa
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Xóa
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-            <span>
-              Hiển thị {filteredProducts.length} / {mockProducts.length} sản phẩm
-            </span>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" disabled>
-                Trước
-              </Button>
-              <Button variant="outline" size="sm" disabled>
-                Sau
-              </Button>
-            </div>
-          </div>
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!productToDelete} onOpenChange={(open) => !open && setProductToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Bạn có chắc chắn muốn xóa?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Hành động này không thể hoàn tác. Sản phẩm{" "}
+              <span className="font-semibold text-foreground">
+                {productToDelete?.name}
+              </span>{" "}
+              sẽ bị xóa vĩnh viễn khỏi hệ thống.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => productToDelete && handleDelete(productToDelete.id)}
+            >
+              Xóa sản phẩm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

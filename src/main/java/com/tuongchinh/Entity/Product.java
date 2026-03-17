@@ -1,4 +1,5 @@
 package com.tuongchinh.Entity;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.tuongchinh.Entity.Category;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
@@ -22,6 +23,7 @@ public class Product {
     private String imageUrl;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Category category;
     @Column(name = "created_at")
     private LocalDateTime createdAt;

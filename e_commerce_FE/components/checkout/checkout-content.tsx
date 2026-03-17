@@ -29,7 +29,9 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { formatPrice } from "@/lib/data";
+import { formatPrice, type Product } from "@/lib/data";
+import { fetchCartItems, fetchProducts, fetchUserProfile } from "@/lib/api";
+import { useEffect } from "react";
 
 const steps = [
   { id: 1, name: "Thông tin", icon: MapPin },
@@ -83,32 +85,12 @@ const paymentMethods = [
   },
 ];
 
-// Mock cart items
-const cartItems = [
-  {
-    id: "item_001",
-    name: "Serum Vitamin C 20%",
-    variant: "30ml",
-    image:
-      "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=200&h=200&fit=crop",
-    price: 450000,
-    quantity: 2,
-  },
-  {
-    id: "item_002",
-    name: "Kem Chống Nắng SPF50+",
-    variant: "50ml",
-    image:
-      "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=200&h=200&fit=crop",
-    price: 320000,
-    quantity: 1,
-  },
-];
-
 export function CheckoutContent() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cartItems, setCartItems] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [couponCode, setCouponCode] = useState("");
 
   // Form state
@@ -123,6 +105,54 @@ export function CheckoutContent() {
     city: "",
     notes: "",
   });
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [itemsResult, productsResult, profileResult] = await Promise.allSettled([
+          fetchCartItems(),
+          fetchProducts(),
+          fetchUserProfile()
+        ]);
+
+        if (itemsResult.status === 'fulfilled' && productsResult.status === 'fulfilled') {
+          const productMap = new Map<number, Product>(
+            productsResult.value.map((p: any) => [Number(p.id), p])
+          );
+
+          setCartItems(
+            itemsResult.value.map((item: any) => {
+              const product = productMap.get(item.productId);
+              return {
+                id: String(item.id),
+                productId: String(item.productId),
+                name: item.productName,
+                variant: product?.variants[0]?.name || "Mặc định",
+                image: product?.images[0]?.url || "/placeholder.svg",
+                price: product?.price || 0,
+                quantity: item.quantity,
+              };
+            })
+          );
+        }
+
+        if (profileResult.status === 'fulfilled') {
+          const u = profileResult.value;
+          setFormData(prev => ({
+            ...prev,
+            email: u.email || "",
+            firstName: u.name || "",
+          }));
+        }
+      } catch (error) {
+        console.error("Failed to load checkout data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
   const [shippingMethod, setShippingMethod] = useState("standard");
   const [paymentMethod, setPaymentMethod] = useState("cod");
 
@@ -174,14 +204,20 @@ export function CheckoutContent() {
   const handleSubmit = async () => {
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      // Simulate API call for now since Order endpoint is empty
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    toast.success("Đặt hàng thành công!", {
-      description: "Cảm ơn bạn đã mua hàng tại GlowSkin",
-    });
+      toast.success("Đặt hàng thành công!", {
+        description: "Cảm ơn bạn đã mua hàng tại GlowSkin",
+      });
 
-    router.push("/checkout/success");
+      router.push("/checkout/success");
+    } catch (error) {
+      toast.error("Đặt hàng thất bại, vui lòng thử lại sau.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleApplyCoupon = () => {
@@ -421,7 +457,7 @@ export function CheckoutContent() {
                 >
                   {shippingMethods.map((method) => {
                     const isDisabled =
-                      method.minOrder && subtotal < method.minOrder;
+                      !!method.minOrder && subtotal < method.minOrder;
                     const isSelected = shippingMethod === method.id;
                     const IconComp = method.icon;
                     return (

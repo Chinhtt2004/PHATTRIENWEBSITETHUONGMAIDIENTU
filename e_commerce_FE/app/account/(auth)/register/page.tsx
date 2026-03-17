@@ -20,6 +20,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { registerUser } from "@/lib/api";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -46,28 +47,14 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8081/api/author/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: `${formData.lastName} ${formData.firstName}`.trim(),
-          email: formData.email,
-          password: formData.password,
-          role: "USER",
-        }),
-      });
-
-      const data = await res.text();
-
-      if (data === "Email đã tồn tại") {
-        toast.error("Email đã được sử dụng, vui lòng chọn email khác!");
-        return;
-      }
+      const name = `${formData.lastName} ${formData.firstName}`.trim();
+      await registerUser(name, formData.email, formData.password);
 
       toast.success("Đăng ký thành công! Vui lòng đăng nhập.");
       router.push("/account/login");
-    } catch {
-      toast.error("Không thể kết nối đến server, vui lòng thử lại sau.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Không thể kết nối đến server, vui lòng thử lại sau.";
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }

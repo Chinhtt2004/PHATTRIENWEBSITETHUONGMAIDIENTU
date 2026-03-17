@@ -1,4 +1,4 @@
-import type { Category, Product } from "@/lib/data";
+import type { Category, Product, User } from "@/lib/data";
 import { cache } from "react";
 
 // API base URL được lấy từ biến môi trường, mặc định là localhost
@@ -6,19 +6,23 @@ export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://loca
 
 type ApiError = Error & { status?: number };
 
-interface BackendCategory {
+// --- Interfaces & DTOs ---
+
+export interface BackendCategory {
+  id: number;
+  name: string;
+  description?: string | null;
+  parentId?: number | null;
+  children?: BackendCategory[];
+}
+
+export interface BackendProductCategory {
   id: number;
   name: string;
   description?: string | null;
 }
 
-interface BackendProductCategory {
-  id: number;
-  name: string;
-  description?: string | null;
-}
-
-interface BackendProduct {
+export interface BackendProduct {
   id: number;
   name: string;
   description?: string | null;
@@ -29,8 +33,12 @@ interface BackendProduct {
   createdAt?: string;
 }
 
-interface BackendProductPage {
+export interface BackendProductPage {
   content: BackendProduct[];
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  number: number;
 }
 
 export interface BackendCartItem {
@@ -38,6 +46,35 @@ export interface BackendCartItem {
   productId: number;
   productName: string;
   quantity: number;
+}
+
+export interface LoginResponse {
+  message: string;
+  email: string;
+}
+
+export interface UserProfileResponse {
+  name: string;
+  email: string;
+}
+
+// Request Types
+export interface ProductRequest {
+  name: string;
+  description: string;
+  price: number;
+  stockQuantity: number;
+  categoryId: number;
+}
+
+export interface CategoryRequest {
+  name: string;
+  description: string;
+}
+
+export interface ChangePasswordRequest {
+  oldPassword: string;
+  newPassword: string;
 }
 
 const categoryImages = [
@@ -49,18 +86,14 @@ const categoryImages = [
   "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400&h=400&fit=crop",
 ];
 
-/**
- * Tạo một đối tượng lỗi API với thông báo và mã trạng thái
- */
+// --- Helpers ---
+
 function createApiError(message: string, status?: number): ApiError {
   const error = new Error(message) as ApiError;
   error.status = status;
   return error;
 }
 
-/**
- * Phân tích phản hồi từ server dựa trên loại nội dung (JSON hoặc text)
- */
 async function parseResponse(res: Response) {
   const contentType = res.headers.get("content-type") || "";
   if (contentType.includes("application/json")) {
@@ -69,9 +102,6 @@ async function parseResponse(res: Response) {
   return res.text();
 }
 
-/**
- * Kiểm tra phản hồi có thành công và ném lỗi nếu không
- */
 async function ensureOk(res: Response) {
   const data = await parseResponse(res);
   if (!res.ok) {
@@ -81,9 +111,6 @@ async function ensureOk(res: Response) {
   return data;
 }
 
-/**
- * Chuyển đổi chuỗi thành định dạng URL-friendly (slug)
- */
 function slugify(value: string) {
   return value
     .normalize("NFD")
@@ -93,24 +120,17 @@ function slugify(value: string) {
     .replace(/(^-|-$)/g, "");
 }
 
-/**
- * Loại bỏ thẻ HTML từ chuỗi và xử lý khoảng trắng
- */
 function stripHtml(value: string) {
   return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 
-/**
- * Rút gọn văn bản nếu vượt quá độ dài tối đa
- */
 function summarize(text: string, maxLength = 110) {
   if (text.length <= maxLength) return text;
   return `${text.slice(0, maxLength).trim()}...`;
 }
 
-/**
- * Chuyển đổi dữ liệu sản phẩm từ backend sang frontend
- */
+// --- Mappers ---
+
 export function mapBackendProduct(product: BackendProduct): Product {
   const description = stripHtml(product.description || "");
   const price = Number(product.price || 0);
@@ -158,9 +178,6 @@ export function mapBackendProduct(product: BackendProduct): Product {
   };
 }
 
-/**
- * Chuyển đổi dữ liệu danh mục từ backend sang frontend
- */
 export function mapBackendCategory(category: BackendCategory, productCount: number, index: number): Category {
   return {
     id: String(category.id),
@@ -172,100 +189,311 @@ export function mapBackendCategory(category: BackendCategory, productCount: numb
   };
 }
 
-/**
- * Lấy danh sách tất cả sản phẩm từ backend
- */
-export async function fetchProducts(): Promise<Product[]> {
-  const params = new URLSearchParams({ page: "0", size: "100", sortBy: "id", sortDir: "desc" });
-  const res = await fetch(`${API_BASE_URL}/api/products?${params.toString()}`, { cache: "no-store" });
-  const data = (await ensureOk(res)) as BackendProductPage;
-  return (data.content || []).map(mapBackendProduct);
-}
+// --- API Functions ---
 
-/**
- * Lấy danh sách danh mục sản phẩm với số lượng sản phẩm
- */
-export async function fetchCategories(products?: Product[]): Promise<Category[]> {
-  const res = await fetch(`${API_BASE_URL}/api/public/categories`, { cache: "no-store" });
-  const data = (await ensureOk(res)) as BackendCategory[];
-  const counts = new Map<string, number>();
-
-  for (const product of products || []) {
-    counts.set(product.categoryId, (counts.get(product.categoryId) || 0) + 1);
-  }
-
-  return data.map((category, index) => mapBackendCategory(category, counts.get(String(category.id)) || 0, index));
-}
-
-/**
- * Lấy đầy đủ dữ liệu cửa hàng (sản phẩm và danh mục), có cache trong cùng một request
- */
-export const fetchStorefrontData = cache(async () => {
-  const products = await fetchProducts();
-  const categories = await fetchCategories(products);
-  return { products, categories };
-});
-
-/**
- * Đăng nhập người dùng với email và mật khẩu
- */
-export async function loginUser(email: string, password: string) {
+// Authentication & Profile
+export async function loginUser(email: string, password: string): Promise<LoginResponse> {
   const res = await fetch(`${API_BASE_URL}/api/author/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
     body: JSON.stringify({ email, password }),
   });
-
   return ensureOk(res);
 }
 
-/**
- * Đăng ký tài khoản người dùng mới
- */
 export async function registerUser(name: string, email: string, password: string) {
   const res = await fetch(`${API_BASE_URL}/api/author/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, email, password, role: "USER" }),
   });
-
   return ensureOk(res);
 }
 
-/**
- * Thêm sản phẩm vào giỏ hàng
- */
+export async function logoutUser() {
+  const res = await fetch(`${API_BASE_URL}/api/author/logout`, {
+    method: "POST",
+    credentials: "include",
+  });
+  return ensureOk(res);
+}
+
+export async function fetchUserProfile(): Promise<UserProfileResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/user/me`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  return ensureOk(res);
+}
+
+export async function updateUserProfile(userData: Partial<UserProfileResponse>): Promise<User> {
+  const res = await fetch(`${API_BASE_URL}/api/user/me`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(userData),
+  });
+  return ensureOk(res);
+}
+
+export async function changePassword(data: ChangePasswordRequest) {
+  const res = await fetch(`${API_BASE_URL}/api/user/changepassword`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+  return ensureOk(res);
+}
+
+// Products
+export async function fetchProducts(options: {
+  keyword?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  categoryId?: number;
+  page?: number;
+  size?: number;
+  sortBy?: string;
+  sortDir?: string;
+} = {}): Promise<Product[]> {
+  const params = new URLSearchParams();
+  if (options.keyword) params.append("keyword", options.keyword);
+  if (options.minPrice !== undefined) params.append("minPrice", String(options.minPrice));
+  if (options.maxPrice !== undefined) params.append("maxPrice", String(options.maxPrice));
+  if (options.categoryId) params.append("categoryId", String(options.categoryId));
+  params.append("page", String(options.page || 0));
+  params.append("size", String(options.size || 100));
+  params.append("sortBy", options.sortBy || "id");
+  params.append("sortDir", options.sortDir || "desc");
+
+  const res = await fetch(`${API_BASE_URL}/api/public/products?${params.toString()}`, { cache: "no-store" });
+  const data = (await ensureOk(res)) as BackendProductPage;
+  return (data.content || []).map(mapBackendProduct);
+}
+
+export async function fetchProductById(id: number): Promise<Product> {
+  const res = await fetch(`${API_BASE_URL}/api/public/product/${id}`, { cache: "no-store" });
+  const data = (await ensureOk(res)) as BackendProduct;
+  return mapBackendProduct(data);
+}
+
+export async function fetchProductsByCategoryId(categoryId: number): Promise<Product[]> {
+  const res = await fetch(`${API_BASE_URL}/api/public/product/category/${categoryId}`, { cache: "no-store" });
+  const data = (await ensureOk(res)) as BackendProduct[];
+  return data.map(mapBackendProduct);
+}
+
+export async function fetchBestSellers(limit = 10): Promise<Product[]> {
+  const res = await fetch(`${API_BASE_URL}/api/public/products/best-sellers?limit=${limit}`, { cache: "no-store" });
+  const data = (await ensureOk(res)) as BackendProduct[];
+  return data.map(mapBackendProduct);
+}
+
+export async function fetchNewProducts(limit = 10): Promise<Product[]> {
+  const res = await fetch(`${API_BASE_URL}/api/public/products/new?limit=${limit}`, { cache: "no-store" });
+  const data = (await ensureOk(res)) as BackendProduct[];
+  return data.map(mapBackendProduct);
+}
+
+// Admin Products
+export async function adminCreateProduct(product: ProductRequest, imageFile?: File) {
+  const formData = new FormData();
+  formData.append("product", new Blob([JSON.stringify(product)], { type: "application/json" }));
+  if (imageFile) {
+    formData.append("image", imageFile);
+  }
+
+  const res = await fetch(`${API_BASE_URL}/api/admin/products`, {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  });
+  return ensureOk(res);
+}
+
+export async function adminUpdateProduct(id: number, product: ProductRequest, imageFile?: File) {
+  const formData = new FormData();
+  formData.append("product", new Blob([JSON.stringify(product)], { type: "application/json" }));
+  if (imageFile) {
+    formData.append("image", imageFile);
+  }
+
+  const res = await fetch(`${API_BASE_URL}/api/admin/products/${id}`, {
+    method: "PUT",
+    credentials: "include",
+    body: formData,
+  });
+  return ensureOk(res);
+}
+
+export async function adminDeleteProduct(id: number) {
+  const res = await fetch(`${API_BASE_URL}/api/admin/products/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  return ensureOk(res);
+}
+
+// Categories
+export async function fetchCategories(providedProducts?: Product[]): Promise<Category[]> {
+  const res = await fetch(`${API_BASE_URL}/api/public/categories`, { cache: "no-store" });
+  const data = (await ensureOk(res)) as BackendCategory[];
+  
+  let products = providedProducts;
+  if (!products) {
+    try {
+      products = await fetchProducts({ size: 1000 });
+    } catch (e) {
+      products = [];
+    }
+  }
+
+  const productCountMap = new Map<string, number>();
+  for (const product of products) {
+    productCountMap.set(product.categoryId, (productCountMap.get(product.categoryId) || 0) + 1);
+  }
+
+  const flatCategories: Category[] = [];
+
+  // Recursive function to calculate total count for a category and its descendants
+  const getCategoryCount = (backendCat: BackendCategory): number => {
+    let count = productCountMap.get(String(backendCat.id)) || 0;
+    if (backendCat.children) {
+      backendCat.children.forEach(child => {
+        count += getCategoryCount(child);
+      });
+    }
+    return count;
+  };
+
+  // Recursive function to flatten categories top-down
+  const flattenCategories = (backendCat: BackendCategory, index: number) => {
+    const totalCount = getCategoryCount(backendCat);
+    const mapped = mapBackendCategory(backendCat, totalCount, index);
+    flatCategories.push(mapped);
+    
+    if (backendCat.children) {
+      backendCat.children.forEach((child, childIndex) => {
+        flattenCategories(child, childIndex);
+      });
+    }
+  };
+
+  data.forEach((cat, index) => {
+    flattenCategories(cat, index);
+  });
+
+  return flatCategories;
+}
+
+// Admin Categories
+export async function adminCreateCategory(category: CategoryRequest) {
+  const res = await fetch(`${API_BASE_URL}/api/admin/categories`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(category),
+  });
+  return ensureOk(res);
+}
+
+export async function adminUpdateCategory(id: number, category: CategoryRequest) {
+  const res = await fetch(`${API_BASE_URL}/api/admin/categories/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(category),
+  });
+  return ensureOk(res);
+}
+
+export async function adminDeleteCategory(id: number) {
+  const res = await fetch(`${API_BASE_URL}/api/admin/categories/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  return ensureOk(res);
+}
+
+// Cart
 export async function addToCart(productId: number, quantity: number) {
   const params = new URLSearchParams({ productId: String(productId), quantity: String(quantity) });
   const res = await fetch(`${API_BASE_URL}/api/user/cart?${params.toString()}`, {
     method: "POST",
     credentials: "include",
   });
-
   return ensureOk(res);
 }
 
-/**
- * Lấy danh sách các sản phẩm trong giỏ hàng
- */
 export async function fetchCartItems(): Promise<BackendCartItem[]> {
   const res = await fetch(`${API_BASE_URL}/api/user/cart`, {
     credentials: "include",
     cache: "no-store",
   });
-
   return ensureOk(res) as Promise<BackendCartItem[]>;
 }
 
-/**
- * Xóa sản phẩm khỏi giỏ hàng
- */
 export async function removeCartItem(productId: number) {
   const res = await fetch(`${API_BASE_URL}/api/user/cart/${productId}`, {
     method: "DELETE",
     credentials: "include",
   });
-
   return ensureOk(res);
 }
+
+// Product with Category Hierarchy
+export async function fetchProductsByCategoryRecursive(categoryId: number): Promise<Product[]> {
+  const products = await fetchProducts(); // Fetch all (simplified for now)
+  const categoriesRes = await fetch(`${API_BASE_URL}/api/public/categories`, { cache: "no-store" });
+  const categories = (await ensureOk(categoriesRes)) as BackendCategory[];
+
+  function findCategory(cats: BackendCategory[], id: number): BackendCategory | null {
+    for (const cat of cats) {
+      if (cat.id === id) return cat;
+      if (cat.children) {
+        const found = findCategory(cat.children, id);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
+  function getDescendantIds(cat: BackendCategory): number[] {
+    let ids = [cat.id];
+    if (cat.children) {
+      cat.children.forEach(child => {
+        ids = [...ids, ...getDescendantIds(child)];
+      });
+    }
+    return ids;
+  }
+
+  const targetCategory = findCategory(categories, categoryId);
+  if (!targetCategory) return [];
+
+  const allIds = getDescendantIds(targetCategory).map(String);
+  return products.filter(p => allIds.includes(p.categoryId));
+}
+
+export async function testCategoryFetching() {
+  const products = await fetchProducts();
+  const categories = await fetchCategories(products);
+  
+  console.log("=== Test Category Fetching ===");
+  console.log(`Total Products: ${products.length}`);
+  console.log(`Total Flattened Categories: ${categories.length}`);
+  categories.forEach(cat => {
+    console.log(`- ${cat.name} (ID: ${cat.id}): ${cat.productCount} products`);
+  });
+  
+  return { products, categories };
+}
+
+// Mixed Data
+export const fetchStorefrontData = cache(async () => {
+  const products = await fetchProducts();
+  const categories = await fetchCategories(products);
+  return { products, categories };
+});

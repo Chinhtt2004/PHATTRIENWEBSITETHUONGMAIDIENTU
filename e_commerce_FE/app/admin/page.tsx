@@ -7,7 +7,10 @@ import {
   TrendingUp,
   ArrowUpRight,
   ArrowDownRight,
+  Loader2,
 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { fetchProducts } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -137,6 +140,33 @@ function formatCurrency(amount: number) {
 }
 
 export default function AdminDashboard() {
+  const [productCount, setProductCount] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadStats() {
+      try {
+        const products = await fetchProducts({ size: 1 }); // Just need the total count if possible, but our fetchProducts returns the list.
+        // If fetchProducts returns more metadata like totalElements we should use it.
+        // For now, let's fetch a large-ish number to get a realistic count or just use the length.
+        const allProducts = await fetchProducts({ size: 1000 });
+        setProductCount(allProducts.length);
+      } catch (error) {
+        console.error("Failed to load dashboard stats", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadStats();
+  }, []);
+
+  const updatedStats = stats.map(stat => {
+    if (stat.title === "Sản phẩm") {
+      return { ...stat, value: isLoading ? "..." : productCount.toString() };
+    }
+    return stat;
+  });
+
   return (
     <div className="space-y-6 pt-16 lg:pt-0">
       <div>
@@ -150,7 +180,7 @@ export default function AdminDashboard() {
 
       {/* Stats Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
+        {updatedStats.map((stat) => (
           <Card key={stat.title}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
