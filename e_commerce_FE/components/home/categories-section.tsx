@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
-import { categories } from "@/lib/data";
+import { type Category } from "@/lib/data";
 import {
   Carousel,
   CarouselContent,
@@ -13,11 +13,21 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import Autoplay from "embla-carousel-autoplay";
+import { fetchCategories } from "@/lib/api";
 
 export function CategoriesSection() {
+  const [categories, setCategories] = useState<Category[]>([]);
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchCategories()
+      .then((data) => { if (!cancelled) setCategories(data); })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     if (!api) return;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, Tag } from "lucide-react";
@@ -17,52 +17,99 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { toast } from "sonner";
-import { formatPrice, products } from "@/lib/data";
+import { formatPrice, type Product } from "@/lib/data";
+import { fetchCartItems, fetchProducts, removeCartItem, addToCart } from "@/lib/api";
 
-// Mock cart data
-const initialCartItems = [
-  {
-    id: "item_001",
-    productId: "prod_001",
-    variantId: "var_001_1",
-    name: "Serum Vitamin C 20%",
-    variant: "30ml",
-    image: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=200&h=200&fit=crop",
-    price: 450000,
-    quantity: 2,
-  },
-  {
-    id: "item_002",
-    productId: "prod_004",
-    variantId: "var_004_1",
-    name: "Kem Chống Nắng SPF50+",
-    variant: "50ml",
-    image: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=200&h=200&fit=crop",
-    price: 320000,
-    quantity: 1,
-  },
-];
+interface DisplayCartItem {
+  id: string;
+  productId: string;
+  variantId: string;
+  slug: string;
+  name: string;
+  variant: string;
+  image: string;
+  price: number;
+  quantity: number;
+}
 
 export function CartContent() {
-  const [cartItems, setCartItems] = useState(initialCartItems);
+  const [cartItems, setCartItems] = useState<DisplayCartItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [authRequired, setAuthRequired] = useState(false);
   const [voucherCode, setVoucherCode] = useState("");
   const [appliedVoucher, setAppliedVoucher] = useState<{
     code: string;
     discount: number;
   } | null>(null);
 
-  const updateQuantity = (itemId: string, newQuantity: number) => {
-    if (newQuantity < 1) return;
-    setCartItems((items) =>
-      items.map((item) =>
-        item.id === itemId ? { ...item, quantity: newQuantity } : item
-      )
-    );
+  useEffect(() => {
+    loadCart();
+  }, []);
+
+  const loadCart = async () => {
+    try {
+      setIsLoading(true);
+      const [items, products] = await Promise.all([fetchCartItems(), fetchProducts()]);
+      const productMap = new Map<number, Product>(products.map((product) => [Number(product.id), product]));
+
+      setCartItems(
+        items.map((item) => {
+          const product = productMap.get(item.productId);
+          return {
+            id: String(item.id),
+            productId: String(item.productId),
+            variantId: product?.variants[0]?.id || `var-${item.productId}`,
+            slug: product?.slug || "",
+            name: item.productName,
+            variant: product?.variants[0]?.name || "Mặc định",
+            image: product?.images[0]?.url || "/placeholder.svg",
+            price: product?.price || 0,
+            quantity: item.quantity,
+          };
+        })
+      );
+      setAuthRequired(false);
+    } catch (error) {
+      const status = typeof error === "object" && error && "status" in error ? Number(error.status) : undefined;
+      if (status === 401 || status === 403) {
+        setAuthRequired(true);
+        setCartItems([]);
+      } else {
+        toast.error(error instanceof Error ? error.message : "Không thể tải giỏ hàng");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const removeItem = (itemId: string) => {
-    setCartItems((items) => items.filter((item) => item.id !== itemId));
-    toast.success("Đã xóa sản phẩm khỏi giỏ hàng");
+  const updateQuantity = async (itemId: string, newQuantity: number) => {
+    if (newQuantity < 1) return;
+    const item = cartItems.find((cartItem) => cartItem.id === itemId);
+    if (!item) return;
+
+    try {
+      await addToCart(Number(item.productId), newQuantity);
+      setCartItems((items) =>
+        items.map((cartItem) =>
+          cartItem.id === itemId ? { ...cartItem, quantity: newQuantity } : cartItem
+        )
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể cập nhật số lượng");
+    }
+  };
+
+  const removeItem = async (itemId: string) => {
+    const item = cartItems.find((cartItem) => cartItem.id === itemId);
+    if (!item) return;
+
+    try {
+      await removeCartItem(Number(item.productId));
+      setCartItems((items) => items.filter((cartItem) => cartItem.id !== itemId));
+      toast.success("Đã xóa sản phẩm khỏi giỏ hàng");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể xóa sản phẩm");
+    }
   };
 
   const applyVoucher = () => {
@@ -89,6 +136,29 @@ export function CartContent() {
   const discount = appliedVoucher ? subtotal * appliedVoucher.discount : 0;
   const shipping = subtotal >= 500000 ? 0 : 30000;
   const total = subtotal - discount + shipping;
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-16 text-center text-muted-foreground">
+        Đang tải giỏ hàng...
+      </div>
+    );
+  }
+
+  if (authRequired) {
+    return (
+      <div className="container mx-auto px-4 py-16">
+        <div className="max-w-md mx-auto text-center">
+          <ShoppingBag className="h-24 w-24 text-muted-foreground mx-auto mb-6" />
+          <h1 className="font-serif text-2xl font-bold mb-4">Vui lòng đăng nhập để xem giỏ hàng</h1>
+          <p className="text-muted-foreground mb-8">Giỏ hàng được đồng bộ theo tài khoản của bạn trên hệ thống.</p>
+          <Button asChild size="lg">
+            <Link href="/account/login">Đăng nhập ngay</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (cartItems.length === 0) {
     return (
@@ -143,7 +213,7 @@ export function CartContent() {
                   <div className="flex gap-4">
                     {/* Product Image */}
                     <Link
-                      href={`/product/${products.find(p => p.id === item.productId)?.slug || ''}`}
+                      href={item.slug ? `/product/${item.slug}` : "/products"}
                       className="relative w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-muted"
                     >
                       <Image
@@ -158,7 +228,7 @@ export function CartContent() {
                     {/* Product Info */}
                     <div className="flex-1 min-w-0">
                       <Link
-                        href={`/product/${products.find(p => p.id === item.productId)?.slug || ''}`}
+                        href={item.slug ? `/product/${item.slug}` : "/products"}
                         className="font-medium hover:text-primary transition-colors line-clamp-2"
                       >
                         {item.name}

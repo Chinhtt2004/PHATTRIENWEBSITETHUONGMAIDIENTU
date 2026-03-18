@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProductCard } from "@/components/product/product-card";
-import { products } from "@/lib/data";
+import { type Product } from "@/lib/data";
 import {
   Carousel,
   CarouselContent,
@@ -14,6 +14,7 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import Autoplay from "embla-carousel-autoplay";
+import { fetchBestSellers, fetchNewProducts, fetchProducts } from "@/lib/api";
 
 interface FeaturedProductsProps {
   title: string;
@@ -24,19 +25,40 @@ export function FeaturedProducts({ title, filter }: FeaturedProductsProps) {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Filter products based on badges
-  const filteredProducts = filter
-    ? products.filter((product) => product.badges.includes(filter))
-    : products;
+  useEffect(() => {
+    let isMounted = true;
+    
+    const loadProducts = async () => {
+      try {
+        setIsLoading(true);
+        let data: Product[] = [];
+        
+        if (filter === "bestseller") {
+          data = await fetchBestSellers(8);
+        } else if (filter === "new") {
+          data = await fetchNewProducts(8);
+        } else {
+          data = await fetchProducts({ size: 8 });
+        }
+        
+        if (isMounted) {
+          setProducts(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch featured products:", error);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
 
-  // Take first 8 products for more carousel content
-  const displayProducts = filteredProducts.slice(0, 8);
-
-  // If not enough products with the filter, fill with others
-  const finalProducts = displayProducts.length < 4
-    ? [...displayProducts, ...products.filter(p => !displayProducts.includes(p)).slice(0, 8 - displayProducts.length)]
-    : displayProducts;
+    loadProducts();
+    return () => { isMounted = false; };
+  }, [filter]);
 
   useEffect(() => {
     if (!api) return;
@@ -47,6 +69,19 @@ export function FeaturedProducts({ title, filter }: FeaturedProductsProps) {
 
   const scrollPrev = useCallback(() => api?.scrollPrev(), [api]);
   const scrollNext = useCallback(() => api?.scrollNext(), [api]);
+
+  if (isLoading) {
+    return (
+      <section className="py-16 text-center">
+        <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+        <p className="mt-2 text-muted-foreground">Đang tải sản phẩm...</p>
+      </section>
+    );
+  }
+
+  if (products.length === 0) {
+    return null; // Don't show empty sections
+  }
 
   return (
     <section className="relative py-10 lg:py-16 bg-gradient-to-b from-secondary/10 via-muted/20 to-background overflow-hidden">
@@ -97,7 +132,7 @@ export function FeaturedProducts({ title, filter }: FeaturedProductsProps) {
           setApi={setApi}
           opts={{
             align: "start",
-            loop: true,
+            loop: products.length > 4, // Only loop if we have enough items
           }}
           plugins={[
             Autoplay({ delay: 3000, stopOnInteraction: false, stopOnMouseEnter: true }),
@@ -105,7 +140,7 @@ export function FeaturedProducts({ title, filter }: FeaturedProductsProps) {
           className="w-full"
         >
           <CarouselContent className="-ml-4">
-            {finalProducts.map((product, index) => (
+            {products.map((product, index) => (
               <CarouselItem
                 key={product.id}
                 className="pl-4 basis-1/2 md:basis-1/3 lg:basis-1/4"
@@ -117,19 +152,21 @@ export function FeaturedProducts({ title, filter }: FeaturedProductsProps) {
         </Carousel>
 
         {/* Dots */}
-        <div className="flex justify-center gap-1.5 mt-8">
-          {Array.from({ length: count }).map((_, index) => (
-            <button
-              key={index}
-              onClick={() => api?.scrollTo(index)}
-              className={cn(
-                "h-2 rounded-full transition-all duration-300",
-                index === current ? "w-6 bg-primary" : "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50"
-              )}
-              aria-label={`Chuyển đến nhóm sản phẩm ${index + 1}`}
-            />
-          ))}
-        </div>
+        {count > 1 && (
+          <div className="flex justify-center gap-1.5 mt-8">
+            {Array.from({ length: count }).map((_, index) => (
+              <button
+                key={index}
+                onClick={() => api?.scrollTo(index)}
+                className={cn(
+                  "h-2 rounded-full transition-all duration-300",
+                  index === current ? "w-6 bg-primary" : "w-2 bg-muted-foreground/30 hover:bg-muted-foreground/50"
+                )}
+                aria-label={`Chuyển đến nhóm sản phẩm ${index + 1}`}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

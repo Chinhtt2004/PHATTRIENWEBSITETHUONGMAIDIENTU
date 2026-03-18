@@ -28,8 +28,18 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { formatPrice } from "@/lib/data";
+import { formatPrice, type Product } from "@/lib/data";
+import { fetchCartItems, fetchProducts, fetchUserProfile, fetchMyPromotions, checkout, createVNPayPayment, type Promotion } from "@/lib/api";
+import { useEffect } from "react";
 
 const steps = [
   { id: 1, name: "Thông tin", icon: MapPin },
@@ -83,32 +93,12 @@ const paymentMethods = [
   },
 ];
 
-// Mock cart items
-const cartItems = [
-  {
-    id: "item_001",
-    name: "Serum Vitamin C 20%",
-    variant: "30ml",
-    image:
-      "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=200&h=200&fit=crop",
-    price: 450000,
-    quantity: 2,
-  },
-  {
-    id: "item_002",
-    name: "Kem Chống Nắng SPF50+",
-    variant: "50ml",
-    image:
-      "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=200&h=200&fit=crop",
-    price: 320000,
-    quantity: 1,
-  },
-];
-
 export function CheckoutContent() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cartItems, setCartItems] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [couponCode, setCouponCode] = useState("");
 
   // Form state
@@ -123,6 +113,63 @@ export function CheckoutContent() {
     city: "",
     notes: "",
   });
+
+  const [myPromotions, setMyPromotions] = useState<Promotion[]>([]);
+  const [selectedPromotion, setSelectedPromotion] = useState<Promotion | null>(null);
+  const [isPromoDialogOpen, setIsPromoDialogOpen] = useState(false);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [itemsResult, productsResult, profileResult, promoResult] = await Promise.allSettled([
+          fetchCartItems(),
+          fetchProducts(),
+          fetchUserProfile(),
+          fetchMyPromotions()
+        ]);
+
+        if (itemsResult.status === 'fulfilled' && productsResult.status === 'fulfilled') {
+          const productMap = new Map<number, Product>(
+            productsResult.value.map((p: any) => [Number(p.id), p])
+          );
+
+          setCartItems(
+            itemsResult.value.map((item: any) => {
+              const product = productMap.get(item.productId);
+              return {
+                id: String(item.id),
+                productId: String(item.productId),
+                name: item.productName,
+                variant: product?.variants[0]?.name || "Mặc định",
+                image: product?.images[0]?.url || "/placeholder.svg",
+                price: product?.price || 0,
+                quantity: item.quantity,
+              };
+            })
+          );
+        }
+
+        if (profileResult.status === 'fulfilled') {
+          const u = profileResult.value;
+          setFormData(prev => ({
+            ...prev,
+            email: u.email || "",
+            firstName: u.name || "",
+          }));
+        }
+
+        if (promoResult.status === 'fulfilled') {
+          setMyPromotions(promoResult.value.filter((p: Promotion) => !p.isUsed && p.isActive));
+        }
+      } catch (error) {
+        console.error("Failed to load checkout data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
   const [shippingMethod, setShippingMethod] = useState("standard");
   const [paymentMethod, setPaymentMethod] = useState("cod");
 
@@ -136,14 +183,34 @@ export function CheckoutContent() {
     0
   );
 
+  const discountAmount = React.useMemo(() => {
+    if (!selectedPromotion) return 0;
+
+    if (subtotal < (selectedPromotion.minOrderAmount || 0)) {
+      return 0;
+    }
+
+    if (selectedPromotion.type === "PERCENTAGE") {
+      let discount = (subtotal * selectedPromotion.value) / 100;
+      if (selectedPromotion.maxDiscountAmount) {
+        discount = Math.min(discount, selectedPromotion.maxDiscountAmount);
+      }
+      return discount;
+    } else if (selectedPromotion.type === "FIXED") {
+      return selectedPromotion.value;
+    }
+    return 0;
+  }, [selectedPromotion, subtotal]);
+
   const selectedShipping = shippingMethods.find(
     (m) => m.id === shippingMethod
   );
-  const shipping =
-    subtotal >= 500000 && selectedShipping?.id === "standard"
-      ? 0
-      : selectedShipping?.price || 0;
-  const total = subtotal + shipping;
+
+  const isFreeShippingRule = subtotal >= 500000;
+  const isFreeShippingPromo = selectedPromotion?.type === "SHIPPING" && subtotal >= (selectedPromotion.minOrderAmount || 0);
+
+  const shipping = (isFreeShippingRule || isFreeShippingPromo) ? 0 : (selectedShipping?.price || 0);
+  const total = subtotal - discountAmount + shipping;
 
   const canProceed = () => {
     if (currentStep === 1) {
@@ -174,21 +241,44 @@ export function CheckoutContent() {
   const handleSubmit = async () => {
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      const order = await checkout({
+        receiverName: `${formData.firstName} ${formData.lastName}`.trim(),
+        phone: formData.phone,
+        shippingAddress: `${formData.address}, ${formData.ward}, ${formData.district}, ${formData.city}`,
+        paymentMethod: paymentMethod,
+      });
 
-    toast.success("Đặt hàng thành công!", {
-      description: "Cảm ơn bạn đã mua hàng tại GlowSkin",
-    });
+      toast.success("Đặt hàng thành công!");
 
-    router.push("/checkout/success");
+      if (paymentMethod === "vnpay") {
+        const vnpayResponse = await createVNPayPayment(order.id);
+        if (vnpayResponse.data) {
+          window.location.href = vnpayResponse.data;
+          return;
+        }
+      }
+
+      router.push("/checkout/success");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Đặt hàng thất bại, vui lòng thử lại sau.";
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleApplyCoupon = () => {
-    if (couponCode.trim()) {
-      toast.info("Mã giảm giá không hợp lệ", {
-        description: "Vui lòng kiểm tra lại mã giảm giá",
-      });
+    const promo = myPromotions.find(p => p.code.toLowerCase() === couponCode.trim().toLowerCase());
+    if (promo) {
+      if (subtotal < (promo.minOrderAmount || 0)) {
+        toast.warning(`Đơn hàng chưa đủ tối thiểu ${formatPrice(promo.minOrderAmount || 0)} để áp dụng mã này`);
+        return;
+      }
+      setSelectedPromotion(promo);
+      toast.success(`Đã áp dụng mã ${promo.code}`);
+    } else {
+      toast.error("Mã giảm giá không hợp lệ hoặc bạn chưa thu thập mã này");
     }
   };
 
@@ -220,13 +310,12 @@ export function CheckoutContent() {
           {steps.map((step) => (
             <div key={step.id} className="flex flex-col items-center relative z-10">
               <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 ${
-                  currentStep > step.id
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 ${currentStep > step.id
                     ? "bg-gradient-to-br from-primary to-rose-400 text-white shadow-lg shadow-primary/30"
                     : currentStep === step.id
                       ? "bg-white text-primary border-2 border-primary shadow-lg shadow-primary/20"
                       : "bg-muted/60 text-muted-foreground border border-border"
-                }`}
+                  }`}
               >
                 {currentStep > step.id ? (
                   <Check className="h-5 w-5" />
@@ -235,11 +324,10 @@ export function CheckoutContent() {
                 )}
               </div>
               <span
-                className={`mt-2 text-xs font-medium transition-colors ${
-                  currentStep >= step.id
+                className={`mt-2 text-xs font-medium transition-colors ${currentStep >= step.id
                     ? "text-primary"
                     : "text-muted-foreground"
-                }`}
+                  }`}
               >
                 {step.name}
               </span>
@@ -421,17 +509,16 @@ export function CheckoutContent() {
                 >
                   {shippingMethods.map((method) => {
                     const isDisabled =
-                      method.minOrder && subtotal < method.minOrder;
+                      !!method.minOrder && subtotal < method.minOrder;
                     const isSelected = shippingMethod === method.id;
                     const IconComp = method.icon;
                     return (
                       <label
                         key={method.id}
-                        className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 ${
-                          isSelected
+                        className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 ${isSelected
                             ? "border-primary bg-gradient-to-r from-primary-light/30 to-secondary/15 shadow-sm"
                             : "border-border hover:border-primary/30 hover:bg-primary-light/10"
-                        } ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                          } ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
                       >
                         <div className="flex items-center gap-4">
                           <RadioGroupItem
@@ -440,11 +527,10 @@ export function CheckoutContent() {
                             disabled={isDisabled}
                           />
                           <div
-                            className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                              isSelected
+                            className={`w-10 h-10 rounded-full flex items-center justify-center ${isSelected
                                 ? "bg-primary/15 text-primary"
                                 : "bg-muted text-muted-foreground"
-                            }`}
+                              }`}
                           >
                             <IconComp className="h-5 w-5" />
                           </div>
@@ -456,7 +542,7 @@ export function CheckoutContent() {
                           </div>
                         </div>
                         <span className="font-semibold text-sm">
-                          {method.price === 0 ? (
+                          {method.price === 0 || (isFreeShippingRule && method.id === "standard") ? (
                             <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full text-xs font-bold">
                               Miễn phí
                             </span>
@@ -504,19 +590,17 @@ export function CheckoutContent() {
                     return (
                       <label
                         key={method.id}
-                        className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 ${
-                          isSelected
+                        className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 ${isSelected
                             ? "border-primary bg-gradient-to-r from-primary-light/30 to-secondary/15 shadow-sm"
                             : "border-border hover:border-primary/30 hover:bg-primary-light/10"
-                        }`}
+                          }`}
                       >
                         <RadioGroupItem value={method.id} id={method.id} />
                         <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                            isSelected
+                          className={`w-10 h-10 rounded-full flex items-center justify-center ${isSelected
                               ? "bg-primary/15 text-primary"
                               : "bg-muted text-muted-foreground"
-                          }`}
+                            }`}
                         >
                           <IconComp className="h-5 w-5" />
                         </div>
@@ -688,24 +772,51 @@ export function CheckoutContent() {
                 <Separator className="bg-primary/10" />
 
                 {/* Coupon Code */}
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Mã giảm giá"
-                      value={couponCode}
-                      onChange={(e) => setCouponCode(e.target.value)}
-                      className="pl-9 rounded-lg border-primary/15 text-sm"
-                    />
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Mã giảm giá"
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value)}
+                        className="pl-9 rounded-lg border-primary/15 text-sm"
+                      />
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={handleApplyCoupon}
+                      className="rounded-lg border-primary/20 hover:bg-primary hover:text-white text-sm px-4"
+                    >
+                      Áp dụng
+                    </Button>
                   </div>
                   <Button
-                    variant="outline"
-                    onClick={handleApplyCoupon}
-                    className="rounded-lg border-primary/20 hover:bg-primary hover:text-white text-sm px-4"
+                    variant="link"
+                    onClick={() => setIsPromoDialogOpen(true)}
+                    className="text-xs text-primary h-auto p-0 flex items-center gap-1"
                   >
-                    Áp dụng
+                    <Sparkles className="h-3 w-3" />
+                    Chọn từ kho voucher của bạn
                   </Button>
                 </div>
+
+                {selectedPromotion && (
+                  <div className="flex items-center justify-between p-2 rounded-lg bg-primary-light/20 border border-primary/20">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <Badge className="bg-primary text-[10px] h-5">{selectedPromotion.code}</Badge>
+                      <span className="text-[10px] text-muted-foreground truncate">{selectedPromotion.description}</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5 text-muted-foreground hover:text-destructive"
+                      onClick={() => setSelectedPromotion(null)}
+                    >
+                      ×
+                    </Button>
+                  </div>
+                )}
 
                 <Separator className="bg-primary/10" />
 
@@ -715,6 +826,15 @@ export function CheckoutContent() {
                     <span className="text-muted-foreground">Tạm tính</span>
                     <span className="font-medium">{formatPrice(subtotal)}</span>
                   </div>
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between text-rose-500 font-medium">
+                      <span className="flex items-center gap-1">
+                        <Tag className="h-3 w-3" />
+                        Giảm giá
+                      </span>
+                      <span>-{formatPrice(discountAmount)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Vận chuyển</span>
                     <span className="font-medium">
@@ -739,6 +859,75 @@ export function CheckoutContent() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Voucher Selection Dialog */}
+            <Dialog open={isPromoDialogOpen} onOpenChange={setIsPromoDialogOpen}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="font-serif">Voucher của bạn</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+                  {myPromotions.length === 0 ? (
+                    <div className="py-10 text-center space-y-3">
+                      <Gift className="h-10 w-10 mx-auto text-muted-foreground opacity-20" />
+                      <p className="text-sm text-muted-foreground">Bạn chưa có voucher nào. Hãy thu thập ở trang Khuyến mãi!</p>
+                      <Button asChild variant="outline" size="sm">
+                        <Link href="/promotions">Đi xem khuyến mãi</Link>
+                      </Button>
+                    </div>
+                  ) : (
+                    myPromotions.map((promo) => {
+                      const isEligible = subtotal >= (promo.minOrderAmount || 0);
+                      const isSelected = selectedPromotion?.id === promo.id;
+                      return (
+                        <div
+                          key={promo.id}
+                          onClick={() => {
+                            if (isEligible) {
+                              setSelectedPromotion(promo);
+                              setIsPromoDialogOpen(false);
+                            }
+                          }}
+                          className={`relative p-4 rounded-xl border-2 transition-all cursor-pointer group ${isSelected
+                              ? "border-primary bg-primary-light/10"
+                              : isEligible
+                                ? "border-muted hover:border-primary/50"
+                                : "opacity-50 grayscale cursor-not-allowed"
+                            }`}
+                        >
+                          <div className="flex items-start gap-4">
+                            <div className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${promo.type === 'SHIPPING' ? 'bg-blue-100 text-blue-600' : 'bg-rose-100 text-rose-600'
+                              }`}>
+                              {promo.type === 'SHIPPING' ? <Truck className="h-6 w-6" /> : <Gift className="h-6 w-6" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-sm">{promo.code}</p>
+                              <p className="text-xs text-muted-foreground line-clamp-1">{promo.description}</p>
+                              <div className="flex items-center gap-2 mt-2">
+                                <Badge variant="secondary" className="text-[10px] py-0">{
+                                  promo.type === 'PERCENTAGE' ? `Giảm ${promo.value}%` :
+                                    promo.type === 'FIXED' ? `Giảm ${formatPrice(promo.value)}` : 'Free Ship'
+                                }</Badge>
+                                {!isEligible && (
+                                  <span className="text-[10px] text-rose-500 font-medium">
+                                    Thêm {formatPrice((promo.minOrderAmount || 0) - subtotal)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            {isSelected && (
+                              <div className="absolute top-2 right-2">
+                                <Check className="h-4 w-4 text-primary" />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
 
             {/* Trust Badges */}
             <div className="grid grid-cols-2 gap-3">

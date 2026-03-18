@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Search, ShoppingBag, User, Menu, X, Heart, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,7 +20,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { categories } from "@/lib/data";
+import { type Category } from "@/lib/data";
+import { fetchCategories, fetchUserProfile, logoutUser, type UserProfileResponse } from "@/lib/api";
+import { toast } from "sonner";
+import { useRouter, usePathname } from "next/navigation";
 
 const navigation = [
   { name: "Trang chủ", href: "/", highlight: false },
@@ -32,9 +35,39 @@ const navigation = [
 ];
 
 export function Header() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [user, setUser] = useState<UserProfileResponse | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const cartItemCount = 3; // This would come from cart state
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchCategories()
+      .then((data) => { if (!cancelled) setCategories(data); })
+      .catch(() => undefined);
+    
+    // Check session
+    fetchUserProfile()
+      .then((profile) => { if (!cancelled) setUser(profile); })
+      .catch(() => { if (!cancelled) setUser(null); });
+
+    return () => { cancelled = true; };
+  }, [pathname]);
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+      setUser(null);
+      toast.success("Đã đăng xuất thành công");
+      router.push("/");
+      router.refresh();
+    } catch (error) {
+      toast.error("Đăng xuất thất bại");
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -143,19 +176,41 @@ export function Header() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem asChild>
-                  <Link href="/account/login">Đăng nhập</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/account/register">Đăng ký</Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/account">Tài khoản của tôi</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/account/orders">Đơn hàng</Link>
-                </DropdownMenuItem>
+                {user ? (
+                  <>
+                    <div className="flex items-center justify-start gap-2 p-2">
+                      <div className="flex flex-col space-y-1 leading-none">
+                        <p className="font-medium text-sm">{user.name}</p>
+                        <p className="w-[150px] truncate text-xs text-muted-foreground">
+                          {user.email}
+                        </p>
+                      </div>
+                    </div>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link href="/account" className="cursor-pointer">Hồ sơ của tôi</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/account/orders" className="cursor-pointer">Đơn hàng</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      className="text-destructive focus:text-destructive cursor-pointer"
+                      onClick={handleLogout}
+                    >
+                      Đăng xuất
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <>
+                    <DropdownMenuItem asChild>
+                      <Link href="/account/login" className="cursor-pointer">Đăng nhập</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/account/register" className="cursor-pointer">Đăng ký</Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
 
@@ -232,6 +287,62 @@ export function Header() {
                 )}
               </Link>
             ))}
+            <div className="border-t border-border pt-4 mt-4">
+              <p className="text-sm font-semibold text-muted-foreground mb-3">Tài khoản</p>
+              {user ? (
+                <>
+                  <div className="flex items-center gap-3 px-2 py-3 bg-muted/50 rounded-lg mb-4">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex flex-col">
+                      <p className="text-sm font-medium">{user.name}</p>
+                      <p className="text-xs text-muted-foreground truncate w-40">{user.email}</p>
+                    </div>
+                  </div>
+                  <Link
+                    href="/account"
+                    className="block py-2 text-foreground/80 hover:text-primary"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Hồ sơ của tôi
+                  </Link>
+                  <Link
+                    href="/account/orders"
+                    className="block py-2 text-foreground/80 hover:text-primary"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Đơn hàng
+                  </Link>
+                  <button
+                    className="block w-full text-left py-2 text-destructive hover:text-destructive/80"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      handleLogout();
+                    }}
+                  >
+                    Đăng xuất
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/account/login"
+                    className="block py-2 text-foreground/80 hover:text-primary"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Đăng nhập
+                  </Link>
+                  <Link
+                    href="/account/register"
+                    className="block py-2 text-foreground/80 hover:text-primary"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Đăng ký
+                  </Link>
+                </>
+              )}
+            </div>
             <div className="border-t border-border pt-4 mt-4">
               <p className="text-sm font-semibold text-muted-foreground mb-3">Danh mục</p>
               {categories.map((category) => (

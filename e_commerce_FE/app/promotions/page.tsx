@@ -1,4 +1,10 @@
+<<<<<<< HEAD
 import { Metadata } from "next";
+=======
+"use client";
+
+import { useEffect, useState } from "react";
+>>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
 import Image from "next/image";
 import Link from "next/link";
 import { Header } from "@/components/layout/header";
@@ -8,7 +14,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { products, formatPrice } from "@/lib/data";
+<<<<<<< HEAD
 import { CopyButton } from "@/components/promotions/copy-button";
+=======
+import { fetchPublicPromotions, collectPromotion, type Promotion } from "@/lib/api";
+import { toast } from "sonner";
+>>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
 import {
   Gift,
   Percent,
@@ -21,6 +32,7 @@ import {
   Star,
   Copy,
   CheckCircle2,
+<<<<<<< HEAD
 } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -114,6 +126,12 @@ const promotionsList = [
   },
 ];
 
+=======
+  Loader2,
+} from "lucide-react";
+
+// Mock combo deals for now as they are not in backend yet
+>>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
 const comboDeals = [
   {
     id: "combo_1",
@@ -147,9 +165,66 @@ const comboDeals = [
   },
 ];
 
+<<<<<<< HEAD
 export default function PromotionsPage() {
   const activePromotions = promotionsList.filter((p) => p.isActive);
   const expiredPromotions = promotionsList.filter((p) => !p.isActive);
+=======
+const saleProducts = products.filter((p) => p.compareAtPrice !== null);
+
+const getPromotionIcon = (type: string) => {
+  switch (type) {
+    case "PERCENTAGE":
+      return { icon: Percent, color: "text-primary", bgColor: "bg-primary/10" };
+    case "SHIPPING":
+      return { icon: Truck, color: "text-success", bgColor: "bg-success/10" };
+    case "FIXED":
+    default:
+      return { icon: Gift, color: "text-info", bgColor: "bg-info/10" };
+  }
+};
+
+export default function PromotionsPage() {
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [collectingId, setCollectingId] = useState<number | null>(null);
+
+  useEffect(() => {
+    loadPromotions();
+  }, []);
+
+  const loadPromotions = async () => {
+    try {
+      const data = await fetchPublicPromotions();
+      setPromotions(data);
+    } catch (error) {
+      console.error("Failed to fetch promotions:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCollect = async (id: number) => {
+    setCollectingId(id);
+    try {
+      await collectPromotion(id);
+      toast.success("Thu thập thành công!", {
+        description: "Mã giảm giá đã được thêm vào tài khoản của bạn.",
+      });
+      // Refresh to update collected state
+      const data = await fetchPublicPromotions();
+      setPromotions(data);
+    } catch (error: any) {
+      console.error("Failed to collect promotion:", error);
+      toast.error(error.message || "Không thể thu thập mã lúc này.");
+    } finally {
+      setCollectingId(null);
+    }
+  };
+
+  const activePromotions = promotions.filter((p) => p.isActive);
+  const expiredPromotions = promotions.filter((p) => !p.isActive);
+>>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -182,15 +257,22 @@ export default function PromotionsPage() {
                 </div>
                 <div className="flex items-center gap-2 bg-white/15 px-4 py-2 rounded-lg">
                   <Percent className="h-5 w-5" />
+<<<<<<< HEAD
                   <span className="font-medium">Giảm đến 30%</span>
+=======
+                  <span className="font-medium">Giảm ưu đãi lớn</span>
+>>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
                 </div>
               </div>
             </div>
           </div>
+<<<<<<< HEAD
 
           {/* Decorative */}
           <div className="absolute -top-20 -left-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
           <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
+=======
+>>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
         </section>
 
         {/* Active Voucher Codes */}
@@ -201,6 +283,7 @@ export default function PromotionsPage() {
                 Mã Khuyến Mãi Đang Hoạt Động
               </h2>
               <p className="text-muted-foreground">
+<<<<<<< HEAD
                 Sao chép mã và áp dụng khi thanh toán để nhận ưu đãi
               </p>
             </div>
@@ -256,6 +339,92 @@ export default function PromotionsPage() {
         </section>
 
         {/* Combo Deals */}
+=======
+                Thu thập mã ngay để áp dụng khi thanh toán
+              </p>
+            </div>
+
+            {loading ? (
+              <div className="flex justify-center py-20">
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+              </div>
+            ) : (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                {activePromotions.map((promo) => {
+                  const theme = getPromotionIcon(promo.type);
+                  const IconComponent = theme.icon;
+                  return (
+                    <Card
+                      key={promo.id}
+                      className="overflow-hidden border-2 border-dashed border-primary/20 hover:border-primary/40 transition-all hover:shadow-lg"
+                    >
+                      <CardContent className="p-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div
+                            className={`w-12 h-12 rounded-xl ${theme.bgColor} flex items-center justify-center`}
+                          >
+                            <IconComponent className={`h-6 w-6 ${theme.color}`} />
+                          </div>
+                          <Badge variant="default" className="bg-success text-white">
+                            Đang hoạt động
+                          </Badge>
+                        </div>
+
+                        <h3 className="font-bold text-lg mb-1">
+                          {promo.type === "PERCENTAGE"
+                            ? `Giảm ${promo.value}%`
+                            : promo.type === "FIXED"
+                              ? `Giảm ${formatPrice(promo.value)}`
+                              : "Miễn phí vận chuyển"}
+                        </h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          {promo.description}
+                        </p>
+
+                        <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 mb-4">
+                          <code className="flex-1 text-lg font-bold text-primary tracking-wider">
+                            {promo.code}
+                          </code>
+                          <Button
+                            size="sm"
+                            disabled={promo.isCollected || collectingId === promo.id}
+                            onClick={() => handleCollect(promo.id)}
+                            className={promo.isCollected ? "bg-muted text-muted-foreground" : "bg-primary hover:bg-primary-hover"}
+                          >
+                            {collectingId === promo.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : promo.isCollected ? (
+                              <>
+                                <CheckCircle2 className="mr-1 h-3 w-3" />
+                                Đã thu thập
+                              </>
+                            ) : (
+                              "Thu thập"
+                            )}
+                          </Button>
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <ShoppingBag className="h-3.5 w-3.5" />
+                            Đơn tối thiểu: {formatPrice(promo.minOrderAmount || 0)}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="h-3.5 w-3.5" />
+                            HSD: {new Date(promo.endDate).toLocaleDateString("vi-VN")}
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Combo Deals Section */}
+>>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
         <section className="py-10 lg:py-16 bg-gradient-to-b from-secondary/12 via-primary-light/8 to-background">
           <div className="container mx-auto px-4">
             <div className="text-center mb-10">
@@ -310,6 +479,7 @@ export default function PromotionsPage() {
           </div>
         </section>
 
+<<<<<<< HEAD
         {/* Sale Products */}
         {saleProducts.length > 0 && (
           <section className="py-10 lg:py-16">
@@ -351,6 +521,8 @@ export default function PromotionsPage() {
           </section>
         )}
 
+=======
+>>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
         {/* How to use voucher */}
         <section className="py-10 lg:py-16 bg-gradient-to-b from-background via-primary-light/10 to-secondary/12">
           <div className="container mx-auto px-4">
@@ -366,11 +538,19 @@ export default function PromotionsPage() {
             <div className="grid sm:grid-cols-3 gap-8 max-w-3xl mx-auto">
               <div className="text-center">
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+<<<<<<< HEAD
                   <Copy className="h-7 w-7 text-primary" />
                 </div>
                 <h3 className="font-bold text-lg mb-2">Bước 1</h3>
                 <p className="text-sm text-muted-foreground">
                   Sao chép mã khuyến mãi bạn muốn sử dụng
+=======
+                  <Tag className="h-7 w-7 text-primary" />
+                </div>
+                <h3 className="font-bold text-lg mb-2">Bước 1</h3>
+                <p className="text-sm text-muted-foreground">
+                  Nhấn "Thu thập" voucher bạn muốn sử dụng
+>>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
                 </p>
               </div>
               <div className="text-center">
@@ -388,12 +568,17 @@ export default function PromotionsPage() {
                 </div>
                 <h3 className="font-bold text-lg mb-2">Bước 3</h3>
                 <p className="text-sm text-muted-foreground">
+<<<<<<< HEAD
                   Nhập mã vào ô khuyến mãi và nhận ưu đãi ngay
+=======
+                  Chọn voucher đã thu thập tại bước thanh toán để nhận ưu đãi
+>>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
                 </p>
               </div>
             </div>
           </div>
         </section>
+<<<<<<< HEAD
 
         {/* Expired promotions */}
         {expiredPromotions.length > 0 && (
@@ -462,6 +647,8 @@ export default function PromotionsPage() {
             </div>
           </div>
         </section>
+=======
+>>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
       </main>
       <Footer />
     </div>

@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { toast } from "sonner";
 import { ProductCard } from "@/components/product/product-card";
+import { addToCart } from "@/lib/api";
 import {
   type Product,
   type Review,
@@ -64,15 +65,30 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
 
   const category = categories.find((c) => c.id === product.categoryId);
 
-  const handleAddToCart = () => {
-    toast.success("Đã thêm vào giỏ hàng!", {
-      description: `${product.name} - ${selectedVariant.name} x ${quantity}`,
-    });
+  const handleAddToCart = async () => {
+    try {
+      await addToCart(Number(product.id), quantity);
+      toast.success("Đã thêm vào giỏ hàng!", {
+        description: `${product.name} - ${selectedVariant.name} x ${quantity}`,
+      });
+      return true;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Không thể thêm vào giỏ hàng";
+      if (message.includes("403") || message.includes("401") || /token/i.test(message)) {
+        toast.error("Vui lòng đăng nhập để thêm vào giỏ hàng");
+        router.push("/account/login");
+        return false;
+      }
+      toast.error(message);
+      return false;
+    }
   };
 
-  const handleBuyNow = () => {
-    handleAddToCart();
-    router.push("/checkout");
+  const handleBuyNow = async () => {
+    const success = await handleAddToCart();
+    if (success) {
+      router.push("/checkout");
+    }
   };
 
   const handleWishlist = () => {

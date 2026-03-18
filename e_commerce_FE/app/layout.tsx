@@ -2,7 +2,11 @@ import React from "react"
 import type { Metadata, Viewport } from 'next'
 import { Inter, Playfair_Display } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+<<<<<<< HEAD
 import { Toaster } from "@/components/ui/toaster"
+=======
+import { Toaster } from "@/components/ui/sonner"
+>>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
 import { ChatbotWidget } from "@/components/chatbot/chatbot-widget"
 import './globals.css'
 
@@ -57,8 +61,13 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
+<<<<<<< HEAD
     <html lang="vi">
       <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`}>
+=======
+    <html lang="vi" suppressHydrationWarning>
+      <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`} suppressHydrationWarning>
+>>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
         {children}
         <Toaster />
         <ChatbotWidget />

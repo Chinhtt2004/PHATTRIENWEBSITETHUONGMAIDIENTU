@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Filter, SlidersHorizontal, Grid3X3, LayoutGrid, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,7 +31,9 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { ProductCard } from "@/components/product/product-card";
-import { products, categories, formatPrice } from "@/lib/data";
+import { type Category, type Product, formatPrice } from "@/lib/data";
+import { fetchStorefrontData } from "@/lib/api";
+import { toast } from "sonner";
 
 const skinTypes = [
   { id: "all", label: "Tất cả loại da" },
@@ -51,12 +53,38 @@ const sortOptions = [
 ];
 
 export function ProductsContent() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedSkinTypes, setSelectedSkinTypes] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000000]);
   const [sortBy, setSortBy] = useState("featured");
   const [gridCols, setGridCols] = useState<3 | 4>(4);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchStorefrontData()
+      .then((data) => {
+        if (!isMounted) return;
+        setProducts(data.products);
+        setCategories(data.categories);
+      })
+      .catch(() => {
+        toast.error("Không thể tải danh sách sản phẩm");
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
@@ -96,7 +124,7 @@ export function ProductsContent() {
     }
 
     return result;
-  }, [selectedCategories, selectedSkinTypes, priceRange, sortBy]);
+  }, [products, selectedCategories, selectedSkinTypes, priceRange, sortBy]);
 
   const activeFiltersCount =
     selectedCategories.length +
@@ -108,6 +136,14 @@ export function ProductsContent() {
     setSelectedSkinTypes([]);
     setPriceRange([0, 1000000]);
   };
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-16 text-center text-muted-foreground">
+        Đang tải sản phẩm...
+      </div>
+    );
+  }
 
   const FiltersContent = () => (
     <div className="space-y-6">
