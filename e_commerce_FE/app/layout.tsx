@@ -2,11 +2,7 @@ import React from "react"
 import type { Metadata, Viewport } from 'next'
 import { Inter, Playfair_Display } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
-<<<<<<< HEAD
-import { Toaster } from "@/components/ui/toaster"
-=======
 import { Toaster } from "@/components/ui/sonner"
->>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
 import { ChatbotWidget } from "@/components/chatbot/chatbot-widget"
 import { CartProvider } from "@/contexts/cart-context"
 import './globals.css'
@@ -39,43 +35,39 @@ export const metadata: Metadata = {
       {
         url: '/icon.svg',
         type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
-  },
-  openGraph: {
-    type: 'website',
-    locale: 'vi_VN',
-    siteName: 'GlowSkin',
-  },
-  metadataBase: new URL("http://localhost:3000"),
-}
-
-export const viewport: Viewport = {
-  themeColor: '#B76E79',
-  width: 'device-width',
-  initialScale: 1,
-}
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode
-}>) {
-  return (
-<<<<<<< HEAD
-    <html lang="vi">
-      <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`}>
-=======
-    <html lang="vi" suppressHydrationWarning>
-      <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`} suppressHydrationWarning>
-        <CartProvider>
-          {children}
-        </CartProvider>
-        <Toaster />
-        <ChatbotWidget />
-        <Analytics />
-      </body>
-    </html>
-  )
-}
+        },
+      ],
+      apple: '/apple-icon.png',
+    },
+    openGraph: {
+      type: 'website',
+      locale: 'vi_VN',
+      siteName: 'GlowSkin',
+    },
+    metadataBase: new URL("http://localhost:3000"),
+  }
+  
+  export const viewport: Viewport = {
+    themeColor: '#B76E79',
+    width: 'device-width',
+    initialScale: 1,
+  }
+  
+  export default function RootLayout({
+    children,
+  }: Readonly<{
+    children: React.ReactNode
+  }>) {
+    return (
+      <html lang="vi" suppressHydrationWarning>
+        <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`} suppressHydrationWarning>
+          <CartProvider>
+            {children}
+          </CartProvider>
+          <Toaster />
+          <ChatbotWidget />
+          <Analytics />
+        </body>
+      </html>
+    )
+  }

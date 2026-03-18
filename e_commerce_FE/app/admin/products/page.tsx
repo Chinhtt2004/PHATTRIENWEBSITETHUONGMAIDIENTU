@@ -1,10 +1,6 @@
 "use client";
 
-<<<<<<< HEAD
-import { useState } from "react";
-=======
 import { useEffect, useState, useCallback } from "react";
->>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -15,10 +11,7 @@ import {
   Trash2,
   Eye,
   Filter,
-<<<<<<< HEAD
-=======
   Loader2,
->>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,9 +39,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-<<<<<<< HEAD
-import { products as mockProducts } from "@/lib/data";
-=======
 import { fetchProducts, fetchCategories, adminDeleteProduct } from "@/lib/api";
 import type { Product, Category } from "@/lib/data";
 import { toast } from "sonner";
@@ -63,33 +53,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
->>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("vi-VN").format(amount) + "d";
 }
 
 export default function AdminProductsPage() {
-<<<<<<< HEAD
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
-  const [categoryFilter, setCategoryFilter] = useState("all");
-
-  const filteredProducts = mockProducts.filter((product) => {
-    const matchesSearch = product.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    const matchesCategory =
-      categoryFilter === "all" || product.categoryId === categoryFilter;
-    return matchesSearch && matchesCategory;
-  });
-
-  const toggleSelectAll = () => {
-    if (selectedProducts.length === filteredProducts.length) {
-      setSelectedProducts([]);
-    } else {
-      setSelectedProducts(filteredProducts.map((p) => p.id));
-=======
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -138,7 +107,6 @@ export default function AdminProductsPage() {
       setSelectedProducts([]);
     } else {
       setSelectedProducts(products.map((p) => p.id));
->>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
     }
   };
 
@@ -187,180 +155,17 @@ export default function AdminProductsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tất cả danh mục</SelectItem>
-<<<<<<< HEAD
-                  <SelectItem value="cat_skincare">Chăm sóc da</SelectItem>
-                  <SelectItem value="cat_cleanser">Làm sạch</SelectItem>
-                  <SelectItem value="cat_suncare">Chống nắng</SelectItem>
-                  <SelectItem value="cat_makeup">Trang điểm</SelectItem>
-=======
                   {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
+                    <SelectItem key={cat.id} value={cat.id.toString()}>
                       {cat.name}
                     </SelectItem>
                   ))}
->>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
                 </SelectContent>
               </Select>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-<<<<<<< HEAD
-          {selectedProducts.length > 0 && (
-            <div className="mb-4 flex items-center gap-4 rounded-lg bg-muted p-3">
-              <span className="text-sm">
-                Đã chọn {selectedProducts.length} sản phẩm
-              </span>
-              <Button variant="outline" size="sm">
-                Xuất Excel
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-destructive hover:text-destructive bg-transparent"
-              >
-                Xóa
-              </Button>
-            </div>
-          )}
-
-          <div className="rounded-lg border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">
-                    <Checkbox
-                      checked={
-                        selectedProducts.length === filteredProducts.length &&
-                        filteredProducts.length > 0
-                      }
-                      onCheckedChange={toggleSelectAll}
-                    />
-                  </TableHead>
-                  <TableHead>Sản phẩm</TableHead>
-                  <TableHead>SKU</TableHead>
-                  <TableHead>Giá</TableHead>
-                  <TableHead>Tồn kho</TableHead>
-                  <TableHead>Trạng thái</TableHead>
-                  <TableHead className="w-12"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredProducts.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedProducts.includes(product.id)}
-                        onCheckedChange={() => toggleSelect(product.id)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="relative h-12 w-12 overflow-hidden rounded-lg bg-muted">
-                          <Image
-                            src={product.images[0]?.url || "/placeholder.svg"}
-                            alt={product.name}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                        <div>
-                          <p className="font-medium">{product.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {product.variants.length} biến thể
-                          </p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">
-                      {product.sku}
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">
-                          {formatCurrency(product.price)}
-                        </p>
-                        {product.compareAtPrice && (
-                          <p className="text-sm text-muted-foreground line-through">
-                            {formatCurrency(product.compareAtPrice)}
-                          </p>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span
-                        className={
-                          product.inventory.quantity < 10
-                            ? "text-warning font-medium"
-                            : ""
-                        }
-                      >
-                        {product.inventory.quantity}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          product.inventory.available ? "default" : "secondary"
-                        }
-                        className={
-                          product.inventory.available
-                            ? "bg-success text-white"
-                            : ""
-                        }
-                      >
-                        {product.inventory.available ? "Còn hàng" : "Hết hàng"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link href={`/product/${product.slug}`} target="_blank">
-                              <Eye className="mr-2 h-4 w-4" />
-                              Xem
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem asChild>
-                            <Link href={`/admin/products/${product.id}`}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              Chỉnh sửa
-                            </Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Xóa
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-            <span>
-              Hiển thị {filteredProducts.length} / {mockProducts.length} sản phẩm
-            </span>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" disabled>
-                Trước
-              </Button>
-              <Button variant="outline" size="sm" disabled>
-                Sau
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-=======
           {isLoading ? (
             <div className="flex justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -559,7 +364,6 @@ export default function AdminProductsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
->>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
     </div>
   );
 }

@@ -7,11 +7,7 @@ import { Footer } from "@/components/layout/footer";
 import { ProductCard } from "@/components/product/product-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-<<<<<<< HEAD
-import { categories, products } from "@/lib/data";
-=======
 import { fetchStorefrontData } from "@/lib/api";
->>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
 import { ChevronRight, SlidersHorizontal, Grid3X3, LayoutGrid } from "lucide-react";
 
 interface CategoryPageProps {
@@ -20,10 +16,7 @@ interface CategoryPageProps {
 
 export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
   const { slug } = await params;
-<<<<<<< HEAD
-=======
   const { categories } = await fetchStorefrontData();
->>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
   const category = categories.find((c) => c.slug === slug);
 
   if (!category) {
@@ -36,20 +29,9 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
   };
 }
 
-<<<<<<< HEAD
-export async function generateStaticParams() {
-  return categories.map((category) => ({
-    slug: category.slug,
-  }));
-}
-
-export default async function CategoryPage({ params }: CategoryPageProps) {
-  const { slug } = await params;
-=======
 export default async function CategoryPage({ params }: CategoryPageProps) {
   const { slug } = await params;
   const { categories, products } = await fetchStorefrontData();
->>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
   const category = categories.find((c) => c.slug === slug);
 
   if (!category) {

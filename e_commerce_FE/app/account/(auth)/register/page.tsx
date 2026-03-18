@@ -20,10 +20,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-<<<<<<< HEAD
-=======
 import { registerUser } from "@/lib/api";
->>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -49,13 +46,6 @@ export default function RegisterPage() {
 
     setIsLoading(true);
 
-<<<<<<< HEAD
-    // Simulate register
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    toast.success("Đăng ký thành công! Vui lòng đăng nhập.");
-    router.push("/account/login");
-=======
     try {
       const name = `${formData.lastName} ${formData.firstName}`.trim();
       await registerUser(name, formData.email, formData.password);
@@ -68,7 +58,6 @@ export default function RegisterPage() {
     } finally {
       setIsLoading(false);
     }
->>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
   };
 
   return (

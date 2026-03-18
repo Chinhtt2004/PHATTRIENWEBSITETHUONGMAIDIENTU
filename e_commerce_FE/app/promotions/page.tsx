@@ -1,10 +1,6 @@
-<<<<<<< HEAD
-import { Metadata } from "next";
-=======
 "use client";
 
 import { useEffect, useState } from "react";
->>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
 import Image from "next/image";
 import Link from "next/link";
 import { Header } from "@/components/layout/header";
@@ -14,12 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { products, formatPrice } from "@/lib/data";
-<<<<<<< HEAD
-import { CopyButton } from "@/components/promotions/copy-button";
-=======
 import { fetchPublicPromotions, collectPromotion, type Promotion } from "@/lib/api";
 import { toast } from "sonner";
->>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
 import {
   Gift,
   Percent,
@@ -32,106 +24,10 @@ import {
   Star,
   Copy,
   CheckCircle2,
-<<<<<<< HEAD
-} from "lucide-react";
-
-export const metadata: Metadata = {
-  title: "Khuyến Mãi | GlowSkin - Ưu Đãi & Mã Giảm Giá",
-  description:
-    "Tổng hợp các chương trình khuyến mãi, mã giảm giá và ưu đãi hấp dẫn tại GlowSkin. Tiết kiệm hơn khi mua sắm mỹ phẩm chính hãng.",
-};
-
-const saleProducts = products.filter((p) => p.compareAtPrice !== null);
-
-const promotionsList = [
-  {
-    id: "promo_1",
-    title: "Giảm 20% Đơn Hàng Mùa Hè",
-    code: "SUMMER20",
-    type: "percentage" as const,
-    value: 20,
-    description:
-      "Áp dụng cho tất cả đơn hàng từ 500.000đ. Giảm tối đa 200.000đ.",
-    minOrder: 500000,
-    maxDiscount: 200000,
-    expiry: "31/03/2026",
-    isActive: true,
-    icon: Percent,
-    color: "text-primary",
-    bgColor: "bg-primary/10",
-  },
-  {
-    id: "promo_2",
-    title: "Miễn Phí Vận Chuyển",
-    code: "FREESHIP",
-    type: "shipping" as const,
-    value: 0,
-    description:
-      "Miễn phí giao hàng toàn quốc cho đơn hàng từ 300.000đ.",
-    minOrder: 300000,
-    maxDiscount: null,
-    expiry: "31/12/2026",
-    isActive: true,
-    icon: Truck,
-    color: "text-success",
-    bgColor: "bg-success/10",
-  },
-  {
-    id: "promo_3",
-    title: "Giảm 50K Cho Khách Mới",
-    code: "NEWUSER50",
-    type: "fixed" as const,
-    value: 50000,
-    description:
-      "Dành riêng cho khách hàng đăng ký tài khoản mới. Áp dụng cho đơn từ 200.000đ.",
-    minOrder: 200000,
-    maxDiscount: null,
-    expiry: "31/12/2026",
-    isActive: true,
-    icon: Gift,
-    color: "text-info",
-    bgColor: "bg-info/10",
-  },
-  {
-    id: "promo_4",
-    title: "Giảm 15% Chăm Sóc Da",
-    code: "SKINCARE15",
-    type: "percentage" as const,
-    value: 15,
-    description:
-      "Áp dụng cho toàn bộ danh mục Chăm sóc da. Giảm tối đa 150.000đ.",
-    minOrder: 300000,
-    maxDiscount: 150000,
-    expiry: "30/06/2026",
-    isActive: true,
-    icon: Sparkles,
-    color: "text-warning",
-    bgColor: "bg-warning/10",
-  },
-  {
-    id: "promo_5",
-    title: "VIP - Giảm 30%",
-    code: "VIP30",
-    type: "percentage" as const,
-    value: 30,
-    description:
-      "Ưu đãi đặc biệt dành cho khách hàng VIP. Đơn tối thiểu 1.000.000đ.",
-    minOrder: 1000000,
-    maxDiscount: 500000,
-    expiry: "15/01/2026",
-    isActive: false,
-    icon: Star,
-    color: "text-muted-foreground",
-    bgColor: "bg-muted",
-  },
-];
-
-=======
   Loader2,
 } from "lucide-react";
 
 // Mock combo deals for now as they are not in backend yet
->>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
 const comboDeals = [
   {
     id: "combo_1",
@@ -165,11 +61,6 @@ const comboDeals = [
   },
 ];
 
-<<<<<<< HEAD
-export default function PromotionsPage() {
-  const activePromotions = promotionsList.filter((p) => p.isActive);
-  const expiredPromotions = promotionsList.filter((p) => !p.isActive);
-=======
 const saleProducts = products.filter((p) => p.compareAtPrice !== null);
 
 const getPromotionIcon = (type: string) => {
@@ -224,7 +115,6 @@ export default function PromotionsPage() {
 
   const activePromotions = promotions.filter((p) => p.isActive);
   const expiredPromotions = promotions.filter((p) => !p.isActive);
->>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -257,22 +147,14 @@ export default function PromotionsPage() {
                 </div>
                 <div className="flex items-center gap-2 bg-white/15 px-4 py-2 rounded-lg">
                   <Percent className="h-5 w-5" />
-<<<<<<< HEAD
-                  <span className="font-medium">Giảm đến 30%</span>
-=======
                   <span className="font-medium">Giảm ưu đãi lớn</span>
->>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
                 </div>
               </div>
             </div>
           </div>
-<<<<<<< HEAD
 
-          {/* Decorative */}
           <div className="absolute -top-20 -left-20 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
           <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
-=======
->>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
         </section>
 
         {/* Active Voucher Codes */}
@@ -283,63 +165,6 @@ export default function PromotionsPage() {
                 Mã Khuyến Mãi Đang Hoạt Động
               </h2>
               <p className="text-muted-foreground">
-<<<<<<< HEAD
-                Sao chép mã và áp dụng khi thanh toán để nhận ưu đãi
-              </p>
-            </div>
-
-            <div className="grid sm:grid-cols-2 lg:grid-cols-2 gap-6 max-w-4xl mx-auto">
-              {activePromotions.map((promo) => {
-                const IconComponent = promo.icon;
-                return (
-                  <Card
-                    key={promo.id}
-                    className="overflow-hidden border-2 border-dashed border-primary/20 hover:border-primary/40 transition-all hover:shadow-lg"
-                  >
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div
-                          className={`w-12 h-12 rounded-xl ${promo.bgColor} flex items-center justify-center`}
-                        >
-                          <IconComponent className={`h-6 w-6 ${promo.color}`} />
-                        </div>
-                        <Badge variant="default" className="bg-success text-white">
-                          Đang hoạt động
-                        </Badge>
-                      </div>
-
-                      <h3 className="font-bold text-lg mb-1">{promo.title}</h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        {promo.description}
-                      </p>
-
-                      <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 mb-4">
-                        <code className="flex-1 text-lg font-bold text-primary tracking-wider">
-                          {promo.code}
-                        </code>
-                        <CopyButton code={promo.code} />
-                      </div>
-
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <ShoppingBag className="h-3.5 w-3.5" />
-                          Đơn tối thiểu: {formatPrice(promo.minOrder)}
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3.5 w-3.5" />
-                          HSD: {promo.expiry}
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
-        {/* Combo Deals */}
-=======
                 Thu thập mã ngay để áp dụng khi thanh toán
               </p>
             </div>
@@ -424,7 +249,6 @@ export default function PromotionsPage() {
         </section>
 
         {/* Combo Deals Section */}
->>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
         <section className="py-10 lg:py-16 bg-gradient-to-b from-secondary/12 via-primary-light/8 to-background">
           <div className="container mx-auto px-4">
             <div className="text-center mb-10">
@@ -479,7 +303,6 @@ export default function PromotionsPage() {
           </div>
         </section>
 
-<<<<<<< HEAD
         {/* Sale Products */}
         {saleProducts.length > 0 && (
           <section className="py-10 lg:py-16">
@@ -521,8 +344,6 @@ export default function PromotionsPage() {
           </section>
         )}
 
-=======
->>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
         {/* How to use voucher */}
         <section className="py-10 lg:py-16 bg-gradient-to-b from-background via-primary-light/10 to-secondary/12">
           <div className="container mx-auto px-4">
@@ -538,19 +359,11 @@ export default function PromotionsPage() {
             <div className="grid sm:grid-cols-3 gap-8 max-w-3xl mx-auto">
               <div className="text-center">
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-<<<<<<< HEAD
-                  <Copy className="h-7 w-7 text-primary" />
-                </div>
-                <h3 className="font-bold text-lg mb-2">Bước 1</h3>
-                <p className="text-sm text-muted-foreground">
-                  Sao chép mã khuyến mãi bạn muốn sử dụng
-=======
                   <Tag className="h-7 w-7 text-primary" />
                 </div>
                 <h3 className="font-bold text-lg mb-2">Bước 1</h3>
                 <p className="text-sm text-muted-foreground">
                   Nhấn "Thu thập" voucher bạn muốn sử dụng
->>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
                 </p>
               </div>
               <div className="text-center">
@@ -568,17 +381,12 @@ export default function PromotionsPage() {
                 </div>
                 <h3 className="font-bold text-lg mb-2">Bước 3</h3>
                 <p className="text-sm text-muted-foreground">
-<<<<<<< HEAD
-                  Nhập mã vào ô khuyến mãi và nhận ưu đãi ngay
-=======
                   Chọn voucher đã thu thập tại bước thanh toán để nhận ưu đãi
->>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
                 </p>
               </div>
             </div>
           </div>
         </section>
-<<<<<<< HEAD
 
         {/* Expired promotions */}
         {expiredPromotions.length > 0 && (
@@ -595,7 +403,8 @@ export default function PromotionsPage() {
 
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-3xl mx-auto opacity-60">
                 {expiredPromotions.map((promo) => {
-                  const IconComponent = promo.icon;
+                  const theme = getPromotionIcon(promo.type);
+                  const IconComponent = theme.icon;
                   return (
                     <Card key={promo.id} className="overflow-hidden border-dashed">
                       <CardContent className="p-5">
@@ -605,7 +414,13 @@ export default function PromotionsPage() {
                           </div>
                           <Badge variant="secondary">Đã kết thúc</Badge>
                         </div>
-                        <h3 className="font-bold mb-1">{promo.title}</h3>
+                        <h3 className="font-bold mb-1">
+                          {promo.type === "PERCENTAGE"
+                            ? `Giảm ${promo.value}%`
+                            : promo.type === "FIXED"
+                              ? `Giảm ${formatPrice(promo.value)}`
+                              : "Miễn phí vận chuyển"}
+                        </h3>
                         <p className="text-sm text-muted-foreground mb-3">
                           {promo.description}
                         </p>
@@ -647,8 +462,6 @@ export default function PromotionsPage() {
             </div>
           </div>
         </section>
-=======
->>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
       </main>
       <Footer />
     </div>
