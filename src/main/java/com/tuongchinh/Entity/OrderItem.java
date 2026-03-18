@@ -3,6 +3,8 @@ package com.tuongchinh.Entity;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.math.BigDecimal;
+
 @Entity
 @Table(name = "order_items")
 @Data
@@ -11,7 +13,7 @@ public class OrderItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private Integer quantity;
-    private Double price;
+    private BigDecimal price;
     @ManyToOne
     @JoinColumn(name = "order_id")
     private Order order;

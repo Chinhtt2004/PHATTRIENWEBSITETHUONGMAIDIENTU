@@ -3,6 +3,7 @@ package com.tuongchinh.Entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 @Entity
 @Table(name = "orders")
@@ -13,7 +14,7 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private LocalDateTime orderDate;
-    private Double totalPrice;
+    private BigDecimal totalPrice;
     private String status;
     private String address;
     private String receiverName;
