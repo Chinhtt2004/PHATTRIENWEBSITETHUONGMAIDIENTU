@@ -1,4 +1,5 @@
 package com.tuongchinh.Entity;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -17,6 +18,7 @@ public class User {
     private String password;
     private String role;
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    @JsonIgnore
     private Cart cart;
     private String phone;
 }

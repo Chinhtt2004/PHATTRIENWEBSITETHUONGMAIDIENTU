@@ -2,7 +2,6 @@ package com.tuongchinh.config;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -19,13 +18,12 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> {
-                })
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/author/**").permitAll()
-                    .requestMatchers(HttpMethod.GET, "/api/products", "/api/*").permitAll()
-                        .requestMatchers("/api/user/**").hasRole("USER")
+                        .requestMatchers("/api/payment/**").permitAll()
+                        .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/public/**").permitAll()
                         .anyRequest().authenticated()
@@ -36,7 +34,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:3000"));
+        config.setAllowedOrigins(List.of("http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:3001", "http://127.0.0.1:3001"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

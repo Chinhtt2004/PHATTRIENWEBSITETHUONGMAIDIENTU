@@ -28,7 +28,7 @@ public class UserService {
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new RuntimeException("Sai mật khẩu");
         }
-        return jwtService.generateToken(user.getEmail());
+        return jwtService.generateToken(user.getId().toString());
     }
     public String register(RegisterRequest request) {
 

@@ -32,8 +32,7 @@ public class JwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,
-            FilterChain filterChain
-    ) throws ServletException, IOException {
+            FilterChain filterChain) throws ServletException, IOException {
 
         String token = null;
 
@@ -55,15 +54,12 @@ public class JwtFilter extends OncePerRequestFilter {
 
             if (user != null) {
 
-                List<GrantedAuthority> authorities =
-                        List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole()));
+                List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole()));
 
-                UsernamePasswordAuthenticationToken auth =
-                        new UsernamePasswordAuthenticationToken(
-                                user,
-                                null,
-                                authorities
-                        );
+                UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                        user,
+                        null,
+                        authorities);
 
                 SecurityContextHolder.getContext().setAuthentication(auth);
             }

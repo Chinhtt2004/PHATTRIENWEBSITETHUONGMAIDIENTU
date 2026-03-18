@@ -168,7 +168,10 @@ export function mapBackendProduct(product: BackendProduct): Product {
   const compareAtPrice = product.stockQuantity > 20 ? Math.round(price * 1.15) : null;
   const categoryId = String(product.category?.id ?? "0");
   const slug = `${slugify(product.name)}-${product.id}`;
-  const imageUrl = product.imageUrl || "/placeholder.svg";
+  const rawImageUrl = product.imageUrl || "/placeholder.svg";
+  const imageUrl = rawImageUrl.startsWith("http") || rawImageUrl.startsWith("/") 
+    ? rawImageUrl 
+    : `/${rawImageUrl}`;
   const badge = product.stockQuantity > 20 ? "bestseller" : product.stockQuantity <= 5 ? "sale" : "new";
 
   return {
@@ -305,6 +308,9 @@ export async function fetchProducts(options: {
 }
 
 export async function fetchProductById(id: number): Promise<Product> {
+  if (!id || isNaN(id) || id <= 0) {
+    throw createApiError(`Invalid product ID: ${id}`, 400);
+  }
   const res = await fetch(`${API_BASE_URL}/api/public/product/${id}`, { cache: "no-store" });
   const data = (await ensureOk(res)) as BackendProduct;
   return mapBackendProduct(data);

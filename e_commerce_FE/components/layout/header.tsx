@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Search, ShoppingBag, User, Menu, X, Heart, Zap } from "lucide-react";
+import Image from "next/image";
+import { Search, ShoppingBag, User, Menu, X, Heart, Zap, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,8 +21,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { type Category } from "@/lib/data";
+import { type Category, formatPrice } from "@/lib/data";
 import { fetchCategories, fetchUserProfile, logoutUser, type UserProfileResponse } from "@/lib/api";
+import { useCart } from "@/contexts/cart-context";
 import { toast } from "sonner";
 import { useRouter, usePathname } from "next/navigation";
 
@@ -41,7 +43,10 @@ export function Header() {
   const [user, setUser] = useState<UserProfileResponse | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const cartItemCount = 3; // This would come from cart state
+  const [sheetOpen, setSheetOpen] = useState(false);
+  
+  const { cartItems, isLoading: isLoadingCart, loadCart, removeItem, updateQuantity } = useCart();
+  const cartItemCount = cartItems.length;
 
   useEffect(() => {
     let cancelled = false;
@@ -56,6 +61,21 @@ export function Header() {
 
     return () => { cancelled = true; };
   }, [pathname]);
+
+  const handleSheetOpenChange = (open: boolean) => {
+    setSheetOpen(open);
+    if (open) {
+      loadCart();
+    }
+  };
+
+  const handleRemoveItem = async (itemId: string) => {
+    await removeItem(itemId);
+  };
+
+  const handleUpdateQuantity = async (itemId: string, newQuantity: number) => {
+    await updateQuantity(itemId, newQuantity);
+  };
 
   const handleLogout = async () => {
     try {
@@ -215,7 +235,7 @@ export function Header() {
             </DropdownMenu>
 
             {/* Cart */}
-            <Sheet>
+            <Sheet open={sheetOpen} onOpenChange={handleSheetOpenChange}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative" aria-label="Giỏ hàng">
                   <ShoppingBag className="h-5 w-5" />
@@ -226,17 +246,123 @@ export function Header() {
                   )}
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-full sm:max-w-md">
-                <SheetHeader>
-                  <SheetTitle className="font-serif">Giỏ hàng của bạn</SheetTitle>
+              <SheetContent side="right" className="w-full sm:max-w-md flex flex-col bg-gradient-to-b from-background to-secondary/5">
+                <SheetHeader className="border-b border-border/50">
+                  <SheetTitle className="font-serif text-xl">Giỏ hàng ({cartItemCount})</SheetTitle>
                 </SheetHeader>
-                <div className="mt-8 flex flex-col items-center justify-center h-[60vh] text-center">
-                  <ShoppingBag className="h-16 w-16 text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground mb-4">Giỏ hàng của bạn đang trống</p>
-                  <Button asChild>
-                    <Link href="/products">Tiếp tục mua sắm</Link>
-                  </Button>
-                </div>
+                
+                {isLoadingCart ? (
+                  <div className="flex-1 flex flex-col items-center justify-center">
+                    <div className="animate-spin">
+                      <ShoppingBag className="h-8 w-8 text-primary" />
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-3">Đang tải giỏ hàng...</p>
+                  </div>
+                ) : cartItems.length === 0 ? (
+                  <div className="flex-1 flex flex-col items-center justify-center text-center">
+                    <div className="rounded-full bg-primary/10 p-4 mb-4">
+                      <ShoppingBag className="h-8 w-8 text-primary" />
+                    </div>
+                    <h3 className="font-medium text-sm mb-2">Giỏ hàng trống</h3>
+                    <p className="text-xs text-muted-foreground mb-6">Hãy khám phá và thêm sản phẩm vào giỏ hàng</p>
+                    <Button asChild size="sm" onClick={() => setSheetOpen(false)} className="w-full sm:w-auto">
+                      <Link href="/products">Bắt đầu mua sắm</Link>
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex-1 overflow-y-auto">
+                      <div className="space-y-3 p-4">
+                        {cartItems.map((item) => (
+                          <div key={item.id} className="group relative rounded-lg border border-border/50 bg-card p-3 hover:border-primary/30 hover:shadow-sm transition-all duration-200">
+                            <div className="flex gap-3">
+                              <Link
+                                href={item.slug ? `/product/${item.slug}` : "/products"}
+                                className="relative h-14 w-14 flex-shrink-0 rounded-md overflow-hidden bg-muted/50 hover:bg-muted transition-colors"
+                              >
+                                <Image
+                                  src={item.image || "/placeholder.svg"}
+                                  alt={item.name}
+                                  fill
+                                  sizes="56px"
+                                  className="object-cover"
+                                />
+                              </Link>
+                              
+                              <div className="flex-1 min-w-0 flex flex-col justify-between">
+                                <Link
+                                  href={item.slug ? `/product/${item.slug}` : "/products"}
+                                  className="font-medium text-xs hover:text-primary transition-colors line-clamp-2"
+                                >
+                                  {item.name}
+                                </Link>
+                                <div className="flex items-center justify-between">
+                                  <p className="text-primary font-semibold text-xs">
+                                    {formatPrice(item.price)}
+                                  </p>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => handleRemoveItem(item.id)}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/30">
+                              <span className="text-xs text-muted-foreground flex-1">Số lượng:</span>
+                              <div className="inline-flex items-center gap-1 rounded-md border border-border/50 bg-muted/30">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 hover:bg-muted"
+                                  onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
+                                  disabled={item.quantity <= 1}
+                                >
+                                  <Minus className="h-2.5 w-2.5" />
+                                </Button>
+                                <span className="w-6 text-center text-xs font-medium">
+                                  {item.quantity}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 hover:bg-muted"
+                                  onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                                >
+                                  <Plus className="h-2.5 w-2.5" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="border-t border-border/50 bg-gradient-to-t from-background to-transparent p-4 space-y-3">
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between text-muted-foreground">
+                          <span>Tạm tính</span>
+                          <span>{formatPrice(cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0))}</span>
+                        </div>
+                        <div className="h-px bg-border/30" />
+                        <div className="flex justify-between font-semibold">
+                          <span>Tổng</span>
+                          <span className="text-primary">{formatPrice(cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0))}</span>
+                        </div>
+                      </div>
+                      <Button asChild className="w-full bg-primary hover:bg-primary-hover" onClick={() => setSheetOpen(false)}>
+                        <Link href="/cart" className="text-sm font-medium">Xem giỏ hàng & thanh toán</Link>
+                      </Button>
+                      <Button variant="outline" className="w-full text-sm" onClick={() => setSheetOpen(false)}>
+                        Tiếp tục mua sắm
+                      </Button>
+                    </div>
+                  </>
+                )}
               </SheetContent>
             </Sheet>
           </div>

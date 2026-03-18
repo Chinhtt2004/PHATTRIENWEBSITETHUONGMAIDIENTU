@@ -5,6 +5,7 @@ import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "orders")
 @Getter
@@ -14,7 +15,8 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private LocalDateTime orderDate;
-    private BigDecimal totalPrice;
+    @Column(name = "total_amount")
+    private Double totalPrice;
     private String status;
     private String address;
     private String receiverName;

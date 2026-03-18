@@ -1,4 +1,5 @@
 package com.tuongchinh.Controller;
+
 import com.tuongchinh.DTO.ChangePasswordRequest;
 import com.tuongchinh.DTO.LoginRequest;
 import com.tuongchinh.DTO.RegisterRequest;
@@ -18,6 +19,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.Authentication;
 import java.util.Map;
+
 @RestController
 @RequestMapping("/api")
 public class AuthController {
@@ -27,8 +29,8 @@ public class AuthController {
     private final JwtService jwtService;
 
     public AuthController(UserService userService,
-                          PasswordEncoder passwordEncoder,
-                          JwtService jwtService) {
+            PasswordEncoder passwordEncoder,
+            JwtService jwtService) {
         this.userService = userService;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
@@ -56,8 +58,8 @@ public class AuthController {
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
         return ResponseEntity.ok(Map.of(
                 "message", "Đăng nhập thành công",
-                "email", user.getEmail()
-        ));
+                "email", user.getEmail(),
+                "role", user.getRole()));
     }
 
     @PostMapping("author/register")
@@ -67,7 +69,7 @@ public class AuthController {
 
     @PostMapping("author/logout")
     public ResponseEntity<?> logout(HttpServletResponse response) {
-        Cookie cookie = new Cookie("accessToken", null);
+        Cookie cookie = new Cookie("token", null);
         cookie.setHttpOnly(true);
         cookie.setPath("/");
         cookie.setMaxAge(0);
@@ -98,8 +100,7 @@ public class AuthController {
     @PutMapping("/user/changepassword")
     public ResponseEntity<?> changePassword(
             @RequestBody ChangePasswordRequest request,
-            HttpServletRequest httpRequest
-    ) {
+            HttpServletRequest httpRequest) {
 
         String token = userService.extractToken(httpRequest);
         Long userId = jwtService.extractUserId(token);

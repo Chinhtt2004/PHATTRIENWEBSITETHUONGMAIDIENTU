@@ -1,4 +1,5 @@
 package com.tuongchinh.Entity;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -26,6 +27,7 @@ public class Cart {
 
     @OneToOne
     @JoinColumn(name = "user_id", nullable = false, unique = true)
+    @JsonIgnoreProperties({"cart", "password", "role"})
     private User user;
 
     @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)

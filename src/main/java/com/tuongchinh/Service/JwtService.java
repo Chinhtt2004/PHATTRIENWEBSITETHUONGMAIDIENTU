@@ -20,20 +20,23 @@ public class JwtService {
                 .setSubject(id)
                 .setIssuedAt(new Date())
                 .setExpiration(
-                        new Date(System.currentTimeMillis() + 1000 * 60 * 60)
-                ) // 1 giờ
+                        new Date(System.currentTimeMillis() + 1000L * 60 * 60 * 24 * 7)
+                ) // 7 ngày
                 .signWith(getSignKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    public Long extractUserId(String token) {
-        String subject = Jwts.parserBuilder()
+    public String extractSubject(String token) {
+        return Jwts.parserBuilder()
                 .setSigningKey(this.getSignKey())
                 .build()
                 .parseClaimsJws(token)
                 .getBody()
                 .getSubject();
+    }
 
+    public Long extractUserId(String token) {
+        String subject = extractSubject(token);
         return Long.parseLong(subject);
     }
     public boolean isTokenValid(String token) {

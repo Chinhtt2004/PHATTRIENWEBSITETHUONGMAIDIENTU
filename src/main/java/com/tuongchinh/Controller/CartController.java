@@ -19,8 +19,8 @@ public class CartController {
     private final UserService userService;
     @PostMapping
     public ResponseEntity<?> addToCart(
-            @RequestParam Long productId,
-            @RequestParam int quantity,
+            @RequestParam(name = "productId") Long productId,
+            @RequestParam(name = "quantity") int quantity,
             HttpServletRequest request
     ) {
         String token = userService.extractToken(request);
@@ -50,12 +50,12 @@ public class CartController {
     }
     @DeleteMapping("/{productId}")
     public ResponseEntity<?> removeFromCart(
-            @PathVariable Long productId,
+            @PathVariable("productId") Long productId,
             HttpServletRequest request
     ) {
         String token = userService.extractToken(request);
         Long userId = jwtService.extractUserId(token);
-        cartService.moveFromCart(userId, productId);
+        cartService.removeFromCart(userId, productId);
         return ResponseEntity.ok("Removed successfully");
     }
 

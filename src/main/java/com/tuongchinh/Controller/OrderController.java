@@ -1,6 +1,5 @@
 package com.tuongchinh.Controller;
 
-import com.tuongchinh.DTO.CheckoutRequest;
 import com.tuongchinh.DTO.LoginRequest;
 import com.tuongchinh.Entity.Order;
 import com.tuongchinh.Service.JwtService;
@@ -12,17 +11,26 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/user")
 @RequiredArgsConstructor
 public class OrderController {
+
     private final OrderService orderService;
     private final UserService userService;
     private final JwtService jwtService;
-    @PostMapping("user/oders/checkout")
-    public Order checkout(HttpServletRequest request, @RequestBody CheckoutRequest req
-    ) {
+
+    @PostMapping("/checkout")
+    public ResponseEntity<Order> checkout(@RequestBody LoginRequest.CheckoutRequest request,
+            HttpServletRequest servletRequest) {
+        Long userId = getCurrentUserId(servletRequest);
+        Order order = orderService.checkout(userId, request);
+        return ResponseEntity.ok(order);
+    }
+
+    private Long getCurrentUserId(HttpServletRequest request) {
         String token = userService.extractToken(request);
-        Long userId = jwtService.extractUserId(token);
-        return orderService.checkout(userId, req);
+        if (token == null)
+            throw new RuntimeException("Unauthorized");
+        return jwtService.extractUserId(token);
     }
 }

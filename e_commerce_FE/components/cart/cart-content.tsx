@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, Tag } from "lucide-react";
@@ -17,100 +17,17 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { toast } from "sonner";
-import { formatPrice, type Product } from "@/lib/data";
-import { fetchCartItems, fetchProducts, removeCartItem, addToCart } from "@/lib/api";
-
-interface DisplayCartItem {
-  id: string;
-  productId: string;
-  variantId: string;
-  slug: string;
-  name: string;
-  variant: string;
-  image: string;
-  price: number;
-  quantity: number;
-}
+import { formatPrice } from "@/lib/data";
+import { useCart } from "@/contexts/cart-context";
 
 export function CartContent() {
-  const [cartItems, setCartItems] = useState<DisplayCartItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { cartItems, isLoading, removeItem, updateQuantity } = useCart();
   const [authRequired, setAuthRequired] = useState(false);
   const [voucherCode, setVoucherCode] = useState("");
   const [appliedVoucher, setAppliedVoucher] = useState<{
     code: string;
     discount: number;
   } | null>(null);
-
-  useEffect(() => {
-    loadCart();
-  }, []);
-
-  const loadCart = async () => {
-    try {
-      setIsLoading(true);
-      const [items, products] = await Promise.all([fetchCartItems(), fetchProducts()]);
-      const productMap = new Map<number, Product>(products.map((product) => [Number(product.id), product]));
-
-      setCartItems(
-        items.map((item) => {
-          const product = productMap.get(item.productId);
-          return {
-            id: String(item.id),
-            productId: String(item.productId),
-            variantId: product?.variants[0]?.id || `var-${item.productId}`,
-            slug: product?.slug || "",
-            name: item.productName,
-            variant: product?.variants[0]?.name || "Mặc định",
-            image: product?.images[0]?.url || "/placeholder.svg",
-            price: product?.price || 0,
-            quantity: item.quantity,
-          };
-        })
-      );
-      setAuthRequired(false);
-    } catch (error) {
-      const status = typeof error === "object" && error && "status" in error ? Number(error.status) : undefined;
-      if (status === 401 || status === 403) {
-        setAuthRequired(true);
-        setCartItems([]);
-      } else {
-        toast.error(error instanceof Error ? error.message : "Không thể tải giỏ hàng");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const updateQuantity = async (itemId: string, newQuantity: number) => {
-    if (newQuantity < 1) return;
-    const item = cartItems.find((cartItem) => cartItem.id === itemId);
-    if (!item) return;
-
-    try {
-      await addToCart(Number(item.productId), newQuantity);
-      setCartItems((items) =>
-        items.map((cartItem) =>
-          cartItem.id === itemId ? { ...cartItem, quantity: newQuantity } : cartItem
-        )
-      );
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể cập nhật số lượng");
-    }
-  };
-
-  const removeItem = async (itemId: string) => {
-    const item = cartItems.find((cartItem) => cartItem.id === itemId);
-    if (!item) return;
-
-    try {
-      await removeCartItem(Number(item.productId));
-      setCartItems((items) => items.filter((cartItem) => cartItem.id !== itemId));
-      toast.success("Đã xóa sản phẩm khỏi giỏ hàng");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể xóa sản phẩm");
-    }
-  };
 
   const applyVoucher = () => {
     if (!voucherCode) return;

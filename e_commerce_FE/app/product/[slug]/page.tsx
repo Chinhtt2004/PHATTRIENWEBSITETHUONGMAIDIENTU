@@ -22,14 +22,23 @@ export async function generateMetadata({ params }: ProductPageProps) {
   if (!product) {
 =======
 // Helper to extract ID from slug (slug-format-123)
-function getIdFromSlug(slug: string): number {
+function getIdFromSlug(slug: string): number | null {
+  if (!slug) return null;
   const parts = slug.split("-");
-  return parseInt(parts[parts.length - 1], 10);
+  const idStr = parts[parts.length - 1];
+  const id = parseInt(idStr, 10);
+  return isNaN(id) ? null : id;
 }
 
 export async function generateMetadata({ params }: ProductPageProps) {
   const { slug } = await params;
   const id = getIdFromSlug(slug);
+  
+  if (!id || id <= 0) {
+    return {
+      title: "Sản phẩm không tồn tại | GlowSkin",
+    };
+  }
   
   try {
     const product = await fetchProductById(id);
@@ -88,6 +97,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
   );
 =======
   const id = getIdFromSlug(slug);
+
+  if (!id || id <= 0) {
+    notFound();
+  }
 
   try {
     const product = await fetchProductById(id);

@@ -48,18 +48,30 @@ public class CartServiceImpl implements CartService {
             cartItemRepository.save(item);
         }
     }
+
     @Override
     public Cart findCartByUserId(Long userId) {
         return cartRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy cart của user: " + userId));
     }
-    @Override
-    public void moveFromCart(Long userid, Long productid){
-        Cart cart=cartRepository.findByUserId(userid).orElseThrow(()->new RuntimeException("Cart not found"));
-        Product product=productService.findById(productid);
-        CartItem cartItem=cartItemRepository.findByCartAndProduct(cart,product).orElseThrow(()->new RuntimeException("cart not found"));
-        cartItemRepository.delete(cartItem);
 
+    @Override
+    public void removeFromCart(Long userid, Long productid) {
+        Cart cart = cartRepository.findByUserId(userid)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy cart của user: " + userid));
+        Product product = productService.findById(productid);
+        if (product == null) {
+            throw new RuntimeException("Không tìm thấy sản phẩm: " + productid);
+        }
+        CartItem cartItem = cartItemRepository.findByCartAndProduct(cart, product)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm trong giỏ hàng"));
+
+        // Vì Cart có orphanRemoval = true, ta phải xóa khỏi collection của Cart
+        // Sử dụng removeIf để đảm bảo xóa đúng item dựa trên ID (tránh lỗi instance mismatch)
+        cart.getItems().removeIf(item -> item.getId().equals(cartItem.getId()));
+        cartItem.setCart(null); 
+
+        cartRepository.save(cart);
     }
 
 }

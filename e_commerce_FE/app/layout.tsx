@@ -8,14 +8,15 @@ import { Toaster } from "@/components/ui/toaster"
 import { Toaster } from "@/components/ui/sonner"
 >>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
 import { ChatbotWidget } from "@/components/chatbot/chatbot-widget"
+import { CartProvider } from "@/contexts/cart-context"
 import './globals.css'
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ["latin", "vietnamese"],
   variable: '--font-inter'
 });
 
-const playfair = Playfair_Display({ 
+const playfair = Playfair_Display({
   subsets: ["latin", "vietnamese"],
   variable: '--font-playfair'
 });
@@ -47,6 +48,7 @@ export const metadata: Metadata = {
     locale: 'vi_VN',
     siteName: 'GlowSkin',
   },
+  metadataBase: new URL("http://localhost:3000"),
 }
 
 export const viewport: Viewport = {
@@ -67,8 +69,9 @@ export default function RootLayout({
 =======
     <html lang="vi" suppressHydrationWarning>
       <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`} suppressHydrationWarning>
->>>>>>> 65e567118427e2f39d6608b6d8e486d7a03f2a73
-        {children}
+        <CartProvider>
+          {children}
+        </CartProvider>
         <Toaster />
         <ChatbotWidget />
         <Analytics />
