@@ -2,11 +2,17 @@ package com.tuongchinh.Entity;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.tuongchinh.Entity.Category;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "product")
+@Getter
+@Setter
 public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -15,62 +21,15 @@ public class Product {
     private String name;
     @Column(columnDefinition = "TEXT")
     private String description;
-    @Column(nullable = false, precision = 15, scale = 2)
-    private BigDecimal price;
-    @Column(name = "stock_quantity", nullable = false)
-    private Integer stockQuantity;
-    @Column(name = "image_url", length = 500)
-    private String imageUrl;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Category category;
-    @Column(name = "created_at")
+    @ManyToOne
+    @JoinColumn(name = "brand_id")
+    private Brand brand;
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-    }
-    public Long getId() {
-        return id;
-    }
-    public String getName() {
-        return name;
-    }
-    public void setName(String name) {
-        this.name = name;
-    }
-    public String getDescription() {
-        return description;
-    }
-    public void setDescription(String description) {
-        this.description = description;
-    }
-    public BigDecimal getPrice() {
-        return price;
-    }
-    public void setPrice(BigDecimal price) {
-        this.price = price;
-    }
-    public Integer getStockQuantity() {
-        return stockQuantity;
-    }
-    public void setStockQuantity(Integer stockQuantity) {
-        this.stockQuantity = stockQuantity;
-    }
-    public String getImageUrl() {
-        return imageUrl;
-    }
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
-    }
-    public Category getCategory() {
-        return category;
-    }
-    public void setCategory(Category category) {
-        this.category = category;
-    }
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
+
 }

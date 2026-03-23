@@ -5,7 +5,6 @@ import com.tuongchinh.DTO.RegisterRequest;
 import com.tuongchinh.DTO.UserRequest;
 import com.tuongchinh.Entity.Cart;
 import com.tuongchinh.Entity.User;
-import com.tuongchinh.Repository.CartRepository;
 import com.tuongchinh.Repository.UserRepository;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,8 +17,6 @@ public class UserService {
     private UserRepository userRepository;
     @Autowired
     private JwtService jwtService;
-    @Autowired
-    CartRepository cartRepository;
     @Autowired
     private PasswordEncoder passwordEncoder;
     public String login(String email, String password) {
@@ -44,7 +41,7 @@ public class UserService {
         Cart cart=new Cart();
         cart.setUser(user);
         userRepository.save(user);
-        cartRepository.save(cart);
+//        cartRepository.save(cart);
         return "Đăng ký thành công";
     }
     public User findByEmail(String email){
