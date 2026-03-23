@@ -30,8 +30,10 @@ export default function LoginPage() {
 
     try {
       const response = await loginUser(formData.email, formData.password);
-      toast.success("Đăng nhập thành công!");
-      
+      toast.success("Đăng nhập thành công!", {
+        duration: 2000,
+      });
+
       if (response.role === "ADMIN") {
         router.push("/admin");
       } else {

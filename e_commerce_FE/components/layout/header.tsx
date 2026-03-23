@@ -44,7 +44,7 @@ export function Header() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
-  
+
   const { cartItems, isLoading: isLoadingCart, loadCart, removeItem, updateQuantity } = useCart();
   const cartItemCount = cartItems.length;
 
@@ -53,7 +53,7 @@ export function Header() {
     fetchCategories()
       .then((data) => { if (!cancelled) setCategories(data); })
       .catch(() => undefined);
-    
+
     // Check session
     fetchUserProfile()
       .then((profile) => { if (!cancelled) setUser(profile); })
@@ -81,7 +81,9 @@ export function Header() {
     try {
       await logoutUser();
       setUser(null);
-      toast.success("Đã đăng xuất thành công");
+      toast.success("Đã đăng xuất thành công", {
+        duration: 2000,
+      });
       router.push("/");
       router.refresh();
     } catch (error) {
@@ -120,11 +122,10 @@ export function Header() {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`text-sm font-medium transition-colors hover:text-primary ${
-                  item.highlight
-                    ? "text-destructive font-bold relative flex items-center gap-1"
-                    : "text-foreground/80"
-                }`}
+                className={`text-sm font-medium transition-colors hover:text-primary ${item.highlight
+                  ? "text-destructive font-bold relative flex items-center gap-1"
+                  : "text-foreground/80"
+                  }`}
               >
                 {item.highlight && (
                   <Zap className="h-3.5 w-3.5 fill-destructive" />
@@ -214,7 +215,7 @@ export function Header() {
                       <Link href="/account/orders" className="cursor-pointer">Đơn hàng</Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       className="text-destructive focus:text-destructive cursor-pointer"
                       onClick={handleLogout}
                     >
@@ -250,7 +251,7 @@ export function Header() {
                 <SheetHeader className="border-b border-border/50">
                   <SheetTitle className="font-serif text-xl">Giỏ hàng ({cartItemCount})</SheetTitle>
                 </SheetHeader>
-                
+
                 {isLoadingCart ? (
                   <div className="flex-1 flex flex-col items-center justify-center">
                     <div className="animate-spin">
@@ -288,7 +289,7 @@ export function Header() {
                                   className="object-cover"
                                 />
                               </Link>
-                              
+
                               <div className="flex-1 min-w-0 flex flex-col justify-between">
                                 <Link
                                   href={item.slug ? `/product/${item.slug}` : "/products"}
@@ -395,11 +396,10 @@ export function Header() {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`text-lg font-medium transition-colors hover:text-primary ${
-                  item.highlight
-                    ? "text-destructive font-bold flex items-center gap-2"
-                    : "text-foreground/80"
-                }`}
+                className={`text-lg font-medium transition-colors hover:text-primary ${item.highlight
+                  ? "text-destructive font-bold flex items-center gap-2"
+                  : "text-foreground/80"
+                  }`}
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 {item.highlight && (

@@ -13,7 +13,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/chat")
@@ -48,14 +52,25 @@ public class ChatController {
     }
 
     @GetMapping("/history")
-    public ResponseEntity<List<ChatMessage>> getHistory(HttpServletRequest request) {
+    public ResponseEntity<List<ChatMessage>> getHistory(
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "20") int size,
+            HttpServletRequest request) {
         String token = userService.extractToken(request);
         if (token == null) {
             return ResponseEntity.status(401).build();
         }
         Long userId = jwtService.extractUserId(token);
         
-        List<ChatMessage> history = chatMessageRepository.findByUserIdOrderByCreatedAtAsc(userId);
+        Pageable pageable = PageRequest.of(page, size);
+        Page<ChatMessage> historyPage = chatMessageRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
+        
+        // We reverse the list because the UI expects chronological order (Asc)
+        // while we fetch most recent first (Desc) for pagination
+        List<ChatMessage> history = historyPage.getContent().stream()
+                .sorted((a, b) -> a.getCreatedAt().compareTo(b.getCreatedAt()))
+                .collect(Collectors.toList());
+                
         return ResponseEntity.ok(history);
     }
 }

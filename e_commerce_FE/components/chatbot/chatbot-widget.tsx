@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { MessageCircle, X, Send, Bot, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { sendChatMessage, fetchChatHistory, ChatMessageResponse } from "@/lib/api";
+import { sendChatMessage, fetchChatHistory, ChatMessageResponse, fetchUserProfile } from "@/lib/api";
 
 interface Message {
   id: string;
@@ -30,6 +30,7 @@ export function ChatbotWidget() {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   // Rate limiting
@@ -44,29 +45,80 @@ export function ChatbotWidget() {
   useEffect(() => {
     setIsMounted(true);
 
-    // Load chat history & Check Login Status
-    const loadHistory = async () => {
+    // One-time initial check on mount for tooltip logic (optional)
+    fetchUserProfile()
+      .then(() => setIsLoggedIn(true))
+      .catch(() => setIsLoggedIn(false));
+
+    // Show tooltip after 5 seconds
+    const timer = setTimeout(() => setShowTooltip(true), 5000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Dynamic Auth State & Lazy Load Chat History when opened
+  useEffect(() => {
+    const refreshChatState = async () => {
+      if (!isOpen) return;
+
       try {
-        const history = await fetchChatHistory();
-        setIsLoggedIn(true);
-        if (history && history.length > 0) {
-          const mappedMessages: Message[] = [];
-          history.forEach((h: ChatMessageResponse) => {
-            mappedMessages.push({
-              id: `user-${h.id}`,
-              role: "user",
-              content: h.message,
-              timestamp: new Date(h.createdAt),
-            });
-            mappedMessages.push({
-              id: `bot-${h.id}`,
-              role: "assistant",
-              content: h.response,
-              timestamp: new Date(h.createdAt),
-            });
-          });
-          setMessages(mappedMessages);
-        } else {
+        // Always check profile to catch login/logout in other tabs/modals
+        await fetchUserProfile();
+        
+        // If we reach here, user is logged in
+        if (!isLoggedIn) {
+          setIsLoggedIn(true);
+          // If login status just changed, we MUST load history
+          setHistoryLoaded(false); 
+        }
+
+        // Fetch history if logged in and not yet loaded (or just reset)
+        if (!historyLoaded || !isLoggedIn) {
+          setIsTyping(true);
+          try {
+            const history = await fetchChatHistory(0, 20);
+            if (history && history.length > 0) {
+              const mappedMessages: Message[] = [];
+              history.forEach((h: ChatMessageResponse) => {
+                mappedMessages.push({
+                  id: `user-${h.id}`,
+                  role: "user",
+                  content: h.message,
+                  timestamp: new Date(h.createdAt),
+                });
+                mappedMessages.push({
+                  id: `bot-${h.id}`,
+                  role: "assistant",
+                  content: h.response,
+                  timestamp: new Date(h.createdAt),
+                });
+              });
+              setMessages(mappedMessages);
+            } else {
+              setMessages([
+                {
+                  id: "welcome",
+                  role: "assistant",
+                  content: WELCOME_CONTENT,
+                  timestamp: new Date(),
+                },
+              ]);
+            }
+            setHistoryLoaded(true);
+          } catch (e) {
+            console.error("Failed to fetch history:", e);
+          } finally {
+            setIsTyping(false);
+          }
+        }
+      } catch (error) {
+        // If 401/error, user is a guest (or just logged out)
+        const wasLoggedIn = isLoggedIn;
+        setIsLoggedIn(false);
+        setHistoryLoaded(false);
+
+        // Reset messages if they were logged in before, 
+        // OR if this is the first time a guest opens the chat (empty messages)
+        if (wasLoggedIn || messages.length === 0) {
           setMessages([
             {
               id: "welcome",
@@ -76,26 +128,11 @@ export function ChatbotWidget() {
             },
           ]);
         }
-      } catch (error) {
-        console.error("Failed to load chat history (likely guest):", error);
-        setIsLoggedIn(false);
-        setMessages([
-          {
-            id: "welcome",
-            role: "assistant",
-            content: WELCOME_CONTENT,
-            timestamp: new Date(),
-          },
-        ]);
       }
     };
 
-    loadHistory();
-
-    // Show tooltip after 5 seconds
-    const timer = setTimeout(() => setShowTooltip(true), 5000);
-    return () => clearTimeout(timer);
-  }, []);
+    refreshChatState();
+  }, [isOpen]); // We trigger on every open to ensure fresh auth state
 
   useEffect(() => {
     scrollToBottom();

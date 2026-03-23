@@ -638,8 +638,8 @@ export async function sendChatMessage(message: string): Promise<{ response: stri
   return ensureOk(res);
 }
 
-export async function fetchChatHistory(): Promise<ChatMessageResponse[]> {
-  const res = await fetch(`${API_BASE_URL}/api/chat/history`, {
+export async function fetchChatHistory(page = 0, size = 20): Promise<ChatMessageResponse[]> {
+  const res = await fetch(`${API_BASE_URL}/api/chat/history?page=${page}&size=${size}`, {
     credentials: "include",
     cache: "no-store",
   });
