@@ -52,7 +52,7 @@ public class OrderService {
             orderItem.setOrder(order);
             orderItem.setProduct(cartItem.getProduct());
             orderItem.setQuantity(cartItem.getQuantity());
-            orderItem.setPrice(cartItem.getProduct().getPrice().doubleValue());
+            orderItem.setPrice(cartItem.getProduct().getPrice());
             orderItemRepository.save(orderItem);
         }
 

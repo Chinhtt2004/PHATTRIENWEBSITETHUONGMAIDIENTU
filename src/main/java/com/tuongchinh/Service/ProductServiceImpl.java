@@ -21,6 +21,7 @@ public class ProductServiceImpl implements ProductService {
     private final CategoryRepository categoryRepository;
     private final CloudinaryService cloudinaryService;
     private final OrderItemRepository orderItemRepository;
+    private final ChatService chatService;
     @Override
     public Page<Product> searchProducts(
             String keyword,
@@ -51,6 +52,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     public void delete(Long id) {
         productRepository.deleteById(id);
+        chatService.deleteProduct(id);
     }
 
     @Override
@@ -77,6 +79,7 @@ public class ProductServiceImpl implements ProductService {
         product.setCategory(category);
         product.setImageUrl(imageUrl);
         productRepository.save(product);
+        chatService.syncProduct(product.getId(), product.getName(), product.getDescription());
         return mapToResponse(product);
     }
     private ProductResponse mapToResponse(Product product) {
@@ -108,6 +111,7 @@ public class ProductServiceImpl implements ProductService {
         product.setCategory(category);
         product.setImageUrl(imageUrl);
         productRepository.save(product);
+        chatService.syncProduct(product.getId(), product.getName(), product.getDescription());
         return mapToResponse(product);
     }
     @Override

@@ -619,3 +619,29 @@ export async function checkout(data: {
   });
   return ensureOk(res);
 }
+
+// Chatbot
+export interface ChatMessageResponse {
+  id: number;
+  message: string;
+  response: string;
+  createdAt: string;
+}
+
+export async function sendChatMessage(message: string): Promise<{ response: string }> {
+  const res = await fetch(`${API_BASE_URL}/api/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ message }),
+  });
+  return ensureOk(res);
+}
+
+export async function fetchChatHistory(): Promise<ChatMessageResponse[]> {
+  const res = await fetch(`${API_BASE_URL}/api/chat/history`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  return ensureOk(res);
+}
