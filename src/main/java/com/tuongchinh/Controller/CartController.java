@@ -31,8 +31,7 @@ public class CartController {
     ) {
         String token = userService.extractToken(request);
         Long userId = jwtService.extractUserId(token);
-//        cartService.addToCart(userId, variantId, quantity);
-        String tml=variantId+" "+quantity+" "+userId;
+        cartService.addToCart(userId, variantId, quantity);
         return ResponseEntity.ok("added to cart successfully");
     }
 
