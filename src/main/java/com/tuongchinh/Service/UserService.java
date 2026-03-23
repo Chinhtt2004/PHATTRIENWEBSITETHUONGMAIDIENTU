@@ -19,9 +19,9 @@ public class UserService {
     @Autowired
     private JwtService jwtService;
     @Autowired
-    CartRepository cartRepository;
-    @Autowired
     private PasswordEncoder passwordEncoder;
+    @Autowired
+    private CartRepository cartRepository;
     public String login(String email, String password) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Email không tồn tại"));

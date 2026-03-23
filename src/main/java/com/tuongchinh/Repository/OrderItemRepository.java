@@ -18,7 +18,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
         FROM OrderItem oi
         JOIN oi.product p
         JOIN oi.order o
-        WHERE o.status = 'COMPLETED'
+        WHERE o.orderStatus = 'COMPLETED'
         GROUP BY p.id, p.name
         ORDER BY SUM(oi.quantity) DESC
     """)

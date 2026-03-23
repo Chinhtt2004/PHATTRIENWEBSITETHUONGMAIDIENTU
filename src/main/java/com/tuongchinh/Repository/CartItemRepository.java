@@ -9,9 +9,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface CartItemRepository extends JpaRepository<CartItem, Long> {
-    Optional<CartItem> findByCartAndProduct(Cart cart, Product product);
-
-    List<CartItem> findByCartId(Long cartId);
-
+    Optional<CartItem> findByCartIdAndVariantId(Long cartId, Long variantId);
     void deleteByCartId(Long cartId);
+    List<CartItem> findByCartId(Long cartID);
 }

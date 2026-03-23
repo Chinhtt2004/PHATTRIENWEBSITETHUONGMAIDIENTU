@@ -9,6 +9,7 @@ import com.tuongchinh.Entity.User;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 import java.util.Optional;
@@ -26,4 +27,12 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     Optional<Product> findById(Long id);
     List<Product> findByCategoryId(Long categoryId);
     List<Product> findAllByOrderByCreatedAtDesc(Pageable pageable);
+    @Query("""
+    SELECT DISTINCT p FROM Product p
+    JOIN ProductVariant pv ON pv.product = p
+    WHERE pv.isActive = true
+    AND pv.discountPrice IS NOT NULL
+    AND pv.discountPrice < pv.price
+    """)
+    Page<Product> findSaleProducts(Pageable pageable);
 }

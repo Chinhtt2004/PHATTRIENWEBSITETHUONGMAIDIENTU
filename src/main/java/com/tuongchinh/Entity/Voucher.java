@@ -1,14 +1,13 @@
 package com.tuongchinh.Entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "voucher")
 @Data
 public class Voucher {
 
@@ -16,13 +15,25 @@ public class Voucher {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true, nullable = false)
     private String code;
 
-    private String type; // PERCENT hoặc FIXED
+    @Column(nullable = false)
+    private String type;
 
+    @Column(nullable = false)
     private BigDecimal value;
 
+    @Column(nullable = false)
     private BigDecimal minOrderValue;
 
     private BigDecimal maxDiscount;
+
+    private LocalDateTime expiryDate;
+
+    private Integer usageLimit;
+
+    private Integer usedCount = 0;
+
+    private Boolean isActive = true;
 }
