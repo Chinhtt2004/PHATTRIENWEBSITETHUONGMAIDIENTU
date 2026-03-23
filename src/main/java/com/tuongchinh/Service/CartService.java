@@ -19,12 +19,9 @@ public class CartService {
     private final ProductVariantRepository variantRepository;
 
     // Thêm vào giỏ hàng
-    public Cart addToCart(Long userId, Long variantId, int quantity) {
-        // Lấy user
+    public void addToCart(Long userId, Long variantId, int quantity) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy user: " + userId));
-
-        // Lấy hoặc tạo cart
         Cart cart = cartRepository.findByUserId(userId)
                 .orElseGet(() -> {
                     Cart newCart = new Cart();
@@ -32,11 +29,9 @@ public class CartService {
                     return cartRepository.save(newCart);
                 });
 
-        // Lấy variant — không phải product
         ProductVariant variant = variantRepository.findById(variantId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy variant: " + variantId));
 
-        // Kiểm tra tồn kho
         if (variant.getStock() < quantity) {
             throw new RuntimeException("Không đủ hàng, chỉ còn " + variant.getStock() + " sản phẩm");
         }
@@ -60,8 +55,6 @@ public class CartService {
             item.setQuantity(quantity);
             cartItemRepository.save(item);
         }
-
-        return cart;
     }
 
     // Cập nhật số lượng
@@ -110,4 +103,5 @@ public class CartService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy giỏ hàng"));
         cartItemRepository.deleteByCartId(cart.getId());  // ← dùng cái này
     }
+
 }

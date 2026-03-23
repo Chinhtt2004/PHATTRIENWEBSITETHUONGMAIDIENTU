@@ -31,14 +31,16 @@ public class CartController {
     ) {
         String token = userService.extractToken(request);
         Long userId = jwtService.extractUserId(token);
-        cartService.addToCart(userId, variantId, quantity);
-        return ResponseEntity.ok("Thêm vào giỏ hàng thành công");
+//        cartService.addToCart(userId, variantId, quantity);
+        String tml=variantId+" "+quantity+" "+userId;
+        return ResponseEntity.ok("added to cart successfully");
     }
 
     // Xem giỏ hàng
     @GetMapping
     public ResponseEntity<List<CartItemDTO>> getMyCart(HttpServletRequest request) {
-        Long userId = extractUserId(request);
+        String token = userService.extractToken(request);
+        Long userId = jwtService.extractUserId(token);
         Cart cart = cartService.getCart(userId);
 
         List<CartItemDTO> result = cart.getItems().stream()

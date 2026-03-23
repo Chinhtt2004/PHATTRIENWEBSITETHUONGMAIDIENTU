@@ -5,6 +5,7 @@ import com.tuongchinh.DTO.RegisterRequest;
 import com.tuongchinh.DTO.UserRequest;
 import com.tuongchinh.Entity.Cart;
 import com.tuongchinh.Entity.User;
+import com.tuongchinh.Repository.CartRepository;
 import com.tuongchinh.Repository.UserRepository;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,6 +20,8 @@ public class UserService {
     private JwtService jwtService;
     @Autowired
     private PasswordEncoder passwordEncoder;
+    @Autowired
+    private CartRepository cartRepository;
     public String login(String email, String password) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Email không tồn tại"));
@@ -41,7 +44,7 @@ public class UserService {
         Cart cart=new Cart();
         cart.setUser(user);
         userRepository.save(user);
-//        cartRepository.save(cart);
+        cartRepository.save(cart);
         return "Đăng ký thành công";
     }
     public User findByEmail(String email){
