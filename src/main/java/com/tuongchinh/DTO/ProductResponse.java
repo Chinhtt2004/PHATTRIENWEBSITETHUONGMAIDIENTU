@@ -27,8 +27,15 @@ public class ProductResponse {
         private Integer stock;
         private String imageUrl;
         private Boolean isActive;
-        private BigDecimal discountPrice;   // ← thêm
-        private BigDecimal effectivePrice;  // ← thêm
-        private Integer discountPercent;    // ← thêm
+        private BigDecimal discountPrice; // ← thêm
+        private BigDecimal effectivePrice; // ← thêm
+        private Integer discountPercent; // ← thêm
+        private List<AttributeValueResponse> attributeValues;
+    }
+
+    @Data
+    public static class AttributeValueResponse {
+        private String name; // e.g. "Color"
+        private String value; // e.g. "Red"
     }
 }

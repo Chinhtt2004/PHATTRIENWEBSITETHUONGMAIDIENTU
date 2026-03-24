@@ -1,6 +1,7 @@
 package com.tuongchinh.Controller;
 
 import com.tuongchinh.DTO.CartItemDTO;
+import com.tuongchinh.DTO.ProductResponse;
 import com.tuongchinh.Entity.Cart;
 import com.tuongchinh.Service.JwtService;
 import com.tuongchinh.Service.CartService;
@@ -27,8 +28,7 @@ public class CartController {
     public ResponseEntity<?> addToCart(
             @RequestParam Long variantId,
             @RequestParam int quantity,
-            HttpServletRequest request
-    ) {
+            HttpServletRequest request) {
         String token = userService.extractToken(request);
         Long userId = jwtService.extractUserId(token);
         cartService.addToCart(userId, variantId, quantity);
@@ -60,11 +60,21 @@ public class CartController {
                     dto.setProductId(item.getVariant().getProduct().getId());
                     dto.setProductName(item.getVariant().getProduct().getName());
                     dto.setBrandName(item.getVariant().getProduct().getBrand() != null
-                            ? item.getVariant().getProduct().getBrand().getName() : null);
+                            ? item.getVariant().getProduct().getBrand().getName()
+                            : null);
 
                     // Tổng tiền dòng này
                     dto.setSubtotal(item.getVariant().getEffectivePrice()
                             .multiply(BigDecimal.valueOf(item.getQuantity())));
+
+                    if (item.getVariant().getAttributeValues() != null) {
+                        dto.setAttributeValues(item.getVariant().getAttributeValues().stream().map(av -> {
+                            ProductResponse.AttributeValueResponse avr = new ProductResponse.AttributeValueResponse();
+                            avr.setName(av.getAttribute().getName());
+                            avr.setValue(av.getValue());
+                            return avr;
+                        }).toList());
+                    }
 
                     return dto;
                 })
@@ -78,8 +88,7 @@ public class CartController {
     public ResponseEntity<?> updateQuantity(
             @PathVariable Long variantId,
             @RequestParam int quantity,
-            HttpServletRequest request
-    ) {
+            HttpServletRequest request) {
         String token = userService.extractToken(request);
         Long userId = jwtService.extractUserId(token);
         cartService.updateQuantity(userId, variantId, quantity);
@@ -90,8 +99,7 @@ public class CartController {
     @DeleteMapping("/{variantId}")
     public ResponseEntity<?> removeFromCart(
             @PathVariable Long variantId,
-            HttpServletRequest request
-    ) {
+            HttpServletRequest request) {
         String token = userService.extractToken(request);
         Long userId = jwtService.extractUserId(token);
         cartService.removeFromCart(userId, variantId);

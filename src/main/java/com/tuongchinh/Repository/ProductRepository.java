@@ -18,12 +18,12 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
 
     // JOIN FETCH category trong 1 query → fix N+1 khi lấy danh sách sản phẩm
     @Override
-    @EntityGraph(attributePaths = {"category"})
+    @EntityGraph(attributePaths = {"category", "brand"})
     Page<Product> findAll(Specification<Product> spec, Pageable pageable);
 
     // JOIN FETCH category khi lấy product theo ID
     @Override
-    @EntityGraph(attributePaths = {"category"})
+    @EntityGraph(attributePaths = {"category", "brand"})
     Optional<Product> findById(Long id);
     List<Product> findByCategoryId(Long categoryId);
     List<Product> findAllByOrderByCreatedAtDesc(Pageable pageable);

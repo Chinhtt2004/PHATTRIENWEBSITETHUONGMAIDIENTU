@@ -33,13 +33,16 @@ public class ProductService {
 
         Page<Product> products = productRepository.findAll(
                 ProductSpecification.filter(keyword, minPrice, maxPrice, categoryId, brandId, inStock),
-                PageRequest.of(page, size, sort)
-        );
+                PageRequest.of(page, size, sort));
 
         // Convert Page<Product> → Page<ProductResponse>
         return products.map(product -> {
-            List<ProductVariant> variants = variantRepository.findByProductIdAndIsActiveTrue(product.getId());
-            List<String> images = productImageRepository.findUrlsByProductId(product.getId());
+            List<ProductVariant> variants = product.getVariants().stream()
+                    .filter(ProductVariant::getIsActive)
+                    .toList();
+            List<String> images = product.getImages().stream()
+                    .map(ProductImage::getUrl)
+                    .toList();
             return mapToResponse(product, variants, images);
         });
     }
@@ -48,8 +51,12 @@ public class ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm: " + id));
 
-        List<ProductVariant> variants = variantRepository.findByProductIdAndIsActiveTrue(id);
-        List<String> images = productImageRepository.findUrlsByProductId(id);
+        List<ProductVariant> variants = product.getVariants().stream()
+                .filter(ProductVariant::getIsActive)
+                .toList();
+        List<String> images = product.getImages().stream()
+                .map(ProductImage::getUrl)
+                .toList();
 
         return mapToResponse(product, variants, images);
     }
@@ -138,8 +145,12 @@ public class ProductService {
         return productRepository.findByCategoryId(categoryId)
                 .stream()
                 .map(product -> {
-                    List<ProductVariant> variants = variantRepository.findByProductIdAndIsActiveTrue(product.getId());
-                    List<String> images = productImageRepository.findUrlsByProductId(product.getId());
+                    List<ProductVariant> variants = product.getVariants().stream()
+                            .filter(ProductVariant::getIsActive)
+                            .toList();
+                    List<String> images = product.getImages().stream()
+                            .map(ProductImage::getUrl)
+                            .toList();
                     return mapToResponse(product, variants, images);
                 })
                 .toList();
@@ -149,8 +160,12 @@ public class ProductService {
         return productRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(0, limit))
                 .stream()
                 .map(product -> {
-                    List<ProductVariant> variants = variantRepository.findByProductIdAndIsActiveTrue(product.getId());
-                    List<String> images = productImageRepository.findUrlsByProductId(product.getId());
+                    List<ProductVariant> variants = product.getVariants().stream()
+                            .filter(ProductVariant::getIsActive)
+                            .toList();
+                    List<String> images = product.getImages().stream()
+                            .map(ProductImage::getUrl)
+                            .toList();
                     return mapToResponse(product, variants, images);
                 })
                 .toList();
@@ -184,13 +199,24 @@ public class ProductService {
         vr.setPrice(v.getPrice());
         vr.setStock(v.getStock());
         vr.setImageUrl(v.getImageUrl());
-        vr.setDiscountPrice(v.getDiscountPrice());       // ← thêm
-        vr.setEffectivePrice(v.getEffectivePrice());     // ← thêm
-        vr.setDiscountPercent(v.getDiscountPercent());   // ← thêm
+        vr.setDiscountPrice(v.getDiscountPrice()); // ← thêm
+        vr.setEffectivePrice(v.getEffectivePrice()); // ← thêm
+        vr.setDiscountPercent(v.getDiscountPercent()); // ← thêm
         vr.setStock(v.getStock());
         vr.setIsActive(v.getIsActive());
+
+        if (v.getAttributeValues() != null) {
+            vr.setAttributeValues(v.getAttributeValues().stream().map(av -> {
+                ProductResponse.AttributeValueResponse avr = new ProductResponse.AttributeValueResponse();
+                avr.setName(av.getAttribute().getName());
+                avr.setValue(av.getValue());
+                return avr;
+            }).toList());
+        }
+
         return vr;
     }
+
     public ProductVariant setSalePrice(SaleRequest request) {
         ProductVariant variant = variantRepository.findById(request.getVariantId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy variant: " + request.getVariantId()));
@@ -214,13 +240,16 @@ public class ProductService {
     public Page<ProductResponse> getSaleProducts(int page, int size) {
         return productRepository.findSaleProducts(PageRequest.of(page, size))
                 .map(product -> {
-                    List<ProductVariant> variants = variantRepository
-                            .findByProductIdAndIsActiveTrue(product.getId());
-                    List<String> images = productImageRepository
-                            .findUrlsByProductId(product.getId());
+                    List<ProductVariant> variants = product.getVariants().stream()
+                            .filter(ProductVariant::getIsActive)
+                            .toList();
+                    List<String> images = product.getImages().stream()
+                            .map(ProductImage::getUrl)
+                            .toList();
                     return mapToResponse(product, variants, images);
                 });
     }
+
     public SaleResponse buildSaleResponse(ProductVariant variant) {
         SaleResponse res = new SaleResponse();
         res.setVariantId(variant.getId());
@@ -238,18 +267,15 @@ public class ProductService {
                         "ĐANG LỖ! Bán %.0fđ nhưng nhập %.0fđ, lỗ %.0fđ/sp",
                         variant.getEffectivePrice().doubleValue(),
                         variant.getCostPrice().doubleValue(),
-                        variant.getProfit().abs().doubleValue()
-                ));
+                        variant.getProfit().abs().doubleValue()));
             } else if (variant.getProfitPercent().compareTo(BigDecimal.valueOf(5)) < 0) {
                 res.setWarningLevel("WARNING");
                 res.setWarningMessage(String.format(
-                        "Lợi nhuận rất thấp: %.2f%%", variant.getProfitPercent().doubleValue()
-                ));
+                        "Lợi nhuận rất thấp: %.2f%%", variant.getProfitPercent().doubleValue()));
             } else {
                 res.setWarningLevel("OK");
                 res.setWarningMessage(String.format(
-                        "Lợi nhuận: %.2f%%", variant.getProfitPercent().doubleValue()
-                ));
+                        "Lợi nhuận: %.2f%%", variant.getProfitPercent().doubleValue()));
             }
         }
 

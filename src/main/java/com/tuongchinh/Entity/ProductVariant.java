@@ -28,6 +28,7 @@ public class ProductVariant {
     private BigDecimal costPrice;
     @ManyToMany
     @JoinTable(name = "variant_attribute_value", joinColumns = @JoinColumn(name = "variant_id"), inverseJoinColumns = @JoinColumn(name = "attribute_value_id"))
+    @org.hibernate.annotations.BatchSize(size = 30)
     private List<AttributeValue> attributeValues = new ArrayList<>();
     public BigDecimal getEffectivePrice() {
         return discountPrice != null ? discountPrice : price;

@@ -68,6 +68,7 @@ public class CartService {
         ProductVariant variant = item.getVariant();
 
         if (quantity <= 0) {
+            cart.getItems().remove(item);
             cartItemRepository.delete(item);
             return null;
         }
@@ -88,6 +89,7 @@ public class CartService {
         CartItem item = cartItemRepository.findByCartIdAndVariantId(cart.getId(), variantId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm trong giỏ"));
 
+        cart.getItems().remove(item);
         cartItemRepository.delete(item);
     }
 
@@ -101,7 +103,7 @@ public class CartService {
     public void clearCart(Long userId) {
         Cart cart = cartRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy giỏ hàng"));
-        cartItemRepository.deleteByCartId(cart.getId());  // ← dùng cái này
+        cartItemRepository.deleteByCartId(cart.getId()); // ← dùng cái này
     }
 
 }

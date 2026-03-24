@@ -15,9 +15,9 @@ public class CartItemDTO {
     private Long variantId;
     private String sku;
     private BigDecimal price;
-    private BigDecimal discountPrice;   // ← thêm
-    private BigDecimal effectivePrice;  // ← thêm
-    private Integer discountPercent;    // ← thêm
+    private BigDecimal discountPrice; // ← thêm
+    private BigDecimal effectivePrice; // ← thêm
+    private Integer discountPercent; // ← thêm
     private String variantImageUrl;
 
     // Thông tin product
@@ -25,6 +25,7 @@ public class CartItemDTO {
     private String productName;
     private String brandName;
     private String thumbnail;
+    private java.util.List<ProductResponse.AttributeValueResponse> attributeValues;
 
     // Tổng tiền của dòng này
     private BigDecimal subtotal;

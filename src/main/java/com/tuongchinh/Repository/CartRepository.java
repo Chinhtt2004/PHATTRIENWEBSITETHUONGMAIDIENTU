@@ -15,7 +15,9 @@ public interface CartRepository extends JpaRepository<Cart, Long> {
             "items.variant",
             "items.variant.product",
             "items.variant.product.brand",
-            "items.variant.product.category"
+            "items.variant.product.category",
+            "items.variant.attributeValues",
+            "items.variant.attributeValues.attribute"
     })
     Optional<Cart> findByUserId(Long userId);
 }
