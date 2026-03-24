@@ -233,7 +233,11 @@ export async function loginUser(email: string, password: string): Promise<LoginR
     credentials: "include",
     body: JSON.stringify({ email, password }),
   });
-  return ensureOk(res);
+  const result = await ensureOk(res);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("auth-change"));
+  }
+  return result;
 }
 
 export async function registerUser(name: string, email: string, password: string) {
@@ -242,7 +246,11 @@ export async function registerUser(name: string, email: string, password: string
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name, email, password, role: "USER" }),
   });
-  return ensureOk(res);
+  const result = await ensureOk(res);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("auth-change"));
+  }
+  return result;
 }
 
 export async function logoutUser() {
@@ -250,7 +258,11 @@ export async function logoutUser() {
     method: "POST",
     credentials: "include",
   });
-  return ensureOk(res);
+  const result = await ensureOk(res);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("auth-change"));
+  }
+  return result;
 }
 
 export async function fetchUserProfile(): Promise<UserProfileResponse> {
