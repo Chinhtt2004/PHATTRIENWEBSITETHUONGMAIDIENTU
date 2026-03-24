@@ -10,7 +10,7 @@ import lombok.Setter;
 @Setter
 public class Address {
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne
@@ -19,4 +19,6 @@ public class Address {
     private String receiverName;
     private String phone;
     private String address;
+    @Column(name = "is_default")
+    private Boolean isDefault = false;
 }

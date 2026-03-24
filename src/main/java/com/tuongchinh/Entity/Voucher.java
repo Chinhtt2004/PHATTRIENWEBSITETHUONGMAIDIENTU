@@ -19,21 +19,28 @@ public class Voucher {
     private String code;
 
     @Column(nullable = false)
-    private String type;
+    private String type;            // PERCENT / FIXED / SHIPPING
 
     @Column(nullable = false)
-    private BigDecimal value;
+    private BigDecimal value;       // 10 (10%) hoặc 50000 (50k)
 
     @Column(nullable = false)
-    private BigDecimal minOrderValue;
+    private BigDecimal minOrderValue;   // đơn tối thiểu
 
-    private BigDecimal maxDiscount;
+    private BigDecimal maxDiscount;     // giảm tối đa
 
     private LocalDateTime expiryDate;
 
-    private Integer usageLimit;
+    private Integer usageLimit;         // tổng lượt dùng
 
-    private Integer usedCount = 0;
+    private Integer usedCount = 0;      // đã dùng bao nhiêu lượt
 
     private Boolean isActive = true;
+
+    // Kiểm tra voucher còn hiệu lực không
+    public boolean isValid() {
+        return Boolean.TRUE.equals(isActive)
+                && (expiryDate == null || expiryDate.isAfter(LocalDateTime.now()))
+                && (usageLimit == null || usedCount < usageLimit);
+    }
 }
