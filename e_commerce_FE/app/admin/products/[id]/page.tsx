@@ -110,7 +110,7 @@ export default function ProductEditPage({
   };
 
   const handleSave = async () => {
-    if (!formData.name || !formData.categoryId || formData.price < 0) {
+    if (!formData.name || !formData.categoryId || (formData.price ?? 0) < 0) {
       toast.error("Vui lòng điền đầy đủ các trường bắt buộc");
       return;
     }
@@ -379,12 +379,12 @@ export default function ProductEditPage({
                   </p>
                 </div>
                 <Badge
-                  variant={formData.stockQuantity > 0 ? "default" : "secondary"}
+                  variant={(formData.stockQuantity ?? 0) > 0 ? "default" : "secondary"}
                   className={
-                    formData.stockQuantity > 0 ? "bg-success text-white" : ""
+                    (formData.stockQuantity ?? 0) > 0 ? "bg-success text-white" : ""
                   }
                 >
-                  {formData.stockQuantity > 0 ? "Đang bán" : "Hết hàng"}
+                  {(formData.stockQuantity ?? 0) > 0 ? "Đang bán" : "Hết hàng"}
                 </Badge>
               </div>
             </CardContent>

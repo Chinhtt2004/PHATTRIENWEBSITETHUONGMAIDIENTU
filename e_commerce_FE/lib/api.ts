@@ -1,4 +1,4 @@
-import type { Category, Product, User } from "@/lib/data";
+import type { Category, Product, ProductVariant, User } from "@/lib/data";
 import { cache } from "react";
 
 // API base URL được lấy từ biến môi trường, mặc định là localhost
@@ -22,15 +22,51 @@ export interface BackendProductCategory {
   description?: string | null;
 }
 
+/** A single attribute descriptor (e.g. { id: 1, name: "color" }) */
+export interface BackendAttribute {
+  id: number;
+  name: string; // e.g. "color", "size"
+}
+
+/** A specific value for an attribute (e.g. { id: 5, value: "red", attribute: { id:1, name:"color" } }) */
+export interface BackendAttributeValue {
+  id: number;
+  value: string; // e.g. "red", "M"
+  attribute: BackendAttribute;
+}
+
+/** Joins a variant to its attribute values */
+export interface BackendVariantAttributeValue {
+  attributeValue: BackendAttributeValue;
+}
+
+export interface BackendProductVariant {
+  id: number;
+  sku: string;
+  price: number;
+  stock: number;
+  imageUrl?: string | null;
+  isActive: boolean;
+  discountPrice?: number | null;
+  effectivePrice?: number;
+  discountPercent?: number | null;
+  attributeValues?: { name: string; value: string }[];
+}
+
+/** NEW: Product no longer carries price/stock/imageUrl directly */
 export interface BackendProduct {
   id: number;
   name: string;
   description?: string | null;
-  price: number | string;
-  stockQuantity: number;
-  imageUrl?: string | null;
+  categoryId?: number | null;
+  brandId?: number | null;
   category?: BackendProductCategory | null;
+  variants?: BackendProductVariant[];
   createdAt?: string;
+  // Legacy fields kept for backward-compat during migration
+  price?: number | string;
+  stockQuantity?: number;
+  imageUrl?: string | null;
 }
 
 export interface BackendProductPage {
@@ -41,11 +77,31 @@ export interface BackendProductPage {
   number: number;
 }
 
+export interface ProductPage {
+  content: Product[];
+  totalPages: number;
+  totalElements: number;
+  size: number;
+  number: number;
+}
+
+/** NEW: Cart item now references a variant, not a product */
 export interface BackendCartItem {
   id: number;
+  variantId: number;
+  sku?: string;
+  price?: number;
+  discountPrice?: number | null;
+  effectivePrice?: number;
+  discountPercent?: number | null;
+  variantImageUrl?: string | null;
   productId: number;
   productName: string;
+  brandName?: string | null;
+  thumbnail?: string | null;
+  subtotal?: number;
   quantity: number;
+  attributeValues?: { name: string; value: string }[];
 }
 
 export interface LoginResponse {
@@ -93,9 +149,18 @@ export interface PromotionRequest {
 export interface ProductRequest {
   name: string;
   description: string;
-  price: number;
-  stockQuantity: number;
   categoryId: number;
+  brandId?: number;
+  /**
+   * @deprecated New backend manages price per variant.
+   * Kept for the admin product form until it is migrated to variant management.
+   */
+  price?: number;
+  /**
+   * @deprecated New backend manages stock per variant.
+   * Kept for the admin product form until it is migrated to variant management.
+   */
+  stockQuantity?: number;
 }
 
 export interface CategoryRequest {
@@ -142,7 +207,7 @@ async function ensureOk(res: Response) {
   return data;
 }
 
-function slugify(value: string) {
+export function slugify(value: string) {
   return value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -160,19 +225,116 @@ function summarize(text: string, maxLength = 110) {
   return `${text.slice(0, maxLength).trim()}...`;
 }
 
+// --- Helpers for variants ---
+
+/**
+ * Extract a flat attributes map from a variant's attributeValues.
+ * e.g. [{ attributeValue: { attribute: { name: "color" }, value: "red" } }]
+ *   → { color: "red" }
+ */
+export function extractVariantAttributes(
+  avs?: BackendVariantAttributeValue[]
+): Record<string, string> {
+  if (!avs || avs.length === 0) return {};
+  const attrs: Record<string, string> = {};
+  for (const av of avs) {
+    const attrName = av.attributeValue?.attribute?.name ?? "";
+    const val = av.attributeValue?.value ?? "";
+    if (attrName) attrs[attrName] = val;
+  }
+  return attrs;
+}
+
+/**
+ * Returns the best display variant: first in-stock one, or the first variant overall.
+ */
+export function getDisplayVariant(
+  variants: BackendProductVariant[]
+): BackendProductVariant | undefined {
+  return variants.find((v) => v.stock > 0) ?? variants[0];
+}
+
+/**
+ * Normalize an image URL so it is always absolute or root-relative.
+ */
+export function normalizeImageUrl(url?: string | null): string {
+  const raw = url || "/placeholder.svg";
+  return raw.startsWith("http") || raw.startsWith("/") ? raw : `/${raw}`;
+}
+
 // --- Mappers ---
 
 export function mapBackendProduct(product: BackendProduct): Product {
   const description = stripHtml(product.description || "");
-  const price = Number(product.price || 0);
-  const compareAtPrice = product.stockQuantity > 20 ? Math.round(price * 1.15) : null;
-  const categoryId = String(product.category?.id ?? "0");
+  const categoryId = String(
+    product.category?.id ?? product.categoryId ?? "0"
+  );
   const slug = `${slugify(product.name)}-${product.id}`;
-  const rawImageUrl = product.imageUrl || "/placeholder.svg";
-  const imageUrl = rawImageUrl.startsWith("http") || rawImageUrl.startsWith("/") 
-    ? rawImageUrl 
-    : `/${rawImageUrl}`;
-  const badge = product.stockQuantity > 20 ? "bestseller" : product.stockQuantity <= 5 ? "sale" : "new";
+
+  // ── Variant mapping ──────────────────────────────────────────────
+  const backendVariants: BackendProductVariant[] =
+    product.variants && product.variants.length > 0
+      ? product.variants
+      : [
+          // Legacy fallback: synthesise a default variant from flat fields
+          {
+            id: product.id * 1000, // synthetic id unlikely to clash
+            sku: `SKU-${product.id}-DEF`,
+            price: Number(product.price ?? 0),
+            stock: product.stockQuantity ?? 0,
+            imageUrl: product.imageUrl,
+            isActive: true,
+            effectivePrice: Number(product.price ?? 0)
+          },
+        ];
+
+  const displayVariant = getDisplayVariant(backendVariants)!;
+  const displayPrice = Number(displayVariant.effectivePrice ?? displayVariant.price ?? 0);
+  const displayImageUrl = normalizeImageUrl(displayVariant.imageUrl);
+  const totalStock = backendVariants.reduce((s, v) => s + (v.stock ?? 0), 0);
+
+  const mappedVariants: ProductVariant[] = backendVariants.map((bv) => {
+    const attrs: Record<string, string> = {};
+    if (bv.attributeValues) {
+      bv.attributeValues.forEach(av => {
+        attrs[av.name] = av.value;
+      });
+    }
+    
+    // Build a human-readable name from the attribute values
+    const attrLabel = Object.values(attrs).join(" / ") || bv.sku || "Mặc định";
+    
+    return {
+      id: String(bv.id),
+      sku: bv.sku,
+      name: attrLabel,
+      price: Number(bv.effectivePrice ?? bv.price ?? 0),
+      compareAtPrice: bv.discountPrice ? Number(bv.price) : undefined,
+      stock: bv.stock ?? 0,
+      inventory: bv.stock ?? 0,
+      imageUrl: normalizeImageUrl(bv.imageUrl),
+      attributes: attrs,
+    };
+  });
+
+  // Collect all unique images (from variants + fallback)
+  const seenUrls = new Set<string>();
+  const images: Product["images"] = [];
+  for (const v of backendVariants) {
+    const url = normalizeImageUrl(v.imageUrl);
+    if (!seenUrls.has(url)) {
+      seenUrls.add(url);
+      images.push({ id: `img-${product.id}-${v.id}`, url, alt: product.name });
+    }
+  }
+  if (images.length === 0) {
+    images.push({ id: `img-${product.id}`, url: "/placeholder.svg", alt: product.name });
+  }
+
+  const compareAtPrice =
+    totalStock > 20 ? Math.round(displayPrice * 1.15) : null;
+  const badge =
+    totalStock > 20 ? "bestseller" : totalStock <= 5 ? "sale" : "new";
 
   return {
     id: String(product.id),
@@ -181,32 +343,17 @@ export function mapBackendProduct(product: BackendProduct): Product {
     slug,
     shortDescription: summarize(description || product.name),
     description: product.description || `<p>${product.name}</p>`,
-    price,
+    price: displayPrice,
     compareAtPrice,
     currency: "VND",
     categoryId,
-    brandId: "brand_glowskin",
-    images: [
-      {
-        id: `img-${product.id}`,
-        url: imageUrl,
-        alt: product.name,
-      },
-    ],
-    variants: [
-      {
-        id: `var-${product.id}`,
-        sku: `SKU-${product.id}-DEFAULT`,
-        name: "Mặc định",
-        price,
-        inventory: product.stockQuantity,
-        attributes: { size: "Mặc định" },
-      },
-    ],
+    brandId: String(product.brandId ?? "brand_glowskin"),
+    images,
+    variants: mappedVariants,
     attributes: { skin_type: ["all"], concerns: [] },
     rating: { average: 4.8, count: 0 },
     badges: [badge],
-    inventory: { available: product.stockQuantity > 0, quantity: product.stockQuantity },
+    inventory: { available: totalStock > 0, quantity: totalStock },
     ingredients: [],
     reviews: [],
   };
@@ -304,19 +451,40 @@ export async function fetchProducts(options: {
   sortBy?: string;
   sortDir?: string;
 } = {}): Promise<Product[]> {
+  const page = await fetchProductsPage(options);
+  return page.content;
+}
+
+export async function fetchProductsPage(options: {
+  keyword?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  categoryId?: number;
+  page?: number;
+  size?: number;
+  sortBy?: string;
+  sortDir?: string;
+} = {}): Promise<ProductPage> {
   const params = new URLSearchParams();
   if (options.keyword) params.append("keyword", options.keyword);
   if (options.minPrice !== undefined) params.append("minPrice", String(options.minPrice));
   if (options.maxPrice !== undefined) params.append("maxPrice", String(options.maxPrice));
   if (options.categoryId) params.append("categoryId", String(options.categoryId));
   params.append("page", String(options.page || 0));
-  params.append("size", String(options.size || 100));
+  params.append("size", String(options.size || 20));
   params.append("sortBy", options.sortBy || "id");
   params.append("sortDir", options.sortDir || "desc");
 
-  const res = await fetch(`${API_BASE_URL}/api/public/products?${params.toString()}`, { cache: "no-store" });
+  const res = await fetch(`${API_BASE_URL}/api/public/product?${params.toString()}`, { cache: "no-store" });
   const data = (await ensureOk(res)) as BackendProductPage;
-  return (data.content || []).map(mapBackendProduct);
+  
+  return {
+    content: (data.content || []).map(mapBackendProduct),
+    totalPages: data.totalPages,
+    totalElements: data.totalElements,
+    size: data.size,
+    number: data.number,
+  };
 }
 
 export async function fetchProductById(id: number): Promise<Product> {
@@ -335,13 +503,13 @@ export async function fetchProductsByCategoryId(categoryId: number): Promise<Pro
 }
 
 export async function fetchBestSellers(limit = 10): Promise<Product[]> {
-  const res = await fetch(`${API_BASE_URL}/api/public/products/best-sellers?limit=${limit}`, { cache: "no-store" });
+  const res = await fetch(`${API_BASE_URL}/api/public/product/best-sellers?limit=${limit}`, { cache: "no-store" });
   const data = (await ensureOk(res)) as BackendProduct[];
   return data.map(mapBackendProduct);
 }
 
 export async function fetchNewProducts(limit = 10): Promise<Product[]> {
-  const res = await fetch(`${API_BASE_URL}/api/public/products/new?limit=${limit}`, { cache: "no-store" });
+  const res = await fetch(`${API_BASE_URL}/api/public/product/new?limit=${limit}`, { cache: "no-store" });
   const data = (await ensureOk(res)) as BackendProduct[];
   return data.map(mapBackendProduct);
 }
@@ -467,8 +635,15 @@ export async function adminDeleteCategory(id: number) {
 }
 
 // Cart
-export async function addToCart(productId: number, quantity: number) {
-  const params = new URLSearchParams({ productId: String(productId), quantity: String(quantity) });
+/**
+ * Add (or update) a cart line for a specific variant.
+ * The new backend expects `variantId` instead of `productId`.
+ */
+export async function addToCart(variantId: number, quantity: number) {
+  const params = new URLSearchParams({
+    variantId: String(variantId),
+    quantity: String(quantity),
+  });
   const res = await fetch(`${API_BASE_URL}/api/user/cart?${params.toString()}`, {
     method: "POST",
     credentials: "include",
@@ -484,8 +659,12 @@ export async function fetchCartItems(): Promise<BackendCartItem[]> {
   return ensureOk(res) as Promise<BackendCartItem[]>;
 }
 
-export async function removeCartItem(productId: number) {
-  const res = await fetch(`${API_BASE_URL}/api/user/cart/${productId}`, {
+/**
+ * Remove a cart line identified by variantId.
+ * The new backend uses `/api/user/cart/{variantId}`.
+ */
+export async function removeCartItem(variantId: number) {
+  const res = await fetch(`${API_BASE_URL}/api/user/cart/${variantId}`, {
     method: "DELETE",
     credentials: "include",
   });

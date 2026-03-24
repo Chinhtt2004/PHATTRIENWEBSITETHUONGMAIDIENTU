@@ -8,7 +8,7 @@ import { Heart, ShoppingBag, Star, Sparkles, Crown, Flame, Zap } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { type Product, formatPrice, getDiscountPercentage, getBadgeLabel } from "@/lib/data";
-import { addToCart } from "@/lib/api";
+import { useCart } from "@/contexts/cart-context";
 import { toast } from "sonner";
 
 interface ProductCardProps {
@@ -21,16 +21,22 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
   const [isAdding, setIsAdding] = useState(false);
   const discount = getDiscountPercentage(product.price, product.compareAtPrice);
 
+  const { addItem } = useCart();
+
   const handleAddToCart = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
 
+    const firstVariant = product.variants[0];
+    if (!firstVariant) {
+      toast.error("Sản phẩm chưa có phiên bản nào");
+      return;
+    }
+
     try {
       setIsAdding(true);
-      await addToCart(Number(product.id), 1);
-      toast.success("Đã thêm vào giỏ hàng!", {
-        description: product.name,
-      });
+      // Use the addItem from CartContext to ensure header count updates
+      await addItem(Number(firstVariant.id), 1);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Không thể thêm vào giỏ hàng";
       if (message.includes("403") || message.includes("401") || /token/i.test(message)) {
@@ -38,7 +44,6 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
         router.push("/account/login");
         return;
       }
-      toast.error(message);
     } finally {
       setIsAdding(false);
     }

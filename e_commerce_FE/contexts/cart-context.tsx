@@ -1,17 +1,18 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { fetchCartItems, fetchProducts, removeCartItem, addToCart } from "@/lib/api";
-import { type Product } from "@/lib/data";
+import { fetchCartItems, removeCartItem, addToCart, extractVariantAttributes } from "@/lib/api";
 import { toast } from "sonner";
 
 interface CartItem {
   id: string;
-  productId: string;
   variantId: string;
+  /** Human-readable attribute summary e.g. "Màu: Đỏ · Size: M" */
+  variantLabel: string;
+  /** Variant attribute map for display e.g. { color: "Đỏ" } */
+  attributes: Record<string, string>;
   slug: string;
   name: string;
-  variant: string;
   image: string;
   price: number;
   quantity: number;
@@ -23,7 +24,8 @@ interface CartContextType {
   loadCart: () => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
   updateQuantity: (itemId: string, newQuantity: number) => Promise<void>;
-  addItem: (productId: number, quantity: number) => Promise<void>;
+  /** variantId replaces the old productId */
+  addItem: (variantId: number, quantity: number) => Promise<void>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -35,27 +37,44 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const loadCart = async () => {
     try {
       setIsLoading(true);
-      const [items, products] = await Promise.all([fetchCartItems(), fetchProducts()]);
-      const productMap = new Map<number, Product>(products.map((product) => [Number(product.id), product]));
+      const items = await fetchCartItems();
 
       setCartItems(
         items.map((item) => {
-          const product = productMap.get(item.productId);
+          // Rebuild attributes from the restored attributeValues DTO
+          const attrs: Record<string, string> = {};
+          if (item.attributeValues) {
+            item.attributeValues.forEach(av => {
+              attrs[av.name] = av.value;
+            });
+          }
+
+          const variantLabel = Object.entries(attrs)
+            .map(([k, v]) => `${k}: ${v}`)
+            .join(" · ") || item.sku || "Mặc định";
+
+          const price = Number(item.effectivePrice ?? item.price ?? 0);
+          
+          // Normalize image URL
+          const rawImg = item.variantImageUrl || item.thumbnail || "/placeholder.svg";
+          const image = rawImg.startsWith("http") || rawImg.startsWith("/") 
+            ? rawImg : `/${rawImg}`;
+
           return {
             id: String(item.id),
-            productId: String(item.productId),
-            variantId: product?.variants[0]?.id || `var-${item.productId}`,
-            slug: product?.slug || "",
+            variantId: String(item.variantId),
+            variantLabel,
+            attributes: attrs,
+            slug: `${item.productName.toLowerCase().replace(/\s+/g, "-")}-${item.productId}`,
             name: item.productName,
-            variant: product?.variants[0]?.name || "Mặc định",
-            image: product?.images[0]?.url || "/placeholder.svg",
-            price: product?.price || 0,
+            image,
+            price,
             quantity: item.quantity,
           };
         })
       );
-    } catch (error) {
-      // Silently handle errors (user might not be logged in)
+    } catch {
+      // Silently handle – user may not be logged in
     } finally {
       setIsLoading(false);
     }
@@ -66,7 +85,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!item) return;
 
     try {
-      await removeCartItem(Number(item.productId));
+      // New API: cart lines are identified by variantId
+      await removeCartItem(Number(item.variantId));
       setCartItems((items) => items.filter((cartItem) => cartItem.id !== itemId));
       toast.success("Đã xóa sản phẩm khỏi giỏ hàng");
     } catch (error) {
@@ -80,7 +100,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!item) return;
 
     try {
-      await addToCart(Number(item.productId), newQuantity);
+      // New API: update by variantId
+      await addToCart(Number(item.variantId), newQuantity);
       setCartItems((items) =>
         items.map((cartItem) =>
           cartItem.id === itemId ? { ...cartItem, quantity: newQuantity } : cartItem
@@ -91,9 +112,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const addItem = async (productId: number, quantity: number) => {
+  const addItem = async (variantId: number, quantity: number) => {
     try {
-      await addToCart(productId, quantity);
+      await addToCart(variantId, quantity);
       await loadCart();
       toast.success("Đã thêm sản phẩm vào giỏ hàng");
     } catch (error) {

@@ -63,7 +63,7 @@ export function ChatbotWidget() {
       if (isOpen && (!historyLoaded || !prevLoggedIn || forceHistoryLoad)) {
         setIsTyping(true);
         try {
-          const history = await fetchChatHistory(0, 20);
+          const history = await fetchChatHistory();
           if (history && history.length > 0) {
             const mappedMessages: Message[] = [];
             history.forEach((h: ChatMessageResponse) => {
@@ -191,7 +191,7 @@ export function ChatbotWidget() {
           if (trimmed === "Tìm sản phẩm bán chạy") {
             try {
               const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8081";
-              const res = await fetch(`${apiBase}/api/public/products/best-sellers?limit=3`);
+              const res = await fetch(`${apiBase}/api/public/product/best-sellers?limit=3`);
               const bestSellers = await res.json();
               if (bestSellers && bestSellers.length > 0) {
                 replyContent = "Dưới đây là các sản phẩm được yêu thích nhất tại GlowSkin:\n\n";

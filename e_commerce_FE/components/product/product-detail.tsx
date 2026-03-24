@@ -36,15 +36,16 @@ import {
 } from "@/components/ui/breadcrumb";
 import { toast } from "sonner";
 import { ProductCard } from "@/components/product/product-card";
-import { addToCart } from "@/lib/api";
+import { useCart } from "@/contexts/cart-context";
 import {
   type Product,
-  type Review,
+  type ProductVariant,
   formatPrice,
   getDiscountPercentage,
   getBadgeLabel,
   categories,
 } from "@/lib/data";
+import { normalizeImageUrl } from "@/lib/api";
 
 interface ProductDetailProps {
   product: Product;
@@ -58,6 +59,39 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
   const [selectedImage, setSelectedImage] = useState(0);
   const [isWishlisted, setIsWishlisted] = useState(false);
 
+  // When variant changes, switch to its image if it has a dedicated one
+  const handleVariantSelect = (variant: typeof selectedVariant) => {
+    setSelectedVariant(variant);
+    if (variant.imageUrl) {
+      // find the index of this variant's image in the product images array
+      const idx = product.images.findIndex((img) => img.url === variant.imageUrl);
+      if (idx >= 0) setSelectedImage(idx);
+    }
+  };
+
+  /**
+   * Group variants by attribute type so we render one row per attribute.
+   * e.g. { color: [varA, varB], size: [varC, varD] }
+   * When NO attributes exist (single default variant) we skip the selector.
+   */
+  const attributeGroups = (() => {
+    const groups: Record<string, typeof product.variants> = {};
+    for (const variant of product.variants) {
+      const keys = Object.keys(variant.attributes).filter((k) => k !== "colorHex");
+      for (const key of keys) {
+        if (!groups[key]) groups[key] = [];
+        // Deduplicate variants per value (a variant appears once per attribute group)
+        const seen = groups[key].some(
+          (v) => v.attributes[key] === variant.attributes[key]
+        );
+        if (!seen) groups[key].push(variant);
+      }
+    }
+    return groups;
+  })();
+
+  const hasAttributes = Object.keys(attributeGroups).length > 0;
+
   const discount = getDiscountPercentage(
     selectedVariant.price,
     product.compareAtPrice
@@ -65,12 +99,12 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
 
   const category = categories.find((c) => c.id === product.categoryId);
 
+  const { addItem } = useCart();
+
   const handleAddToCart = async () => {
     try {
-      await addToCart(Number(product.id), quantity);
-      toast.success("Đã thêm vào giỏ hàng!", {
-        description: `${product.name} - ${selectedVariant.name} x ${quantity}`,
-      });
+      // Use the addItem from CartContext to ensure header count updates
+      await addItem(Number(selectedVariant.id), quantity);
       return true;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Không thể thêm vào giỏ hàng";
@@ -79,7 +113,6 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
         router.push("/account/login");
         return false;
       }
-      toast.error(message);
       return false;
     }
   };
@@ -258,49 +291,64 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
             </p>
 
             {/* Variants */}
-            {product.variants.length > 1 && (
-              <div>
-                <label className="block text-sm font-medium mb-3">
-                  Lựa chọn:{" "}
-                  <span className="text-primary">{selectedVariant.name}</span>
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {product.variants.map((variant) => {
-                    const isOutOfStock = variant.inventory <= 0;
-                    const hasColor = variant.attributes.colorHex;
+            {hasAttributes && (
+              <div className="space-y-4">
+                {Object.entries(attributeGroups).map(([attrKey, groupVariants]) => {
+                  // The "active" value for this attribute row
+                  const activeValue = selectedVariant.attributes[attrKey];
+                  return (
+                    <div key={attrKey}>
+                      <label className="block text-sm font-medium mb-2 capitalize">
+                        {attrKey}:{" "}
+                        <span className="text-primary">{activeValue}</span>
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {groupVariants.map((variant) => {
+                          const isOutOfStock = variant.inventory <= 0;
+                          const isSelected =
+                            selectedVariant.attributes[attrKey] ===
+                            variant.attributes[attrKey];
+                          const hasColor = variant.attributes.colorHex;
 
-                    return (
-                      <button
-                        key={variant.id}
-                        onClick={() => !isOutOfStock && setSelectedVariant(variant)}
-                        disabled={isOutOfStock}
-                        className={`relative flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all ${
-                          selectedVariant.id === variant.id
-                            ? "border-primary bg-primary/5"
-                            : isOutOfStock
-                              ? "border-muted text-muted-foreground cursor-not-allowed opacity-50"
-                              : "border-border hover:border-primary/50"
-                        }`}
-                      >
-                        {hasColor && (
-                          <span
-                            className="w-4 h-4 rounded-full border border-border"
-                            style={{ backgroundColor: variant.attributes.colorHex }}
-                          />
-                        )}
-                        <span>{variant.name}</span>
-                        {selectedVariant.id === variant.id && (
-                          <Check className="h-4 w-4 text-primary" />
-                        )}
-                        {isOutOfStock && (
-                          <span className="absolute -top-2 -right-2 text-xs bg-muted px-1.5 rounded">
-                            Hết hàng
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+                          return (
+                            <button
+                              key={variant.id}
+                              onClick={() =>
+                                !isOutOfStock && handleVariantSelect(variant)
+                              }
+                              disabled={isOutOfStock}
+                              className={`relative flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all ${
+                                isSelected
+                                  ? "border-primary bg-primary/5"
+                                  : isOutOfStock
+                                    ? "border-muted text-muted-foreground cursor-not-allowed opacity-50"
+                                    : "border-border hover:border-primary/50"
+                              }`}
+                            >
+                              {hasColor && (
+                                <span
+                                  className="w-4 h-4 rounded-full border border-border"
+                                  style={{
+                                    backgroundColor: variant.attributes.colorHex,
+                                  }}
+                                />
+                              )}
+                              <span>{variant.attributes[attrKey]}</span>
+                              {isSelected && (
+                                <Check className="h-4 w-4 text-primary" />
+                              )}
+                              {isOutOfStock && (
+                                <span className="absolute -top-2 -right-2 text-xs bg-muted px-1.5 rounded">
+                                  Hết hàng
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
 

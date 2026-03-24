@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { type Category, formatPrice } from "@/lib/data";
-import { fetchCategories, fetchUserProfile, logoutUser, type UserProfileResponse } from "@/lib/api";
+import { fetchCategories, fetchUserProfile, logoutUser, type UserProfileResponse, fetchProducts } from "@/lib/api";
 import { useCart } from "@/contexts/cart-context";
 import { toast } from "sonner";
 import { useRouter, usePathname } from "next/navigation";
@@ -47,6 +47,45 @@ export function Header() {
   
   const { cartItems, isLoading: isLoadingCart, loadCart, removeItem, updateQuantity } = useCart();
   const cartItemCount = cartItems.length;
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchTerm.trim()) return;
+    
+    router.push(`/products?q=${encodeURIComponent(searchTerm.trim())}`);
+    setIsSearchOpen(false);
+    setShowSuggestions(false);
+  };
+
+  // Debounced search suggestions
+  useEffect(() => {
+    if (searchTerm.trim().length < 2) {
+      setSuggestions([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const results = await fetchProducts({ 
+          keyword: searchTerm, 
+          size: 6 
+        });
+        setSuggestions(results);
+      } catch (err) {
+        console.error("Failed to fetch suggestions", err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
 
   useEffect(() => {
     let cancelled = false;
@@ -159,15 +198,74 @@ export function Header() {
           </nav>
 
           {/* Search - Desktop */}
-          <div className="hidden md:flex flex-1 max-w-md mx-4">
-            <div className="relative w-full">
+          <div className="hidden md:flex flex-1 max-w-md mx-4 relative">
+            <form onSubmit={handleSearch} className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
                 placeholder="Tìm kiếm sản phẩm..."
-                className="w-full pl-10 bg-muted border-0 focus-visible:ring-primary"
+                className="w-full pl-10 bg-muted border-0 focus-visible:ring-primary rounded-full h-10 transition-all focus:bg-background focus:ring-1 focus:ring-primary/20"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
               />
-            </div>
+            </form>
+
+            {/* Suggestions Dropdown */}
+            {showSuggestions && searchTerm.trim().length >= 2 && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-background border border-border shadow-xl rounded-2xl overflow-hidden z-[60] backdrop-blur-sm animate-in fade-in slide-in-from-top-2 duration-200">
+                {isSearching ? (
+                  <div className="p-4 text-center text-sm text-muted-foreground animate-pulse">
+                    Đang tìm kiếm...
+                  </div>
+                ) : suggestions.length > 0 ? (
+                  <div className="p-2">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase px-3 py-2 tracking-wider">
+                      Sản phẩm gợi ý
+                    </p>
+                    <div className="space-y-1">
+                      {suggestions.map((product) => (
+                        <Link
+                          key={product.id}
+                          href={`/product/${product.slug}`}
+                          className="flex items-center gap-3 p-2 rounded-xl hover:bg-primary/5 transition-colors group"
+                          onClick={() => setShowSuggestions(false)}
+                        >
+                          <div className="relative h-12 w-12 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                            <Image
+                              src={product.images[0]?.url || "/placeholder.svg"}
+                              alt={product.name}
+                              fill
+                              className="object-cover group-hover:scale-110 transition-transform"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">
+                              {product.name}
+                            </p>
+                            <p className="text-xs text-primary font-bold">
+                              {formatPrice(product.price)}
+                            </p>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                    <Link
+                      href={`/products?q=${searchTerm}`}
+                      className="block text-center py-3 mt-1 border-t border-border/50 text-xs font-semibold text-primary hover:underline"
+                      onClick={() => setShowSuggestions(false)}
+                    >
+                      Xem tất cả kết quả cho "{searchTerm}"
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-sm text-muted-foreground">
+                    Không tìm thấy sản phẩm nào
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Actions */}
@@ -370,16 +468,63 @@ export function Header() {
 
         {/* Mobile Search */}
         {isSearchOpen && (
-          <div className="md:hidden pb-4">
-            <div className="relative">
+          <div className="md:hidden pb-4 px-4 relative">
+            <form onSubmit={handleSearch} className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
                 placeholder="Tìm kiếm sản phẩm..."
-                className="w-full pl-10 bg-muted border-0"
+                className="w-full pl-10 bg-muted border-0 h-11 rounded-xl"
                 autoFocus
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
-            </div>
+            </form>
+
+            {/* Mobile Suggestions Area */}
+            {searchTerm.trim().length >= 2 && (
+              <div className="mt-2 bg-background border border-border shadow-lg rounded-xl overflow-hidden z-[60]">
+                {isSearching ? (
+                  <div className="p-4 text-center text-sm text-muted-foreground">Đang tìm...</div>
+                ) : suggestions.length > 0 ? (
+                  <div className="p-2">
+                    {suggestions.map((product) => (
+                      <Link
+                        key={product.id}
+                        href={`/product/${product.slug}`}
+                        className="flex items-center gap-3 p-3 rounded-lg hover:bg-primary/5 transition-colors"
+                        onClick={() => {
+                          setShowSuggestions(false);
+                          setIsSearchOpen(false);
+                        }}
+                      >
+                        <div className="relative h-10 w-10 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                          <Image
+                            src={product.images[0]?.url || "/placeholder.svg"}
+                            alt={product.name}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{product.name}</p>
+                          <p className="text-xs text-primary font-bold">{formatPrice(product.price)}</p>
+                        </div>
+                      </Link>
+                    ))}
+                    <Link
+                      href={`/products?q=${searchTerm}`}
+                      className="block text-center py-3 mt-1 border-t border-border/50 text-xs font-semibold text-primary"
+                      onClick={() => setIsSearchOpen(false)}
+                    >
+                      Tất cả kết quả cho "{searchTerm}"
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-sm text-muted-foreground">Không tìm thấy</div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

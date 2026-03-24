@@ -151,7 +151,7 @@ export function CartContent() {
                         {item.name}
                       </Link>
                       <p className="text-sm text-muted-foreground mt-1">
-                        {item.variant}
+                        {item.variantLabel}
                       </p>
                       <p className="text-primary font-semibold mt-2">
                         {formatPrice(item.price)}
