@@ -1,19 +1,15 @@
 package com.tuongchinh.DTO;
 
-import jakarta.persistence.Entity;
-
-import java.util.List;
-import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.List;
 
 @Getter
 @Setter
 public class CheckoutRequest {
     private List<Long> cartItemIds;
-    private String voucherCode;
-    private String address;
-    private String receiverName;
-    private String phone;
+    private Long addressId;
     private String paymentMethod;
+    private String voucherCode;
 }

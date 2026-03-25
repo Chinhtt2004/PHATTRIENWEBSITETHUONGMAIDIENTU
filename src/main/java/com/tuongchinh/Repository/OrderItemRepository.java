@@ -1,14 +1,14 @@
-//package com.tuongchinh.Repository;
-//
-//import com.tuongchinh.DTO.BestSellingProductDTO;
-//import com.tuongchinh.Entity.OrderItem;
-//import org.springframework.data.domain.Pageable;
-//import org.springframework.data.jpa.repository.JpaRepository;
-//import org.springframework.data.jpa.repository.Query;
-//
-//import java.util.List;
-//
-//public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
+package com.tuongchinh.Repository;
+
+import com.tuongchinh.DTO.BestSellingProductDTO;
+import com.tuongchinh.Entity.OrderItem;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+
+import java.util.List;
+
+public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
 //    @Query("""
 //        SELECT new com.tuongchinh.DTO.BestSellingProductDTO(
 //            p.id,
@@ -23,4 +23,4 @@
 //        ORDER BY SUM(oi.quantity) DESC
 //    """)
 //    List<BestSellingProductDTO> findBestSellingProducts(Pageable pageable);
-//}
+}

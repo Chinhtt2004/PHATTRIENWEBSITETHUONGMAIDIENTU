@@ -155,7 +155,6 @@ public class ProductService {
                 })
                 .toList();
     }
-
     public List<ProductResponse> getNewProducts(int limit) {
         return productRepository.findAllByOrderByCreatedAtDesc(PageRequest.of(0, limit))
                 .stream()
@@ -221,9 +220,21 @@ public class ProductService {
         ProductVariant variant = variantRepository.findById(request.getVariantId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy variant: " + request.getVariantId()));
         // Validate giá sale phải thấp hơn giá gốc
-        if (request.getDiscountPrice() != null
-                && request.getDiscountPrice().compareTo(variant.getPrice()) >= 0) {
-            throw new RuntimeException("Giá sale phải thấp hơn giá gốc: " + variant.getPrice());
+        if (request.getDiscountPrice() != null) {
+
+            // 1. Kiểm tra phải nhỏ hơn giá bán
+            if (request.getDiscountPrice().compareTo(variant.getPrice()) >= 0) {
+                throw new RuntimeException(
+                        "Giá sale phải nhỏ hơn giá bán (" + variant.getPrice() + ")"
+                );
+            }
+
+            // 2. Kiểm tra phải lớn hơn giá nhập
+            if (request.getDiscountPrice().compareTo(variant.getCostPrice()) <= 0) {
+                throw new RuntimeException(
+                        "Giá sale phải lớn hơn giá nhập (" + variant.getCostPrice() + ")"
+                );
+            }
         }
         variant.setDiscountPrice(request.getDiscountPrice());
         return variantRepository.save(variant);
