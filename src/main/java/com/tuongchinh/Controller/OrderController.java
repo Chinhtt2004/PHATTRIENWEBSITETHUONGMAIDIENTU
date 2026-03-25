@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/user/orders")
+@RequestMapping("/api")
 @RequiredArgsConstructor
 public class OrderController {
 
@@ -22,7 +22,7 @@ public class OrderController {
     private final JwtService jwtService;
 
     // POST /api/orders/checkout
-    @PostMapping("/checkout")
+    @PostMapping("user/orders/checkout")
     public ResponseEntity<OrderResponse> checkout(
             @RequestBody CheckoutRequest req,
             HttpServletRequest request
@@ -34,7 +34,7 @@ public class OrderController {
     }
 
     // GET /api/user/orders
-    @GetMapping
+    @GetMapping("user/orders")
     public ResponseEntity<List<OrderResponse>> getMyOrders(
             HttpServletRequest request
     ) {
@@ -44,7 +44,7 @@ public class OrderController {
     }
 
     // GET /api/user/orders/{id}
-    @GetMapping("/{id}")
+    @GetMapping("user/orders/{id}")
     public ResponseEntity<OrderResponse> getOrderDetail(
             HttpServletRequest request,
             @PathVariable Long id
@@ -55,7 +55,7 @@ public class OrderController {
     }
 
     // PUT /api/user/orders/{id}/cancel
-    @PutMapping("/{id}/cancel")
+    @PutMapping("/user/orders/cancel/{}")
     public ResponseEntity<OrderResponse> cancelOrder(
             HttpServletRequest request,
             @PathVariable Long id
@@ -69,12 +69,12 @@ public class OrderController {
     // ADMIN ENDPOINTS
     // =====================
 
-    @GetMapping("/admin/all")
+    @GetMapping("/admin/orders/all")
     public ResponseEntity<List<OrderResponse>> getAllOrders() {
         return ResponseEntity.ok(orderService.getAllOrders());
     }
 
-    @PutMapping("/admin/{id}/status")
+    @PutMapping("/admin/orders/status")
     public ResponseEntity<OrderResponse> updateStatus(
             @PathVariable Long id,
             @RequestParam String status
