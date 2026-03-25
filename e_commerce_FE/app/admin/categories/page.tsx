@@ -42,8 +42,16 @@ import {
   adminCreateCategory,
   adminUpdateCategory,
   adminDeleteCategory,
-  type CategoryRequest
+  type CategoryRequest,
+  fetchBrands
 } from "@/lib/api";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { Category } from "@/lib/data";
 import { toast } from "sonner";
 import {
@@ -69,6 +77,7 @@ export default function AdminCategoriesPage() {
   const [formData, setFormData] = useState<CategoryRequest>({
     name: "",
     description: "",
+    parentId: null,
   });
 
   const loadCategories = useCallback(async () => {
@@ -93,12 +102,14 @@ export default function AdminCategoriesPage() {
       setFormData({
         name: category.name,
         description: category.description || "",
+        parentId: category.parentId ? Number(category.parentId) : null,
       });
     } else {
       setEditingCategory(null);
       setFormData({
         name: "",
         description: "",
+        parentId: null,
       });
     }
     setIsDialogOpen(true);
@@ -186,6 +197,8 @@ export default function AdminCategoriesPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Tên danh mục</TableHead>
+                    <TableHead>Danh mục cha</TableHead>
+                    <TableHead>Mô tả</TableHead>
                     <TableHead>Mô tả</TableHead>
                     <TableHead>Sản phẩm</TableHead>
                     <TableHead className="w-12"></TableHead>
@@ -202,7 +215,15 @@ export default function AdminCategoriesPage() {
                     filteredCategories.map((category) => (
                       <TableRow key={category.id}>
                         <TableCell className="font-medium">
-                          {category.name}
+                          <div className="flex items-center gap-2">
+                            {category.parentId && <span className="text-muted-foreground">—</span>}
+                            {category.name}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {category.parentId 
+                            ? categories.find(c => c.id === category.parentId)?.name || "—" 
+                            : "—"}
                         </TableCell>
                         <TableCell className="max-w-md truncate text-muted-foreground">
                           {category.description || "Không có mô tả"}
@@ -262,6 +283,27 @@ export default function AdminCategoriesPage() {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="VD: Chăm sóc da"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="parentId">Danh mục cha</Label>
+              <Select
+                value={formData.parentId?.toString() || "none"}
+                onValueChange={(val) => setFormData({ ...formData, parentId: val === "none" ? null : Number(val) })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Không có (Danh mục gốc)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Không có (Danh mục gốc)</SelectItem>
+                  {categories
+                    .filter(c => c.id !== editingCategory?.id) // Tránh chọn chính mình làm cha
+                    .map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id.toString()}>
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="description">Mô tả</Label>

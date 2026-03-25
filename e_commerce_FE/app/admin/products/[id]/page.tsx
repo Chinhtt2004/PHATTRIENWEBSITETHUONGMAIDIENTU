@@ -31,16 +31,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { 
+import {
   fetchProductById, 
   fetchCategories, 
+  fetchBrands,
   adminCreateProduct, 
   adminUpdateProduct, 
   adminDeleteProduct,
-  type ProductRequest 
+  fetchAttributes,
+  type ProductRequest,
+  type Brand,
+  type Attribute
 } from "@/lib/api";
 import { toast } from "sonner";
-import type { Category, Product } from "@/lib/data";
+import type { Category, Product, ProductVariant } from "@/lib/data";
+import { type AttributeValue } from "@/lib/api";
 
 export default function ProductEditPage({
   params,
@@ -50,22 +55,39 @@ export default function ProductEditPage({
   const router = useRouter();
   const { id } = use(params);
   const isNew = id === "new";
-  
+
   const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [allAttributes, setAllAttributes] = useState<Attribute[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [product, setProduct] = useState<Product | null>(null);
+  const [categorySearch, setCategorySearch] = useState("");
+  const [brandSearch, setBrandSearch] = useState("");
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    description: string;
+    categoryId: number;
+    brandId: number;
+    variants: {
+      sku: string;
+      price: number; // Giá gốc
+      discountPrice: number; // Giá bán
+      compareAtPrice: number;
+      costPrice: number;
+      stock: number;
+      imageUrl: string;
+      attributeValueIds: number[];
+    }[];
+  }>({
     name: "",
     description: "",
-    price: 0,
-    stock: 0,
     categoryId: 0,
-    brandId: 1, // Default brandId
+    brandId: 0,
+    variants: [{ sku: "", price: 0, discountPrice: 0, compareAtPrice: 0, costPrice: 0, stock: 0, imageUrl: "", attributeValueIds: [] }],
   });
 
-  const [sku, setSku] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -73,8 +95,14 @@ export default function ProductEditPage({
     const loadData = async () => {
       setIsLoading(true);
       try {
-        const cats = await fetchCategories();
+        const [cats, brs, attrs] = await Promise.all([
+          fetchCategories(), 
+          fetchBrands(),
+          fetchAttributes()
+        ]);
         setCategories(cats);
+        setBrands(brs);
+        setAllAttributes(attrs);
 
         if (!isNew) {
           const prod = await fetchProductById(Number(id));
@@ -82,12 +110,19 @@ export default function ProductEditPage({
           setFormData({
             name: prod.name,
             description: prod.description || "",
-            price: prod.price,
-            stock: prod.inventory.quantity,
             categoryId: Number(prod.categoryId),
-            brandId: Number(prod.brandId) || 1,
+            brandId: Number(prod.brandId),
+            variants: prod.variants.map(v => ({
+              sku: v.sku,
+              price: v.price, // Giá gốc
+              discountPrice: v.discountPrice || 0, // Giá bán
+              compareAtPrice: v.compareAtPrice || 0,
+              costPrice: v.costPrice || 0,
+              stock: v.inventory,
+              imageUrl: v.imageUrl || "",
+              attributeValueIds: [], 
+            })),
           });
-          setSku(prod.sku);
           if (prod.images && prod.images.length > 0) {
             setPreviewUrl(prod.images[0].url);
           }
@@ -112,8 +147,13 @@ export default function ProductEditPage({
   };
 
   const handleSave = async () => {
-    if (!formData.name || !formData.categoryId || (formData.price ?? 0) < 0) {
-      toast.error("Vui lòng điền đầy đủ các trường bắt buộc");
+    if (!formData.name || !formData.categoryId || !formData.brandId) {
+      toast.error("Vui lòng điền đầy đủ các trường bắt buộc (Tên, Danh mục, Thương hiệu)");
+      return;
+    }
+
+    if (formData.variants.length === 0) {
+      toast.error("Vui lòng thêm ít nhất một phiên bản");
       return;
     }
 
@@ -122,13 +162,16 @@ export default function ProductEditPage({
       description: formData.description,
       categoryId: formData.categoryId,
       brandId: formData.brandId,
-      variants: [
-        {
-          sku: sku || undefined,
-          price: formData.price,
-          stock: formData.stock,
-        }
-      ]
+      variants: formData.variants.map(v => ({
+        sku: v.sku || undefined,
+        price: v.price, // Gốc
+        discountPrice: v.discountPrice || undefined, // Bán
+        compareAtPrice: v.compareAtPrice || undefined,
+        costPrice: v.costPrice || undefined,
+        stock: v.stock,
+        imageUrl: v.imageUrl || undefined,
+        attributeValueIds: v.attributeValueIds.length > 0 ? v.attributeValueIds : undefined,
+      }))
     };
 
     setIsSaving(true);
@@ -147,6 +190,29 @@ export default function ProductEditPage({
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const addVariant = () => {
+    setFormData({
+      ...formData,
+      variants: [...formData.variants, { sku: "", price: 0, discountPrice: 0, compareAtPrice: 0, costPrice: 0, stock: 0, imageUrl: "", attributeValueIds: [] }],
+    });
+  };
+
+  const removeVariant = (index: number) => {
+    if (formData.variants.length <= 1) {
+      toast.error("Phải có ít nhất một phiên bản");
+      return;
+    }
+    const newVariants = [...formData.variants];
+    newVariants.splice(index, 1);
+    setFormData({ ...formData, variants: newVariants });
+  };
+
+  const updateVariant = (index: number, field: string, value: any) => {
+    const newVariants = [...formData.variants];
+    newVariants[index] = { ...newVariants[index], [field]: value };
+    setFormData({ ...formData, variants: newVariants });
   };
 
   const handleDelete = async () => {
@@ -199,7 +265,7 @@ export default function ProductEditPage({
               </Link>
             </Button>
           )}
-          <Button 
+          <Button
             className="bg-primary hover:bg-primary-hover text-primary-foreground"
             onClick={handleSave}
             disabled={isSaving}
@@ -239,15 +305,6 @@ export default function ProductEditPage({
 
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="sku">Mã SKU (Tự động từ Backend)</Label>
-                      <Input
-                        id="sku"
-                        placeholder="VD: SERUM-VC-001"
-                        value={sku}
-                        disabled
-                      />
-                    </div>
-                    <div className="space-y-2">
                       <Label htmlFor="category">Danh mục *</Label>
                       <Select
                         value={String(formData.categoryId)}
@@ -259,11 +316,61 @@ export default function ProductEditPage({
                           <SelectValue placeholder="Chọn danh mục" />
                         </SelectTrigger>
                         <SelectContent>
-                          {categories.map((cat) => (
-                            <SelectItem key={cat.id} value={cat.id.toString()}>
-                              {cat.name}
-                            </SelectItem>
-                          ))}
+                          <div className="p-2 pt-0">
+                            <Input
+                              placeholder="Tìm danh mục..."
+                              className="h-8 text-xs"
+                              value={categorySearch}
+                              onChange={(e) => setCategorySearch(e.target.value)}
+                            />
+                          </div>
+                          {categories
+                            .filter(cat => cat.name.toLowerCase().includes(categorySearch.toLowerCase()))
+                            .map((cat) => (
+                              <SelectItem key={cat.id} value={cat.id.toString()}>
+                                {cat.parentId ? "— " : ""}{cat.name}
+                              </SelectItem>
+                            ))}
+                          {categories.filter(cat => cat.name.toLowerCase().includes(categorySearch.toLowerCase())).length === 0 && (
+                            <div className="p-2 text-xs text-center text-muted-foreground">
+                              Không tìm thấy danh mục
+                            </div>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="brand">Thương hiệu *</Label>
+                      <Select
+                        value={String(formData.brandId)}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, brandId: Number(value) })
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Chọn thương hiệu" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <div className="p-2 pt-0">
+                            <Input
+                              placeholder="Tìm thương hiệu..."
+                              className="h-8 text-xs"
+                              value={brandSearch}
+                              onChange={(e) => setBrandSearch(e.target.value)}
+                            />
+                          </div>
+                          {brands
+                            .filter(b => b.name.toLowerCase().includes(brandSearch.toLowerCase()))
+                            .map((brand) => (
+                              <SelectItem key={brand.id} value={brand.id.toString()}>
+                                {brand.name}
+                              </SelectItem>
+                            ))}
+                          {brands.filter(b => b.name.toLowerCase().includes(brandSearch.toLowerCase())).length === 0 && (
+                            <div className="p-2 text-xs text-center text-muted-foreground">
+                              Không tìm thấy thương hiệu
+                            </div>
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -285,42 +392,127 @@ export default function ProductEditPage({
               </Card>
 
               <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Giá bán & Tồn kho</CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                  <CardTitle className="text-lg">Phiên bản sản phẩm (Variants)</CardTitle>
+                  <Button variant="outline" size="sm" onClick={addVariant}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Thêm phiên bản
+                  </Button>
                 </CardHeader>
-                <CardContent>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="price">Giá bán *</Label>
-                      <div className="relative">
-                        <Input
-                          id="price"
-                          type="number"
-                          placeholder="0"
-                          className="pr-12"
-                          value={formData.price}
-                          onChange={(e) =>
-                            setFormData({ ...formData, price: Number(e.target.value) })
-                          }
-                        />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                          VND
-                        </span>
+                <CardContent className="space-y-4">
+                  {formData.variants.map((variant, index) => (
+                    <div key={index} className="space-y-4 rounded-lg border p-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-sm">Phiên bản #{index + 1}</h4>
+                        {formData.variants.length > 1 && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive"
+                            onClick={() => removeVariant(index)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                      <div className="grid gap-4 sm:grid-cols-5">
+                        <div className="space-y-2">
+                          <Label>Mã SKU</Label>
+                          <Input
+                            placeholder="VD: SKU-001"
+                            value={variant.sku}
+                            onChange={(e) => updateVariant(index, "sku", e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Giá gốc *</Label>
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            value={variant.price}
+                            onChange={(e) => updateVariant(index, "price", Number(e.target.value))}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Giá bán</Label>
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            value={variant.discountPrice}
+                            onChange={(e) => updateVariant(index, "discountPrice", Number(e.target.value))}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Giá nhập</Label>
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            value={variant.costPrice}
+                            onChange={(e) => updateVariant(index, "costPrice", Number(e.target.value))}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Tồn kho *</Label>
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            value={variant.stock}
+                            onChange={(e) => updateVariant(index, "stock", Number(e.target.value))}
+                          />
+                        </div>
+                      </div>
+                      
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label>Ảnh phiên bản (URL)</Label>
+                          <div className="flex gap-2">
+                             <Input 
+                               placeholder="https://..."
+                               value={variant.imageUrl}
+                               onChange={(e) => updateVariant(index, "imageUrl", e.target.value)}
+                             />
+                             {variant.imageUrl && (
+                               <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded border">
+                                 <Image src={variant.imageUrl} fill alt="v" className="object-cover" />
+                               </div>
+                             )}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Thuộc tính (Size, Color...)</Label>
+                          <div className="flex flex-wrap gap-2">
+                            {allAttributes.map(attr => (
+                              <div key={attr.id} className="flex items-center gap-1 border rounded px-2 py-1 bg-muted/30">
+                                <span className="text-xs font-semibold">{attr.name}:</span>
+                                <select 
+                                  className="text-xs bg-transparent border-none focus:ring-0 cursor-pointer"
+                                  value={variant.attributeValueIds.find(id => attr.values.some(v => v.id === id)) || ""}
+                                  onChange={(e) => {
+                                    const valId = Number(e.target.value);
+                                    // Remove old value for this attribute
+                                    const filteredIds = variant.attributeValueIds.filter(id => !attr.values.some(v => v.id === id));
+                                    if (valId) {
+                                      updateVariant(index, "attributeValueIds", [...filteredIds, valId]);
+                                    } else {
+                                      updateVariant(index, "attributeValueIds", filteredIds);
+                                    }
+                                  }}
+                                >
+                                  <option value="">Chọn...</option>
+                                  {attr.values.map(val => (
+                                    <option key={val.id} value={val.id}>{val.value}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            ))}
+                            {allAttributes.length === 0 && (
+                                <span className="text-xs text-muted-foreground italic">Chưa có thuộc tính nào để chọn</span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="inventory">Số lượng tồn kho *</Label>
-                      <Input
-                        id="inventory"
-                        type="number"
-                        placeholder="0"
-                        value={formData.stock}
-                        onChange={(e) =>
-                          setFormData({ ...formData, stock: Number(e.target.value) })
-                        }
-                      />
-                    </div>
-                  </div>
+                  ))}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -395,13 +587,47 @@ export default function ProductEditPage({
                   </p>
                 </div>
                 <Badge
-                  variant={(formData.stock ?? 0) > 0 ? "default" : "secondary"}
+                  variant={formData.variants.reduce((acc, v) => acc + (v.stock || 0), 0) > 0 ? "default" : "secondary"}
                   className={
-                    (formData.stock ?? 0) > 0 ? "bg-success text-white" : ""
+                    formData.variants.reduce((acc, v) => acc + (v.stock || 0), 0) > 0 ? "bg-success text-white" : ""
                   }
                 >
-                  {(formData.stock ?? 0) > 0 ? "Đang bán" : "Hết hàng"}
+                  {formData.variants.reduce((acc, v) => acc + (v.stock || 0), 0) > 0 ? "Đang bán" : "Hết hàng"}
                 </Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Tóm tắt tồn kho</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Tổng số phiên bản:</span>
+                  <span className="font-medium">{formData.variants.length}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Tổng tồn kho:</span>
+                  <span className="font-medium">{formData.variants.reduce((acc, v) => acc + (v.stock || 0), 0)}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Giá cao nhất:</span>
+                  <span className="font-medium">
+                    {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
+                      Math.max(...formData.variants.map(v => v.price), 0)
+                    )}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Giá trung bình:</span>
+                  <span className="font-medium">
+                    {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
+                      formData.variants.reduce((acc, v) => acc + v.price, 0) / (formData.variants.length || 1)
+                    )}
+                  </span>
+                </div>
               </div>
             </CardContent>
           </Card>

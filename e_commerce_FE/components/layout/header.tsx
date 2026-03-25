@@ -31,7 +31,7 @@ const navigation = [
   { name: "Trang chủ", href: "/", highlight: false },
   { name: "Sản phẩm", href: "/products", highlight: false },
   { name: "Sale", href: "/sale", highlight: true },
-  { name: "Khuyến mãi", href: "/promotions", highlight: false },
+  { name: "Voucher", href: "/vouchers", highlight: false },
   { name: "Về chúng tôi", href: "/about", highlight: false },
   { name: "Liên hệ", href: "/contact", highlight: false },
 ];

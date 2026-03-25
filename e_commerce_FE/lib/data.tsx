@@ -47,6 +47,9 @@ export interface ProductVariant {
   sku: string;
   name: string;
   price: number;
+  discountPrice?: number;
+  compareAtPrice?: number;
+  costPrice?: number;
   /** Total stock for this variant (mirrors `inventory` for new model) */
   stock: number;
   inventory: number;
@@ -62,6 +65,8 @@ export interface Category {
   description: string;
   image: string;
   productCount: number;
+  parentId?: string;
+  children?: Category[];
 }
 
 export interface CartItem {

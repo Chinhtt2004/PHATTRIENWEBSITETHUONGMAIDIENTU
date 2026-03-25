@@ -52,8 +52,8 @@ const promoBanners = [
     image:
       "https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=1200&h=500&fit=crop",
     title: "Dưỡng da cao cấp",
-    subtitle: "Freeship cho đơn từ 300K",
-    href: "/products?category=premium",
+    subtitle: "Lấy voucher ngay - Freeship đơn từ 300K",
+    href: "/vouchers",
   },
 ];
 
@@ -220,7 +220,7 @@ export function AdBanner({ variant = "inline" }: AdBannerProps) {
             <div className="flex items-center gap-2">
               <Truck className="h-4 w-4" />
               <span className="font-medium">
-                Miễn phí vận chuyển cho đơn hàng từ 300K
+                Miễn phí vận chuyển cho đơn hàng từ 500K
               </span>
             </div>
             <span className="hidden sm:inline text-primary-foreground/40">

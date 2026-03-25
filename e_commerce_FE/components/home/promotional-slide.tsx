@@ -98,7 +98,7 @@ const quickLinks = [
   { icon: Flower2, label: "Chăm sóc tóc", href: "/category/cham-soc-toc" },
   { icon: Palette, label: "Cơ thể", href: "/category/cham-soc-co-the" },
   { icon: ShieldCheck, label: "Sản phẩm", href: "/products" },
-  { icon: Gift, label: "Khuyến mãi", href: "/promotions" },
+  { icon: Gift, label: "Voucher", href: "/vouchers" },
 ];
 
 export function PromotionalSlide() {

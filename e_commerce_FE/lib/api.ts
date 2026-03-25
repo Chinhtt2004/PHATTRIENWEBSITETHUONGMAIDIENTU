@@ -49,6 +49,8 @@ export interface BackendProductVariant {
   id: number;
   sku: string;
   price: number;
+  compareAtPrice?: number | null;
+  costPrice?: number | null;
   stock: number;
   imageUrl?: string | null;
   isActive: boolean;
@@ -120,34 +122,53 @@ export interface UserProfileResponse {
   email: string;
 }
 
-export interface Promotion {
+export interface Voucher {
   id: number;
   code: string;
-  description: string;
-  type: "PERCENTAGE" | "FIXED" | "SHIPPING";
-  value: number;
-  minOrderAmount: number | null;
-  maxDiscountAmount: number | null;
-  startDate: string;
-  endDate: string;
-  usageLimit: number | null;
-  usageCount: number;
-  isActive: boolean;
-  isCollected?: boolean;
-  isUsed?: boolean;
-}
-
-export interface PromotionRequest {
-  code: string;
-  description: string;
   type: string;
   value: number;
-  minOrderAmount?: number;
-  maxDiscountAmount?: number;
-  startDate: string;
-  endDate: string;
+  minOrderValue: number;
+  maxDiscount?: number;
+  expiryDate: string;
+  usageLimit?: number;
+  usedCount: number;
+  isActive: boolean;
+  isCollected?: boolean; // For compatibility
+  isUsed?: boolean;      // For compatibility
+}
+
+export interface VoucherRequest {
+  code: string;
+  type: string;
+  value: number;
+  minOrderValue: number;
+  maxDiscount?: number;
+  expiryDate: string;
   usageLimit?: number;
   isActive: boolean;
+}
+
+export interface VoucherApplyRequest {
+  code: string;
+  orderAmount: number;
+}
+
+export interface VoucherApplyResponse {
+  code: string;
+  type: string;
+  discountAmount: number;
+  finalAmount: number;
+  message: string;
+}
+
+export interface BackendUser {
+  id: number;
+  name: string;
+  email: string;
+  phone?: string | null;
+  role: string;
+  isActive: boolean;
+  createdAt?: string;
 }
 
 // Request Types
@@ -159,6 +180,11 @@ export interface ProductRequest {
   variants?: {
     sku?: string;
     price: number;
+    discountPrice?: number;
+    attributeValueIds?: number[];
+    imageUrl?: string;
+    compareAtPrice?: number;
+    costPrice?: number;
     stock: number;
   }[];
 }
@@ -166,11 +192,27 @@ export interface ProductRequest {
 export interface CategoryRequest {
   name: string;
   description: string;
+  parentId?: number | null;
 }
 
 export interface ChangePasswordRequest {
   oldPassword: string;
   newPassword: string;
+}
+
+export interface AddressRequest {
+  receiverName: string;
+  phone: string;
+  address: string;
+  isDefault?: boolean;
+}
+
+export interface AddressResponse {
+  id: number;
+  receiverName: string;
+  phone: string;
+  address: string;
+  isDefault: boolean;
 }
 
 const categoryImages = [
@@ -309,7 +351,8 @@ export function mapBackendProduct(product: BackendProduct): Product {
       sku: bv.sku,
       name: attrLabel,
       price: Number(bv.effectivePrice ?? bv.price ?? 0),
-      compareAtPrice: bv.discountPrice ? Number(bv.price) : undefined,
+      compareAtPrice: bv.compareAtPrice ? Number(bv.compareAtPrice) : (bv.discountPrice ? Number(bv.price) : undefined),
+      costPrice: bv.costPrice ? Number(bv.costPrice) : undefined,
       stock: bv.stock ?? 0,
       inventory: bv.stock ?? 0,
       imageUrl: normalizeImageUrl(bv.imageUrl),
@@ -331,8 +374,7 @@ export function mapBackendProduct(product: BackendProduct): Product {
     images.push({ id: `img-${product.id}`, url: "/placeholder.svg", alt: product.name });
   }
 
-  const compareAtPrice =
-    totalStock > 20 ? Math.round(displayPrice * 1.15) : null;
+  const compareAtPrice = displayVariant.compareAtPrice ? Number(displayVariant.compareAtPrice) : null;
   const badge =
     totalStock > 20 ? "bestseller" : totalStock <= 5 ? "sale" : "new";
 
@@ -561,6 +603,24 @@ export async function adminDeleteProduct(id: number) {
   return ensureOk(res);
 }
 
+// Admin Users
+export async function adminFetchUsers(): Promise<BackendUser[]> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/users`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  return ensureOk(res);
+}
+
+export async function adminToggleUserStatus(id: number, active: boolean) {
+  const params = new URLSearchParams({ active: String(active) });
+  const res = await fetch(`${API_BASE_URL}/api/admin/users/${id}/status?${params.toString()}`, {
+    method: "PATCH",
+    credentials: "include",
+  });
+  return ensureOk(res);
+}
+
 // Categories
 export async function fetchCategories(providedProducts?: Product[]): Promise<Category[]> {
   const res = await fetch(`${API_BASE_URL}/api/public/categories`, { cache: "no-store" });
@@ -741,68 +801,215 @@ export const fetchStorefrontData = cache(async () => {
   const categories = await fetchCategories(products);
   return { products, categories };
 });
-// Promotions
-export async function fetchPublicPromotions(): Promise<Promotion[]> {
-  const res = await fetch(`${API_BASE_URL}/api/public/promotions`, {
-    credentials: "include",
-    cache: "no-store",
-  });
-  return (await ensureOk(res)) as Promotion[];
+
+// Vouchers
+export async function fetchPublicVouchers(): Promise<Voucher[]> {
+  const res = await fetch(`${API_BASE_URL}/api/public/vouchers`, { cache: "no-store" });
+  return ensureOk(res);
 }
 
-export async function collectPromotion(id: number): Promise<Promotion> {
-  const res = await fetch(`${API_BASE_URL}/api/user/promotions/collect/${id}`, {
-    method: "POST",
-    credentials: "include",
-  });
-  return (await ensureOk(res)) as Promotion;
-}
-
-export async function fetchMyPromotions(): Promise<Promotion[]> {
-  const res = await fetch(`${API_BASE_URL}/api/user/my-promotions`, {
-    credentials: "include",
-    cache: "no-store",
-  });
-  return (await ensureOk(res)) as Promotion[];
-}
-
-// Admin Promotions
-export async function adminFetchPromotions(): Promise<Promotion[]> {
-  const res = await fetch(`${API_BASE_URL}/api/admin/promotions`, {
-    credentials: "include",
-    cache: "no-store",
-  });
-  return (await ensureOk(res)) as Promotion[];
-}
-
-export async function adminCreatePromotion(data: PromotionRequest): Promise<Promotion> {
-  const res = await fetch(`${API_BASE_URL}/api/admin/promotions`, {
+export async function applyVoucher(data: VoucherApplyRequest): Promise<VoucherApplyResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/vouchers/apply`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
     body: JSON.stringify(data),
   });
-  return (await ensureOk(res)) as Promotion;
+  return ensureOk(res);
 }
 
-export async function adminUpdatePromotion(id: number, data: PromotionRequest): Promise<Promotion> {
-  const res = await fetch(`${API_BASE_URL}/api/admin/promotions/${id}`, {
+export async function adminFetchVouchers(): Promise<Voucher[]> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/vouchers`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  return ensureOk(res);
+}
+
+export async function adminCreateVoucher(data: VoucherRequest): Promise<Voucher> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/vouchers`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+  return ensureOk(res);
+}
+
+export async function adminUpdateVoucher(id: number, data: VoucherRequest): Promise<Voucher> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/vouchers/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
     body: JSON.stringify(data),
   });
-  return (await ensureOk(res)) as Promotion;
+  return ensureOk(res);
 }
 
-export async function adminDeletePromotion(id: number): Promise<void> {
-  const res = await fetch(`${API_BASE_URL}/api/admin/promotions/${id}`, {
+export async function adminDeleteVoucher(id: number): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/vouchers/${id}`, {
     method: "DELETE",
     credentials: "include",
   });
   await ensureOk(res);
 }
 
+
+// Settings
+export interface Setting {
+  key: string;
+  value: string;
+  description?: string;
+}
+
+export async function fetchSettings(): Promise<Setting[]> {
+  const res = await fetch(`${API_BASE_URL}/api/public/settings`, { cache: "no-store" });
+  return ensureOk(res);
+}
+
+export async function adminUpdateSetting(setting: Setting): Promise<Setting> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/settings`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(setting),
+  });
+  return ensureOk(res);
+}
+
+// Reports
+export interface ReportSummary {
+  totalRevenue: number;
+  totalOrders: number;
+  totalCustomers: number;
+  totalProducts: number;
+  revenueChart: { date: string; revenue: number; orders: number }[];
+  categoryChart: { name: string; value: number; color: string }[];
+  topProducts: { name: string; sales: number; revenue: number; growth: number }[];
+}
+
+export async function fetchAdminReportSummary(): Promise<ReportSummary> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/reports/summary`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  return ensureOk(res);
+}
+
+// Admin Orders
+export interface OrderItemDTO {
+  id: number;
+  quantity: number;
+  price: number;
+  variantId: number;
+  sku: string;
+  productName: string;
+  variantName: string;
+  imageUrl: string;
+}
+
+export interface OrderResponse {
+  id: number;
+  orderStatus: string;
+  paymentStatus: string;
+  paymentMethod: string;
+  totalPrice: number;
+  orderDate: string;
+  shippingAddress: string;
+  receiverName: string;
+  phone: string;
+  items?: OrderItemDTO[];
+}
+
+export async function adminFetchAllOrders(): Promise<OrderResponse[]> {
+  const res = await fetch(`${API_BASE_URL}/api/user/orders/admin/all`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  return ensureOk(res);
+}
+
+export async function adminUpdateOrderStatus(id: number, status: string): Promise<OrderResponse> {
+  const params = new URLSearchParams({ status });
+  const res = await fetch(`${API_BASE_URL}/api/user/orders/admin/${id}/status?${params.toString()}`, {
+    method: "PUT",
+    credentials: "include",
+  });
+  return ensureOk(res);
+}
+
+
+// User Addresses
+export async function fetchAddresses(): Promise<AddressResponse[]> {
+  const res = await fetch(`${API_BASE_URL}/api/user/addresses`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  return ensureOk(res);
+}
+
+export async function addAddress(data: AddressRequest): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/user/addresses`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+  await ensureOk(res);
+}
+
+export async function updateAddress(id: number, data: AddressRequest): Promise<AddressResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/user/addresses/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+  return ensureOk(res);
+}
+
+export async function deleteAddress(id: number): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/user/addresses/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  await ensureOk(res);
+}
+
+export async function setDefaultAddress(id: number): Promise<AddressResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/user/addresses/${id}/default`, {
+    method: "PUT",
+    credentials: "include",
+  });
+  return ensureOk(res);
+}
+
+// User Orders
+export async function fetchMyOrders(): Promise<OrderResponse[]> {
+  const res = await fetch(`${API_BASE_URL}/api/user/orders`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  return ensureOk(res);
+}
+
+export async function fetchMyOrderDetail(id: number): Promise<OrderResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/user/orders/${id}`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  return ensureOk(res);
+}
+
+export async function cancelMyOrder(id: number): Promise<OrderResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/user/orders/${id}/cancel`, {
+    method: "PUT",
+    credentials: "include",
+  });
+  return ensureOk(res);
+}
+
+// Payments & Checkout
 export async function createVNPayPayment(orderId: number): Promise<{ data: string }> {
   const res = await fetch(`${API_BASE_URL}/api/payment/create-vnpay-payment/${orderId}`, {
     method: "GET",
@@ -813,10 +1020,10 @@ export async function createVNPayPayment(orderId: number): Promise<{ data: strin
 }
 
 export async function checkout(data: {
-  receiverName: string;
-  phone: string;
-  shippingAddress: string;
+  cartItemIds?: number[];
+  addressId?: number;
   paymentMethod: string;
+  voucherCode?: string;
 }): Promise<any> {
   const res = await fetch(`${API_BASE_URL}/api/user/checkout`, {
     method: "POST",
@@ -852,3 +1059,21 @@ export async function fetchChatHistory(): Promise<ChatMessageResponse[]> {
   });
   return ensureOk(res);
 }
+
+// Attributes
+export interface AttributeValue {
+  id: number;
+  value: string;
+}
+
+export interface Attribute {
+  id: number;
+  name: string;
+  values: AttributeValue[];
+}
+
+export const fetchAttributes = async (): Promise<Attribute[]> => {
+  const response = await fetch(`${API_BASE_URL}/api/public/attributes`);
+  if (!response.ok) throw new Error("Failed to fetch attributes");
+  return response.json();
+};

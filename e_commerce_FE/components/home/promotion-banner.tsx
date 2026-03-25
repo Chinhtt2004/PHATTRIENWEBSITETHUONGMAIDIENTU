@@ -85,10 +85,10 @@ export function PromotionBanner({ type = "flash-sale" }: PromotionBannerProps) {
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Gift className="h-5 w-5 text-primary" />
             <span className="font-medium text-secondary-foreground">
-              Nhập mã <span className="font-bold text-primary bg-white px-2 py-0.5 rounded">WELCOME10</span> giảm 10% đơn hàng đầu tiên
+              Nhập mã <span className="font-bold text-primary bg-white px-2 py-0.5 rounded">GLOW10</span> giảm 10% cho voucher đầu tiên
             </span>
             <Button asChild size="sm" className="font-medium">
-              <Link href="/products">Áp dụng ngay</Link>
+              <Link href="/products">Dùng ngay</Link>
             </Button>
           </div>
         </div>

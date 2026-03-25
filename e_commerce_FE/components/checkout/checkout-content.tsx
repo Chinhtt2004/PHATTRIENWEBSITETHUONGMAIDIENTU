@@ -36,9 +36,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { formatPrice, type Product } from "@/lib/data";
-import { fetchCartItems, fetchProducts, fetchUserProfile, fetchMyPromotions, checkout, createVNPayPayment, type Promotion } from "@/lib/api";
+import { fetchCartItems, fetchProducts, fetchUserProfile, fetchPublicVouchers, checkout, createVNPayPayment, applyVoucher, fetchAddresses, type Voucher, type VoucherApplyResponse, type AddressResponse } from "@/lib/api";
 import { useEffect } from "react";
 
 const steps = [
@@ -114,18 +121,22 @@ export function CheckoutContent() {
     notes: "",
   });
 
-  const [myPromotions, setMyPromotions] = useState<Promotion[]>([]);
-  const [selectedPromotion, setSelectedPromotion] = useState<Promotion | null>(null);
-  const [isPromoDialogOpen, setIsPromoDialogOpen] = useState(false);
+  const [vouchers, setVouchers] = useState<Voucher[]>([]);
+  const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
+  const [isVoucherDialogOpen, setIsVoucherDialogOpen] = useState(false);
+  const [appliedVoucherResult, setAppliedVoucherResult] = useState<VoucherApplyResponse | null>(null);
+  const [userAddresses, setUserAddresses] = useState<AddressResponse[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [itemsResult, productsResult, profileResult, promoResult] = await Promise.allSettled([
+        const [itemsResult, productsResult, profileResult, promoResult, addressResult] = await Promise.allSettled([
           fetchCartItems(),
           fetchProducts(),
           fetchUserProfile(),
-          fetchMyPromotions()
+          fetchPublicVouchers(),
+          fetchAddresses()
         ]);
 
         if (itemsResult.status === 'fulfilled' && productsResult.status === 'fulfilled') {
@@ -159,7 +170,25 @@ export function CheckoutContent() {
         }
 
         if (promoResult.status === 'fulfilled') {
-          setMyPromotions(promoResult.value.filter((p: Promotion) => !p.isUsed && p.isActive));
+          setVouchers(promoResult.value.filter((v: Voucher) => v.isActive));
+        }
+
+        if (addressResult.status === 'fulfilled') {
+          const addrs = addressResult.value;
+          setUserAddresses(addrs);
+          const defaultAddr = addrs.find((a: AddressResponse) => a.isDefault);
+          if (defaultAddr) {
+            setSelectedAddressId(defaultAddr.id);
+            setFormData(prev => ({
+              ...prev,
+              firstName: defaultAddr.receiverName,
+              phone: defaultAddr.phone,
+              address: defaultAddr.address,
+              city: "", // Backend address is one string, so we'll put it all in 'address'
+              district: "",
+              ward: ""
+            }));
+          }
         }
       } catch (error) {
         console.error("Failed to load checkout data:", error);
@@ -183,31 +212,14 @@ export function CheckoutContent() {
     0
   );
 
-  const discountAmount = React.useMemo(() => {
-    if (!selectedPromotion) return 0;
-
-    if (subtotal < (selectedPromotion.minOrderAmount || 0)) {
-      return 0;
-    }
-
-    if (selectedPromotion.type === "PERCENTAGE") {
-      let discount = (subtotal * selectedPromotion.value) / 100;
-      if (selectedPromotion.maxDiscountAmount) {
-        discount = Math.min(discount, selectedPromotion.maxDiscountAmount);
-      }
-      return discount;
-    } else if (selectedPromotion.type === "FIXED") {
-      return selectedPromotion.value;
-    }
-    return 0;
-  }, [selectedPromotion, subtotal]);
+  const discountAmount = appliedVoucherResult?.discountAmount || 0;
 
   const selectedShipping = shippingMethods.find(
     (m) => m.id === shippingMethod
   );
 
   const isFreeShippingRule = subtotal >= 500000;
-  const isFreeShippingPromo = selectedPromotion?.type === "SHIPPING" && subtotal >= (selectedPromotion.minOrderAmount || 0);
+  const isFreeShippingPromo = appliedVoucherResult?.type === "SHIPPING";
 
   const shipping = (isFreeShippingRule || isFreeShippingPromo) ? 0 : (selectedShipping?.price || 0);
   const total = subtotal - discountAmount + shipping;
@@ -218,12 +230,27 @@ export function CheckoutContent() {
         formData.email &&
         formData.phone &&
         formData.firstName &&
-        formData.address &&
-        formData.district &&
-        formData.city
+        formData.address
       );
     }
     return true;
+  };
+
+  const handleAddressSelect = (addrId: string) => {
+    const id = parseInt(addrId);
+    setSelectedAddressId(id);
+    const addr = userAddresses.find(a => a.id === id);
+    if (addr) {
+      setFormData(prev => ({
+        ...prev,
+        firstName: addr.receiverName,
+        phone: addr.phone,
+        address: addr.address,
+        ward: "",
+        district: "",
+        city: ""
+      }));
+    }
   };
 
   const handleNext = () => {
@@ -243,10 +270,10 @@ export function CheckoutContent() {
 
     try {
       const order = await checkout({
-        receiverName: `${formData.firstName} ${formData.lastName}`.trim(),
-        phone: formData.phone,
-        shippingAddress: `${formData.address}, ${formData.ward}, ${formData.district}, ${formData.city}`,
-        paymentMethod: paymentMethod,
+        cartItemIds: cartItems.map(item => Number(item.id)),
+        addressId: selectedAddressId || undefined,
+        paymentMethod: paymentMethod.toUpperCase(),
+        voucherCode: appliedVoucherResult?.code,
       });
 
       toast.success("Đặt hàng thành công!");
@@ -268,17 +295,25 @@ export function CheckoutContent() {
     }
   };
 
-  const handleApplyCoupon = () => {
-    const promo = myPromotions.find(p => p.code.toLowerCase() === couponCode.trim().toLowerCase());
-    if (promo) {
-      if (subtotal < (promo.minOrderAmount || 0)) {
-        toast.warning(`Đơn hàng chưa đủ tối thiểu ${formatPrice(promo.minOrderAmount || 0)} để áp dụng mã này`);
-        return;
-      }
-      setSelectedPromotion(promo);
-      toast.success(`Đã áp dụng mã ${promo.code}`);
-    } else {
-      toast.error("Mã giảm giá không hợp lệ hoặc bạn chưa thu thập mã này");
+  const handleApplyCoupon = async (code: string) => {
+    const targetCode = code || couponCode;
+    if (!targetCode) {
+      toast.error("Vui lòng nhập mã giảm giá");
+      return;
+    }
+
+    try {
+      const result = await applyVoucher({
+        code: targetCode,
+        orderAmount: subtotal
+      });
+      setAppliedVoucherResult(result);
+      const voucher = vouchers.find(v => v.code === result.code);
+      if (voucher) setSelectedVoucher(voucher);
+      toast.success(result.message);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Mã giảm giá không hợp lệ";
+      toast.error(message);
     }
   };
 
@@ -351,6 +386,26 @@ export function CheckoutContent() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-5 pt-6">
+                {userAddresses.length > 0 && (
+                  <div className="space-y-2 pb-2 border-b border-dashed border-primary/20">
+                    <Label className="text-sm font-medium text-primary">Chọn từ địa chỉ đã lưu</Label>
+                    <Select 
+                      value={selectedAddressId?.toString()} 
+                      onValueChange={handleAddressSelect}
+                    >
+                      <SelectTrigger className="rounded-lg border-primary/20">
+                        <SelectValue placeholder="Chọn một địa chỉ" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {userAddresses.map((addr) => (
+                          <SelectItem key={addr.id} value={addr.id.toString()}>
+                            {addr.receiverName} - {addr.address} {addr.isDefault ? "(Mặc định)" : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="firstName" className="text-sm font-medium">
@@ -785,33 +840,36 @@ export function CheckoutContent() {
                     </div>
                     <Button
                       variant="outline"
-                      onClick={handleApplyCoupon}
+                      onClick={() => handleApplyCoupon(couponCode)}
                       className="rounded-lg border-primary/20 hover:bg-primary hover:text-white text-sm px-4"
                     >
                       Áp dụng
                     </Button>
                   </div>
-                  <Button
+                    <Button
                     variant="link"
-                    onClick={() => setIsPromoDialogOpen(true)}
+                    onClick={() => setIsVoucherDialogOpen(true)}
                     className="text-xs text-primary h-auto p-0 flex items-center gap-1"
                   >
                     <Sparkles className="h-3 w-3" />
-                    Chọn từ kho voucher của bạn
+                    Chọn từ danh sách voucher
                   </Button>
                 </div>
 
-                {selectedPromotion && (
+                {appliedVoucherResult && (
                   <div className="flex items-center justify-between p-2 rounded-lg bg-primary-light/20 border border-primary/20">
                     <div className="flex items-center gap-2 overflow-hidden">
-                      <Badge className="bg-primary text-[10px] h-5">{selectedPromotion.code}</Badge>
-                      <span className="text-[10px] text-muted-foreground truncate">{selectedPromotion.description}</span>
+                      <Badge className="bg-primary text-[10px] h-5">{appliedVoucherResult.code}</Badge>
+                      <span className="text-[10px] text-muted-foreground truncate">Tiết kiệm {formatPrice(appliedVoucherResult.discountAmount)}</span>
                     </div>
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-5 w-5 text-muted-foreground hover:text-destructive"
-                      onClick={() => setSelectedPromotion(null)}
+                      onClick={() => {
+                        setAppliedVoucherResult(null);
+                        setSelectedVoucher(null);
+                      }}
                     >
                       ×
                     </Button>
@@ -861,31 +919,31 @@ export function CheckoutContent() {
             </Card>
 
             {/* Voucher Selection Dialog */}
-            <Dialog open={isPromoDialogOpen} onOpenChange={setIsPromoDialogOpen}>
+            <Dialog open={isVoucherDialogOpen} onOpenChange={setIsVoucherDialogOpen}>
               <DialogContent className="max-w-md">
                 <DialogHeader>
-                  <DialogTitle className="font-serif">Voucher của bạn</DialogTitle>
+                  <DialogTitle className="font-serif">Voucher dành cho bạn</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
-                  {myPromotions.length === 0 ? (
+                  {vouchers.length === 0 ? (
                     <div className="py-10 text-center space-y-3">
                       <Gift className="h-10 w-10 mx-auto text-muted-foreground opacity-20" />
-                      <p className="text-sm text-muted-foreground">Bạn chưa có voucher nào. Hãy thu thập ở trang Khuyến mãi!</p>
+                      <p className="text-sm text-muted-foreground">Hiện chưa có voucher nào khả dụng.</p>
                       <Button asChild variant="outline" size="sm">
-                        <Link href="/promotions">Đi xem khuyến mãi</Link>
+                        <Link href="/vouchers">Xem danh sách voucher</Link>
                       </Button>
                     </div>
                   ) : (
-                    myPromotions.map((promo) => {
-                      const isEligible = subtotal >= (promo.minOrderAmount || 0);
-                      const isSelected = selectedPromotion?.id === promo.id;
+                    vouchers.map((voucher) => {
+                      const isEligible = subtotal >= (voucher.minOrderValue || 0);
+                      const isSelected = selectedVoucher?.id === voucher.id;
                       return (
                         <div
-                          key={promo.id}
+                          key={voucher.id}
                           onClick={() => {
                             if (isEligible) {
-                              setSelectedPromotion(promo);
-                              setIsPromoDialogOpen(false);
+                              handleApplyCoupon(voucher.code);
+                              setIsVoucherDialogOpen(false);
                             }
                           }}
                           className={`relative p-4 rounded-xl border-2 transition-all cursor-pointer group ${isSelected
@@ -896,21 +954,21 @@ export function CheckoutContent() {
                             }`}
                         >
                           <div className="flex items-start gap-4">
-                            <div className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${promo.type === 'SHIPPING' ? 'bg-blue-100 text-blue-600' : 'bg-rose-100 text-rose-600'
+                            <div className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${voucher.type === 'SHIPPING' ? 'bg-blue-100 text-blue-600' : 'bg-rose-100 text-rose-600'
                               }`}>
-                              {promo.type === 'SHIPPING' ? <Truck className="h-6 w-6" /> : <Gift className="h-6 w-6" />}
+                              {voucher.type === 'SHIPPING' ? <Truck className="h-6 w-6" /> : <Gift className="h-6 w-6" />}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-bold text-sm">{promo.code}</p>
-                              <p className="text-xs text-muted-foreground line-clamp-1">{promo.description}</p>
+                              <p className="font-bold text-sm">{voucher.code}</p>
+                              <p className="text-xs text-muted-foreground line-clamp-1">HSD: {new Date(voucher.expiryDate).toLocaleDateString("vi-VN")}</p>
                               <div className="flex items-center gap-2 mt-2">
                                 <Badge variant="secondary" className="text-[10px] py-0">{
-                                  promo.type === 'PERCENTAGE' ? `Giảm ${promo.value}%` :
-                                    promo.type === 'FIXED' ? `Giảm ${formatPrice(promo.value)}` : 'Free Ship'
+                                  voucher.type === 'PERCENT' ? `Giảm ${voucher.value}%` :
+                                    voucher.type === 'FIXED' ? `Giảm ${formatPrice(voucher.value)}` : 'Free Ship'
                                 }</Badge>
                                 {!isEligible && (
                                   <span className="text-[10px] text-rose-500 font-medium">
-                                    Thêm {formatPrice((promo.minOrderAmount || 0) - subtotal)}
+                                    Thêm {formatPrice((voucher.minOrderValue || 0) - subtotal)}
                                   </span>
                                 )}
                               </div>

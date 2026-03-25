@@ -78,6 +78,12 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
     const groups: Record<string, typeof product.variants> = {};
     for (const variant of product.variants) {
       const keys = Object.keys(variant.attributes).filter((k) => k !== "colorHex");
+      if (keys.length === 0 && product.variants.length > 1) {
+        // Fallback: If no attributes but multiple variants, group by a "Phiên bản" key
+        if (!groups["Phiên bản"]) groups["Phiên bản"] = [];
+        groups["Phiên bản"].push(variant);
+        continue;
+      }
       for (const key of keys) {
         if (!groups[key]) groups[key] = [];
         // Deduplicate variants per value (a variant appears once per attribute group)
@@ -94,7 +100,7 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
 
   const discount = getDiscountPercentage(
     selectedVariant.price,
-    product.compareAtPrice
+    selectedVariant.compareAtPrice || product.compareAtPrice
   );
 
   const category = categories.find((c) => c.id === product.categoryId);
@@ -273,10 +279,10 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
               <span className="text-3xl font-bold text-primary">
                 {formatPrice(selectedVariant.price)}
               </span>
-              {product.compareAtPrice && (
+              { (selectedVariant.compareAtPrice || product.compareAtPrice) && (
                 <>
                   <span className="text-xl text-muted-foreground line-through">
-                    {formatPrice(product.compareAtPrice)}
+                    {formatPrice(selectedVariant.compareAtPrice || product.compareAtPrice || 0)}
                   </span>
                   {discount && (
                     <Badge variant="destructive">Tiết kiệm {discount}%</Badge>
@@ -333,7 +339,7 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
                                   }}
                                 />
                               )}
-                              <span>{variant.attributes[attrKey]}</span>
+                              <span>{variant.attributes[attrKey] || variant.name || variant.sku}</span>
                               {isSelected && (
                                 <Check className="h-4 w-4 text-primary" />
                               )}
