@@ -130,6 +130,24 @@ public class ProductService {
             }
         }
 
+        if (request.getVariants() != null) {
+            // Đánh dấu tất cả variant cũ là inactive
+            List<ProductVariant> oldVariants = variantRepository.findByProductId(id);
+            oldVariants.forEach(v -> v.setIsActive(false));
+            variantRepository.saveAll(oldVariants);
+
+            // Tạo các variant mới
+            for (ProductRequest.VariantRequest vr : request.getVariants()) {
+                ProductVariant variant = new ProductVariant();
+                variant.setProduct(product);
+                variant.setSku(vr.getSku());
+                variant.setPrice(vr.getPrice());
+                variant.setStock(vr.getStock());
+                variant.setIsActive(true);
+                variantRepository.save(variant);
+            }
+        }
+
         return mapToResponse(product,
                 variantRepository.findByProductIdAndIsActiveTrue(id),
                 productImageRepository.findUrlsByProductId(id));

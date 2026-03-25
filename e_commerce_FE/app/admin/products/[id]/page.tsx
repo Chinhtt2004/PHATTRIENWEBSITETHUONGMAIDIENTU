@@ -56,12 +56,13 @@ export default function ProductEditPage({
   const [isSaving, setIsSaving] = useState(false);
   const [product, setProduct] = useState<Product | null>(null);
   
-  const [formData, setFormData] = useState<ProductRequest>({
+  const [formData, setFormData] = useState({
     name: "",
     description: "",
     price: 0,
-    stockQuantity: 0,
+    stock: 0,
     categoryId: 0,
+    brandId: 1, // Default brandId
   });
 
   const [sku, setSku] = useState("");
@@ -80,10 +81,11 @@ export default function ProductEditPage({
           setProduct(prod);
           setFormData({
             name: prod.name,
-            description: prod.shortDescription || "",
+            description: prod.description || "",
             price: prod.price,
-            stockQuantity: prod.inventory.quantity,
+            stock: prod.inventory.quantity,
             categoryId: Number(prod.categoryId),
+            brandId: Number(prod.brandId) || 1,
           });
           setSku(prod.sku);
           if (prod.images && prod.images.length > 0) {
@@ -115,13 +117,27 @@ export default function ProductEditPage({
       return;
     }
 
+    const requestData: ProductRequest = {
+      name: formData.name,
+      description: formData.description,
+      categoryId: formData.categoryId,
+      brandId: formData.brandId,
+      variants: [
+        {
+          sku: sku || undefined,
+          price: formData.price,
+          stock: formData.stock,
+        }
+      ]
+    };
+
     setIsSaving(true);
     try {
       if (isNew) {
-        await adminCreateProduct(formData, imageFile || undefined);
+        await adminCreateProduct(requestData, imageFile || undefined);
         toast.success("Đã tạo sản phẩm thành công");
       } else {
-        await adminUpdateProduct(Number(id), formData, imageFile || undefined);
+        await adminUpdateProduct(Number(id), requestData, imageFile || undefined);
         toast.success("Đã cập nhật sản phẩm thành công");
       }
       router.push("/admin/products");
@@ -298,9 +314,9 @@ export default function ProductEditPage({
                         id="inventory"
                         type="number"
                         placeholder="0"
-                        value={formData.stockQuantity}
+                        value={formData.stock}
                         onChange={(e) =>
-                          setFormData({ ...formData, stockQuantity: Number(e.target.value) })
+                          setFormData({ ...formData, stock: Number(e.target.value) })
                         }
                       />
                     </div>
@@ -379,12 +395,12 @@ export default function ProductEditPage({
                   </p>
                 </div>
                 <Badge
-                  variant={(formData.stockQuantity ?? 0) > 0 ? "default" : "secondary"}
+                  variant={(formData.stock ?? 0) > 0 ? "default" : "secondary"}
                   className={
-                    (formData.stockQuantity ?? 0) > 0 ? "bg-success text-white" : ""
+                    (formData.stock ?? 0) > 0 ? "bg-success text-white" : ""
                   }
                 >
-                  {(formData.stockQuantity ?? 0) > 0 ? "Đang bán" : "Hết hàng"}
+                  {(formData.stock ?? 0) > 0 ? "Đang bán" : "Hết hàng"}
                 </Badge>
               </div>
             </CardContent>

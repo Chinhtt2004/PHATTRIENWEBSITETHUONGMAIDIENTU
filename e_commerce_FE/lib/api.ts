@@ -16,6 +16,11 @@ export interface BackendCategory {
   children?: BackendCategory[];
 }
 
+export interface Brand {
+  id: number;
+  name: string;
+}
+
 export interface BackendProductCategory {
   id: number;
   name: string;
@@ -150,17 +155,12 @@ export interface ProductRequest {
   name: string;
   description: string;
   categoryId: number;
-  brandId?: number;
-  /**
-   * @deprecated New backend manages price per variant.
-   * Kept for the admin product form until it is migrated to variant management.
-   */
-  price?: number;
-  /**
-   * @deprecated New backend manages stock per variant.
-   * Kept for the admin product form until it is migrated to variant management.
-   */
-  stockQuantity?: number;
+  brandId: number;
+  variants?: {
+    sku?: string;
+    price: number;
+    stock: number;
+  }[];
 }
 
 export interface CategoryRequest {
@@ -515,14 +515,18 @@ export async function fetchNewProducts(limit = 10): Promise<Product[]> {
 }
 
 // Admin Products
-export async function adminCreateProduct(product: ProductRequest, imageFile?: File) {
+export async function adminCreateProduct(product: ProductRequest, imageFiles?: File | File[]) {
   const formData = new FormData();
   formData.append("product", new Blob([JSON.stringify(product)], { type: "application/json" }));
-  if (imageFile) {
-    formData.append("image", imageFile);
+  
+  if (imageFiles) {
+    const files = Array.isArray(imageFiles) ? imageFiles : [imageFiles];
+    files.forEach(file => {
+      formData.append("images", file);
+    });
   }
 
-  const res = await fetch(`${API_BASE_URL}/api/admin/products`, {
+  const res = await fetch(`${API_BASE_URL}/api/admin/product`, {
     method: "POST",
     credentials: "include",
     body: formData,
@@ -530,14 +534,18 @@ export async function adminCreateProduct(product: ProductRequest, imageFile?: Fi
   return ensureOk(res);
 }
 
-export async function adminUpdateProduct(id: number, product: ProductRequest, imageFile?: File) {
+export async function adminUpdateProduct(id: number, product: ProductRequest, imageFiles?: File | File[]) {
   const formData = new FormData();
   formData.append("product", new Blob([JSON.stringify(product)], { type: "application/json" }));
-  if (imageFile) {
-    formData.append("image", imageFile);
+  
+  if (imageFiles) {
+    const files = Array.isArray(imageFiles) ? imageFiles : [imageFiles];
+    files.forEach(file => {
+      formData.append("images", file);
+    });
   }
 
-  const res = await fetch(`${API_BASE_URL}/api/admin/products/${id}`, {
+  const res = await fetch(`${API_BASE_URL}/api/admin/product/${id}`, {
     method: "PUT",
     credentials: "include",
     body: formData,
@@ -546,7 +554,7 @@ export async function adminUpdateProduct(id: number, product: ProductRequest, im
 }
 
 export async function adminDeleteProduct(id: number) {
-  const res = await fetch(`${API_BASE_URL}/api/admin/products/${id}`, {
+  const res = await fetch(`${API_BASE_URL}/api/admin/product/${id}`, {
     method: "DELETE",
     credentials: "include",
   });
@@ -720,6 +728,14 @@ export async function testCategoryFetching() {
 }
 
 // Mixed Data
+export const fetchBrands = cache(async (): Promise<Brand[]> => {
+  const response = await fetch(`${API_BASE_URL}/api/public/brands`);
+  if (!response.ok) {
+    throw new Error("Không thể tải danh sách thương hiệu");
+  }
+  return response.json();
+});
+
 export const fetchStorefrontData = cache(async () => {
   const products = await fetchProducts();
   const categories = await fetchCategories(products);
