@@ -35,5 +35,10 @@ public class VoucherController {
             @RequestBody VoucherRequest request) {
         return ResponseEntity.ok(voucherService.update(id, request));
     }
-    
+
+    @DeleteMapping("/api/admin/vouchers/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        voucherService.delete(id);
+        return ResponseEntity.ok().build();
+    }
 }

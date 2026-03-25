@@ -4,6 +4,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 // Tạo OrderResponse DTO
 @Data
@@ -17,4 +18,5 @@ public class OrderResponse {
     private String phone;
     private String paymentMethod;
     private LocalDateTime orderDate;
+    private List<OrderItemDTO> items;
 }

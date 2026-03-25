@@ -20,6 +20,7 @@ public class ProductVariant {
     private Product product;
     private BigDecimal price;
     private BigDecimal discountPrice;
+    private BigDecimal compareAtPrice;
     private Integer stock;
     private String sku;
     private String imageUrl;

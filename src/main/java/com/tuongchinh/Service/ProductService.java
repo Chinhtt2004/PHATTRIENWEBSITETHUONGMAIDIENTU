@@ -21,6 +21,7 @@ public class ProductService {
     private final ProductVariantRepository variantRepository;
     private final ProductImageRepository productImageRepository;
     private final CloudinaryService cloudinaryService;
+    private final AttributeValueRepository attributeValueRepository;
 
     public Page<ProductResponse> searchProducts(
             String keyword, Double minPrice, Double maxPrice,
@@ -92,8 +93,19 @@ public class ProductService {
                 variant.setProduct(product);
                 variant.setSku(vr.getSku());
                 variant.setPrice(vr.getPrice());
+                variant.setDiscountPrice(vr.getDiscountPrice());
+                // Nếu không có compareAtPrice thì lấy từ price (Giá gốc)
+                variant.setCompareAtPrice(vr.getCompareAtPrice() != null ? vr.getCompareAtPrice() : vr.getPrice());
+                variant.setCostPrice(vr.getCostPrice());
                 variant.setStock(vr.getStock());
+                variant.setImageUrl(vr.getImageUrl());
                 variant.setIsActive(true);
+                
+                if (vr.getAttributeValueIds() != null && !vr.getAttributeValueIds().isEmpty()) {
+                    List<AttributeValue> attributeValues = attributeValueRepository.findAllById(vr.getAttributeValueIds());
+                    variant.setAttributeValues(attributeValues);
+                }
+                
                 variantRepository.save(variant);
             }
         }
@@ -142,8 +154,18 @@ public class ProductService {
                 variant.setProduct(product);
                 variant.setSku(vr.getSku());
                 variant.setPrice(vr.getPrice());
+                variant.setDiscountPrice(vr.getDiscountPrice());
+                variant.setCompareAtPrice(vr.getCompareAtPrice() != null ? vr.getCompareAtPrice() : vr.getPrice());
+                variant.setCostPrice(vr.getCostPrice());
                 variant.setStock(vr.getStock());
+                variant.setImageUrl(vr.getImageUrl());
                 variant.setIsActive(true);
+
+                if (vr.getAttributeValueIds() != null && !vr.getAttributeValueIds().isEmpty()) {
+                    List<AttributeValue> attributeValues = attributeValueRepository.findAllById(vr.getAttributeValueIds());
+                    variant.setAttributeValues(attributeValues);
+                }
+
                 variantRepository.save(variant);
             }
         }
@@ -154,9 +176,11 @@ public class ProductService {
     }
 
     public void delete(Long id) {
-        List<ProductVariant> variants = variantRepository.findByProductId(id);
-        variants.forEach(v -> v.setIsActive(false));
-        variantRepository.saveAll(variants);
+        try {
+            productRepository.deleteById(id);
+        } catch (Exception e) {
+            throw new RuntimeException("Không thể xóa sản phẩm do có dữ liệu liên quan (ví dụ: đơn hàng). Vui lòng ẩn sản phẩm thay vì xóa.");
+        }
     }
 
     public List<ProductResponse> getProductsByCategoryId(Long categoryId) {
@@ -214,6 +238,8 @@ public class ProductService {
         vr.setId(v.getId());
         vr.setSku(v.getSku());
         vr.setPrice(v.getPrice());
+        vr.setCompareAtPrice(v.getCompareAtPrice());
+        vr.setCostPrice(v.getCostPrice());
         vr.setStock(v.getStock());
         vr.setImageUrl(v.getImageUrl());
         vr.setDiscountPrice(v.getDiscountPrice()); // ← thêm

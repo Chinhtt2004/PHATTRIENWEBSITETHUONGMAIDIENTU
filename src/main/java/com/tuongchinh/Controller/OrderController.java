@@ -8,8 +8,6 @@ import com.tuongchinh.Service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -35,32 +33,52 @@ public class OrderController {
         return ResponseEntity.ok(response);
     }
 
-    // GET /api/orders
-//    @GetMapping
-//    public ResponseEntity<List<OrderResponse>> getMyOrders(
-//            @AuthenticationPrincipal UserDetails userDetails
-//    ) {
-//        Long userId = userService.findByEmail(userDetails.getUsername()).getId();
-//        return ResponseEntity.ok(orderService.getOrdersByUser(userId));
-//    }
+    // GET /api/user/orders
+    @GetMapping
+    public ResponseEntity<List<OrderResponse>> getMyOrders(
+            HttpServletRequest request
+    ) {
+        String token = userService.extractToken(request);
+        Long userId = jwtService.extractUserId(token);
+        return ResponseEntity.ok(orderService.getOrdersByUser(userId));
+    }
 
-    // GET /api/orders/{id}
-//    @GetMapping("/{id}")
-//    public ResponseEntity<OrderResponse> getOrderDetail(
-//            @AuthenticationPrincipal UserDetails userDetails,
-//            @PathVariable Long id
-//    ) {
-//        Long userId = userService.findByEmail(userDetails.getUsername()).getId();
-//        return ResponseEntity.ok(orderService.getOrderDetail(userId, id));
-//    }
+    // GET /api/user/orders/{id}
+    @GetMapping("/{id}")
+    public ResponseEntity<OrderResponse> getOrderDetail(
+            HttpServletRequest request,
+            @PathVariable Long id
+    ) {
+        String token = userService.extractToken(request);
+        Long userId = jwtService.extractUserId(token);
+        return ResponseEntity.ok(orderService.getOrderDetail(userId, id));
+    }
 
-    // PUT /api/orders/{id}/cancel
-//    @PutMapping("/{id}/cancel")
-//    public ResponseEntity<OrderResponse> cancelOrder(
-//            @AuthenticationPrincipal UserDetails userDetails,
-//            @PathVariable Long id
-//    ) {
-//        Long userId = userService.findByEmail(userDetails.getUsername()).getId();
-//        return ResponseEntity.ok(orderService.cancelOrder(userId, id));
-//    }
+    // PUT /api/user/orders/{id}/cancel
+    @PutMapping("/{id}/cancel")
+    public ResponseEntity<OrderResponse> cancelOrder(
+            HttpServletRequest request,
+            @PathVariable Long id
+    ) {
+        String token = userService.extractToken(request);
+        Long userId = jwtService.extractUserId(token);
+        return ResponseEntity.ok(orderService.cancelOrder(userId, id));
+    }
+
+    // =====================
+    // ADMIN ENDPOINTS
+    // =====================
+
+    @GetMapping("/admin/all")
+    public ResponseEntity<List<OrderResponse>> getAllOrders() {
+        return ResponseEntity.ok(orderService.getAllOrders());
+    }
+
+    @PutMapping("/admin/{id}/status")
+    public ResponseEntity<OrderResponse> updateStatus(
+            @PathVariable Long id,
+            @RequestParam String status
+    ) {
+        return ResponseEntity.ok(orderService.updateOrderStatus(id, status));
+    }
 }

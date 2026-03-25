@@ -21,4 +21,13 @@ public class User {
     @JsonIgnore
     private Cart cart;
     private String phone;
+    @Column(name = "is_active")
+    private boolean isActive = true;
+    @Column(name = "created_at")
+    private java.time.LocalDateTime createdAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = java.time.LocalDateTime.now();
+    }
 }

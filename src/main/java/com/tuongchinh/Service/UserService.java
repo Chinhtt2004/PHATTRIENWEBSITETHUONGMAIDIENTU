@@ -93,4 +93,15 @@ public class UserService {
 
         userRepository.save(user);
     }
+
+    public java.util.List<User> findAllUsersByRole(String role) {
+        return userRepository.findByRole(role);
+    }
+
+    public User toggleUserStatus(Long userId, boolean isActive) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setActive(isActive);
+        return userRepository.save(user);
+    }
 }

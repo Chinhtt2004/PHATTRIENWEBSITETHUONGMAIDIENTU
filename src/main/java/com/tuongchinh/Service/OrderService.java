@@ -1,6 +1,7 @@
 package com.tuongchinh.Service;
 
 import com.tuongchinh.DTO.CheckoutRequest;
+import com.tuongchinh.DTO.OrderItemDTO;
 import com.tuongchinh.DTO.OrderResponse;
 import com.tuongchinh.Entity.*;
 import com.tuongchinh.Repository.*;
@@ -170,6 +171,49 @@ public class OrderService {
         return mapToOrderResponse(order);
     }
 
+    public List<OrderResponse> getAllOrders() {
+        return orderRepository.findAll().stream()
+                .map(this::mapToOrderResponse)
+                .toList();
+    }
+
+    public List<OrderResponse> getOrdersByUser(Long userId) {
+        return orderRepository.findByUserIdOrderByOrderDateDesc(userId).stream()
+                .map(this::mapToOrderResponse)
+                .toList();
+    }
+
+    @Transactional
+    public OrderResponse updateOrderStatus(Long orderId, String status) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        order.setOrderStatus(status);
+        return mapToOrderResponse(orderRepository.save(order));
+    }
+
+    public OrderResponse getOrderDetail(Long userId, Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        if (!order.getUser().getId().equals(userId)) {
+            throw new RuntimeException("Unauthorized access to order");
+        }
+        return mapToOrderResponse(order);
+    }
+
+    @Transactional
+    public OrderResponse cancelOrder(Long userId, Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        if (!order.getUser().getId().equals(userId)) {
+            throw new RuntimeException("Unauthorized access to order");
+        }
+        if (!"PENDING".equalsIgnoreCase(order.getOrderStatus())) {
+             throw new RuntimeException("Only pending orders can be cancelled");
+        }
+        order.setOrderStatus("CANCELLED");
+        return mapToOrderResponse(orderRepository.save(order));
+    }
+
     private OrderResponse mapToOrderResponse(Order order) {
         OrderResponse res = new OrderResponse();
         res.setId(order.getId());
@@ -179,9 +223,32 @@ public class OrderService {
         res.setTotalPrice(order.getTotalAmount());
         res.setOrderDate(order.getOrderDate());
         // Lấy từ Address entity
-        res.setShippingAddress(order.getAddress().getAddress());
-        res.setReceiverName(order.getAddress().getReceiverName());
-        res.setPhone(order.getAddress().getPhone());
+        if (order.getAddress() != null) {
+            res.setShippingAddress(order.getAddress().getAddress());
+            res.setReceiverName(order.getAddress().getReceiverName());
+            res.setPhone(order.getAddress().getPhone());
+        }
+        if (order.getItems() != null) {
+            res.setItems(order.getItems().stream().map(item -> {
+                OrderItemDTO dto = new OrderItemDTO();
+                dto.setId(item.getId());
+                dto.setQuantity(item.getQuantity());
+                dto.setPrice(item.getPrice());
+                if (item.getVariant() != null) {
+                    ProductVariant v = item.getVariant();
+                    dto.setVariantId(v.getId());
+                    dto.setSku(v.getSku());
+                    if (v.getProduct() != null) {
+                        dto.setProductName(v.getProduct().getName());
+                    }
+                    // For variant name, we can use attribute values if available
+                    // For now, let's keep it simple or join attribute names
+                    dto.setVariantName(v.getSku()); // Fallback to SKU
+                    dto.setImageUrl(v.getImageUrl());
+                }
+                return dto;
+            }).toList());
+        }
         return res;
     }
     private void validateCheckoutRequest(CheckoutRequest req) {

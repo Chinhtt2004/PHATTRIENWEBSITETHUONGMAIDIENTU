@@ -19,6 +19,11 @@ public class ProductRequest {
     public static class VariantRequest {
         private String sku;
         private BigDecimal price;
+        private BigDecimal discountPrice;
+        private List<Long> attributeValueIds;
+        private String imageUrl;
+        private BigDecimal compareAtPrice;
+        private BigDecimal costPrice;
         private Integer stock;
     }
 }

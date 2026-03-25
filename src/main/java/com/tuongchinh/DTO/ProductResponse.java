@@ -24,6 +24,8 @@ public class ProductResponse {
         private Long id;
         private String sku;
         private BigDecimal price;
+        private BigDecimal compareAtPrice;
+        private BigDecimal costPrice;
         private Integer stock;
         private String imageUrl;
         private Boolean isActive;
