@@ -1025,7 +1025,7 @@ export async function checkout(data: {
   paymentMethod: string;
   voucherCode?: string;
 }): Promise<any> {
-  const res = await fetch(`${API_BASE_URL}/api/user/checkout`, {
+  const res = await fetch(`${API_BASE_URL}/api/user/orders/checkout`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",

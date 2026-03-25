@@ -22,7 +22,7 @@ public class ReportService {
     private final ProductRepository productRepository;
 
     public ReportResponse getSummaryReport() {
-        List<Order> orders = orderRepository.findAll();
+        List<Order> orders = orderRepository.findAllByOrderByOrderDateDesc();
         
         BigDecimal totalRevenue = orders.stream()
                 .filter(o -> !"CANCELLED".equalsIgnoreCase(o.getOrderStatus()))

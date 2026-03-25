@@ -16,6 +16,7 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@BatchSize(size = 30)
 public class Category {
 
     @Id
