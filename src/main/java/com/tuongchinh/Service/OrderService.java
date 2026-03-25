@@ -29,7 +29,7 @@ public class OrderService {
     @Transactional
     public OrderResponse checkout(Long userId, CheckoutRequest req) {
         validateCheckoutRequest(req);
-        List<CartItem> cartItems = cartItemRepository.findAllById(req.getCartItemIds());
+        List<CartItem> cartItems = cartItemRepository.findAllByIdIn(req.getCartItemIds());
         if (cartItems.isEmpty()) {
             throw new RuntimeException("No items selected");
         }
@@ -172,7 +172,7 @@ public class OrderService {
     }
 
     public List<OrderResponse> getAllOrders() {
-        return orderRepository.findAll().stream()
+        return orderRepository.findAllByOrderByOrderDateDesc().stream()
                 .map(this::mapToOrderResponse)
                 .toList();
     }

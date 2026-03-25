@@ -7,11 +7,13 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import org.hibernate.annotations.BatchSize;
 
 @Entity
 @Table(name = "product_variant")
 @Getter
 @Setter
+@BatchSize(size = 30)
 public class ProductVariant {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
