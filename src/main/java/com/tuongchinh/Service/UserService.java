@@ -22,6 +22,8 @@ public class UserService {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private CartRepository cartRepository;
+    @Autowired
+    private com.tuongchinh.Repository.OrderRepository orderRepository;
     public String login(String email, String password) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Email không tồn tại"));
@@ -96,6 +98,37 @@ public class UserService {
 
     public java.util.List<User> findAllUsersByRole(String role) {
         return userRepository.findByRole(role);
+    }
+
+    public java.util.List<com.tuongchinh.DTO.CustomerResponse> getCustomersWithStats(String role) {
+        return userRepository.findByRole(role).stream()
+                .map(this::mapToCustomerResponse)
+                .toList();
+    }
+
+    public com.tuongchinh.DTO.CustomerResponse getCustomerById(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return mapToCustomerResponse(user);
+    }
+
+    private com.tuongchinh.DTO.CustomerResponse mapToCustomerResponse(User user) {
+        com.tuongchinh.DTO.CustomerResponse res = new com.tuongchinh.DTO.CustomerResponse();
+        res.setId(user.getId());
+        res.setName(user.getName());
+        res.setEmail(user.getEmail());
+        res.setPhone(user.getPhone());
+        res.setRole(user.getRole());
+        res.setActive(user.isActive());
+        res.setCreatedAt(user.getCreatedAt());
+        
+        long count = orderRepository.countByUserId(user.getId());
+        java.math.BigDecimal total = orderRepository.sumTotalAmountByUserId(user.getId());
+        
+        res.setOrderCount(count);
+        res.setTotalSpent(total != null ? total : java.math.BigDecimal.ZERO);
+        
+        return res;
     }
 
     public User toggleUserStatus(Long userId, boolean isActive) {

@@ -10,7 +10,7 @@ import lombok.Setter;
 @Table(name = "user")
 @Getter
 @Setter
-@BatchSize(size = 30)
+@BatchSize(size = 100)
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,6 +24,7 @@ public class User {
     private Cart cart;
     private String phone;
     @Column(name = "is_active")
+    @com.fasterxml.jackson.annotation.JsonProperty("isActive")
     private boolean isActive = true;
     @Column(name = "created_at")
     private java.time.LocalDateTime createdAt;

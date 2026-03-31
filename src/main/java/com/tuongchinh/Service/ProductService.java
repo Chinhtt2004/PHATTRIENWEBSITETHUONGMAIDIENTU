@@ -10,6 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -25,7 +26,8 @@ public class ProductService {
 
     public Page<ProductResponse> searchProducts(
             String keyword, Double minPrice, Double maxPrice,
-            Long categoryId, Long brandId, Boolean inStock,
+            List<Long> categoryIds, List<Long> brandIds, Boolean inStock,
+            List<Long> attributeValueIds,
             int page, int size, String sortBy, String sortDir) {
 
         Sort sort = sortDir.equalsIgnoreCase("desc")
@@ -33,7 +35,7 @@ public class ProductService {
                 : Sort.by(sortBy).ascending();
 
         Page<Product> products = productRepository.findAll(
-                ProductSpecification.filter(keyword, minPrice, maxPrice, categoryId, brandId, inStock),
+                ProductSpecification.filter(keyword, minPrice, maxPrice, categoryIds, brandIds, inStock, attributeValueIds),
                 PageRequest.of(page, size, sort));
 
         // Convert Page<Product> → Page<ProductResponse>
@@ -253,6 +255,7 @@ public class ProductService {
         res.setVariants(variants.stream().map(this::mapVariant).toList());
         res.setAverageRating(product.getAverageRating());
         res.setTotalReviews(product.getTotalReviews());
+        res.setTotalSold(product.getTotalSold());
         return res;
     }
 

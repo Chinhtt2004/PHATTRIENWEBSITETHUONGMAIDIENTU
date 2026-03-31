@@ -93,31 +93,80 @@ public class ReviewService {
 
         return res;
     }
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public List<ReviewResponse> getReviewsByUser(Long userId) {
+        return reviewRepository.findByUserIdOrderByCreatedAtDesc(userId)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
     public ReviewResponse mapToResponse(Review review) {
-        ProductVariant variant = review.getOrderItem().getVariant();
         ReviewResponse res = new ReviewResponse();
         res.setId(review.getId());
-        res.setUsername(review.getUser().getName());
+        
+        if (review.getProduct() != null) {
+            res.setProductId(review.getProduct().getId());
+            res.setProductName(review.getProduct().getName());
+        }
+        
+        if (review.getUser() != null) {
+            res.setUsername(review.getUser().getName());
+        }
+        
         res.setRating(review.getRating());
         res.setComment(review.getComment());
         res.setCreatedAt(review.getCreatedAt());
-        ReviewResponse.VariantInfo v = new ReviewResponse.VariantInfo();
-        v.setId(variant.getId());
-        v.setSku(variant.getSku());
-        v.setImageUrl(variant.getImageUrl());
-        List<ReviewResponse.AttributeValueResponse> attrs =
-                variant.getAttributeValues().stream().map(av -> {
-                    ReviewResponse.AttributeValueResponse dto =
-                            new ReviewResponse.AttributeValueResponse();
-                    dto.setName(av.getAttribute().getName());
-                    dto.setValue(av.getValue());
-                    return dto;
-                }).toList();
 
-        v.setAttributeValues(attrs);
-
-        res.setVariant(v);
+        if (review.getOrderItem() != null && review.getOrderItem().getVariant() != null) {
+            ProductVariant variant = review.getOrderItem().getVariant();
+            ReviewResponse.VariantInfo v = new ReviewResponse.VariantInfo();
+            v.setId(variant.getId());
+            v.setSku(variant.getSku());
+            v.setImageUrl(variant.getImageUrl());
+            
+            if (variant.getAttributeValues() != null) {
+                List<ReviewResponse.AttributeValueResponse> attrs =
+                        variant.getAttributeValues().stream().map(av -> {
+                            ReviewResponse.AttributeValueResponse dto =
+                                    new ReviewResponse.AttributeValueResponse();
+                            if (av.getAttribute() != null) {
+                                dto.setName(av.getAttribute().getName());
+                            }
+                            dto.setValue(av.getValue());
+                            return dto;
+                        }).toList();
+                v.setAttributeValues(attrs);
+            }
+            res.setVariant(v);
+        }
 
         return res;
+    }
+
+    @Transactional
+    public void deleteReview(Long reviewId, Long userId) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new RuntimeException("Review not found"));
+
+        if (!review.getUser().getId().equals(userId)) {
+            throw new RuntimeException("Not your review to delete");
+        }
+
+        Product product = review.getProduct();
+        int oldTotal = product.getTotalReviews();
+        double oldAvg = product.getAverageRating();
+        int ratingToDelete = review.getRating();
+
+        if (oldTotal > 1) {
+            double newAvg = (oldAvg * oldTotal - ratingToDelete) / (oldTotal - 1);
+            product.setAverageRating(newAvg);
+            product.setTotalReviews(oldTotal - 1);
+        } else {
+            product.setAverageRating(0.0);
+            product.setTotalReviews(0);
+        }
+
+        reviewRepository.delete(review);
     }
 }

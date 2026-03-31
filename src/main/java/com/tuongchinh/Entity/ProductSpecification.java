@@ -4,6 +4,7 @@ import jakarta.persistence.criteria.*;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 public class ProductSpecification {
 
@@ -11,9 +12,10 @@ public class ProductSpecification {
             String keyword,
             Double minPrice,
             Double maxPrice,
-            Long categoryId,
-            Long brandId,
-            Boolean inStock) {
+            List<Long> categoryIds,
+            List<Long> brandIds,
+            Boolean inStock,
+            List<Long> attributeValueIds) {
 
         return (root, query, cb) -> {
             Predicate predicate = cb.conjunction();
@@ -28,18 +30,33 @@ public class ProductSpecification {
                 );
             }
 
-            // Lọc theo danh mục
-            if (categoryId != null) {
+            // Lọc theo danh mục (chấp nhận nhiều ID)
+            if (categoryIds != null && !categoryIds.isEmpty()) {
                 predicate = cb.and(predicate,
-                        cb.equal(root.get("category").get("id"), categoryId)
+                        root.get("category").get("id").in(categoryIds)
                 );
             }
 
-            // Lọc theo thương hiệu
-            if (brandId != null) {
+            // Lọc theo thương hiệu (chấp nhận nhiều ID)
+            if (brandIds != null && !brandIds.isEmpty()) {
                 predicate = cb.and(predicate,
-                        cb.equal(root.get("brand").get("id"), brandId)
+                        root.get("brand").get("id").in(brandIds)
                 );
+            }
+
+            // Lọc theo thuộc tính (Ví dụ: Loại da - chấp nhận nhiều ID)
+            if (attributeValueIds != null && !attributeValueIds.isEmpty()) {
+                Subquery<Long> attrQuery = query.subquery(Long.class);
+                Root<ProductVariant> variantRoot = attrQuery.from(ProductVariant.class);
+                Join<ProductVariant, AttributeValue> attrValues = variantRoot.join("attributeValues");
+                
+                attrQuery.select(variantRoot.get("product").get("id"))
+                        .where(
+                                attrValues.get("id").in(attributeValueIds),
+                                cb.isTrue(variantRoot.get("isActive"))
+                        );
+                
+                predicate = cb.and(predicate, root.get("id").in(attrQuery));
             }
 
             // Lọc theo giá min — dùng subquery MIN(price) từ ProductVariant

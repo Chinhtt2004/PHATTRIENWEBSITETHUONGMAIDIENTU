@@ -14,8 +14,15 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             "items", 
             "address", 
             "user", 
+            "user.cart",
             "items.variant", 
             "items.variant.product"
     })
+    @org.springframework.data.jpa.repository.Query("SELECT COUNT(o) FROM Order o WHERE o.user.id = :userId")
+    long countByUserId(@org.springframework.data.repository.query.Param("userId") Long userId);
+
+    @org.springframework.data.jpa.repository.Query("SELECT SUM(o.totalAmount) FROM Order o WHERE o.user.id = :userId")
+    java.math.BigDecimal sumTotalAmountByUserId(@org.springframework.data.repository.query.Param("userId") Long userId);
+
     List<Order> findAllByOrderByOrderDateDesc();
 }

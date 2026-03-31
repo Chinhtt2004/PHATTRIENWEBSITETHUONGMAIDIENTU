@@ -17,6 +17,7 @@ public class ProductResponse {
     private String thumbnail;
     private Double averageRating;
     private Integer totalReviews;
+    private Integer totalSold;
     private List<String> images;
     private BigDecimal priceMin;
     private List<VariantResponse> variants;

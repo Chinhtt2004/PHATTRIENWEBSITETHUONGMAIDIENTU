@@ -13,4 +13,7 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     List<Review> findByProductId(Long productId);
     Page<Review> findByProduct_Id(Long productId, Pageable pageable);
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"user", "product", "orderItem", "orderItem.variant", "orderItem.variant.attributeValues", "orderItem.variant.attributeValues.attribute"})
+    List<Review> findByUserIdOrderByCreatedAtDesc(Long userId);
 }

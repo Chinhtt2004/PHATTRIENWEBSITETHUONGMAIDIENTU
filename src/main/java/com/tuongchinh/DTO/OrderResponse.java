@@ -18,6 +18,7 @@ public class OrderResponse {
     private String phone;
     private String paymentMethod;
     private LocalDateTime orderDate;
-    private String paymentUrl;
+    private String voucherCode;
+    private BigDecimal discountAmount;
     private List<OrderItemDTO> items;
 }

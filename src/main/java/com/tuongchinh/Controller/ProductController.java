@@ -24,8 +24,9 @@ public class ProductController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Double minPrice,
             @RequestParam(required = false) Double maxPrice,
-            @RequestParam(required = false) Long categoryId,
-            @RequestParam(required = false) Long brandId,
+            @RequestParam(required = false) List<Long> categoryIds,
+            @RequestParam(required = false) List<Long> brandIds,
+            @RequestParam(required = false) List<Long> attributeValueIds,
             @RequestParam(required = false) Boolean inStock,
             @RequestParam(defaultValue = "0")   int page,
             @RequestParam(defaultValue = "20")  int size,
@@ -35,7 +36,7 @@ public class ProductController {
         return ResponseEntity.ok(
                 productService.searchProducts(
                         keyword, minPrice, maxPrice,
-                        categoryId, brandId, inStock,
+                        categoryIds, brandIds, inStock, attributeValueIds,
                         page, size, sortBy, sortDir
                 )
         );

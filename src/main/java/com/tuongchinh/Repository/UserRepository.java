@@ -11,4 +11,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     
     @EntityGraph(attributePaths = {"cart"})
     java.util.List<User> findByRole(String role);
+
+    long countByRole(String role);
 }

@@ -15,8 +15,13 @@ public class AdminUserController {
     private final UserService userService;
 
     @GetMapping
-    public ResponseEntity<List<User>> getAllCustomers() {
-        return ResponseEntity.ok(userService.findAllUsersByRole("USER"));
+    public ResponseEntity<List<com.tuongchinh.DTO.CustomerResponse>> getAllCustomers() {
+        return ResponseEntity.ok(userService.getCustomersWithStats("USER"));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<com.tuongchinh.DTO.CustomerResponse> getCustomerDetail(@PathVariable Long id) {
+        return ResponseEntity.ok(userService.getCustomerById(id));
     }
 
     @PatchMapping("/{id}/status")

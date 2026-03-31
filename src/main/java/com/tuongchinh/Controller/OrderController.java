@@ -56,7 +56,7 @@ public class OrderController {
     }
 
     // PUT /api/user/orders/{id}/cancel
-    @PutMapping("/user/orders/cancel/{}")
+    @PutMapping("/user/orders/cancel/{id}")
     public ResponseEntity<OrderResponse> cancelOrder(
             HttpServletRequest request,
             @PathVariable Long id
@@ -73,6 +73,16 @@ public class OrderController {
     @GetMapping("/admin/orders/all")
     public ResponseEntity<List<OrderResponse>> getAllOrders() {
         return ResponseEntity.ok(orderService.getAllOrders());
+    }
+
+    @GetMapping("/admin/orders/user/{userId}")
+    public ResponseEntity<List<OrderResponse>> adminGetOrdersByUser(@PathVariable Long userId) {
+        return ResponseEntity.ok(orderService.getOrdersByUser(userId));
+    }
+
+    @GetMapping("/admin/orders/{id}")
+    public ResponseEntity<OrderResponse> getOrderById(@PathVariable Long id) {
+        return ResponseEntity.ok(orderService.getOrderById(id));
     }
 
     @PutMapping("/admin/orders/status")

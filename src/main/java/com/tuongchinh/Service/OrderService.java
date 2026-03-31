@@ -212,15 +212,18 @@ public class OrderService {
                 .orElseThrow(() -> new RuntimeException("Order not found"));
         order.setOrderStatus(request.getStatus());
         if(request.getStatus().equals("DELIVERED")) {
+            order.setStatus("PAID");
             for (OrderItem item : order.getItems()) {
                 ProductVariant variant = item.getVariant();
                 Product product = variant.getProduct();
                 int quantity = item.getQuantity();
                 // cập nhật variant
-                variant.setTotalSold(variant.getTotalSold() + quantity);
+                int vSold = (variant.getTotalSold() == null) ? 0 : variant.getTotalSold();
+                variant.setTotalSold(vSold + quantity);
                 productVariantRepository.save(variant);
                 // cập nhật product
-                product.setTotalSold(product.getTotalSold() + quantity);
+                int pSold = (product.getTotalSold() == null) ? 0 : product.getTotalSold();
+                product.setTotalSold(pSold + quantity);
                 productRepository.save(product);
             }
         }
@@ -233,6 +236,12 @@ public class OrderService {
         if (!order.getUser().getId().equals(userId)) {
             throw new RuntimeException("Unauthorized access to order");
         }
+        return mapToOrderResponse(order);
+    }
+
+    public OrderResponse getOrderById(Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
         return mapToOrderResponse(order);
     }
 
@@ -258,6 +267,10 @@ public class OrderService {
         res.setPaymentMethod(order.getPaymentMethod());
         res.setTotalPrice(order.getTotalAmount());
         res.setOrderDate(order.getOrderDate());
+        res.setDiscountAmount(order.getDiscountAmount());
+        if (order.getVoucher() != null) {
+            res.setVoucherCode(order.getVoucher().getCode());
+        }
         // Lấy từ Address entity
         if (order.getAddress() != null) {
             res.setShippingAddress(order.getAddress().getAddress());

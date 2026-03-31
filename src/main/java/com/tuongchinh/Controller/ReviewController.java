@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/")
+@RequestMapping("/api")
 @RequiredArgsConstructor
 public class ReviewController {
 
@@ -22,7 +22,7 @@ public class ReviewController {
     private final UserService userService;
 
     // 🔥 1. Tạo review
-    @PostMapping("user/review")
+    @PostMapping("/user/review")
     public ResponseEntity<?> createReview(
             @RequestBody ReviewRequest request,
             HttpServletRequest httpRequest) {
@@ -44,30 +44,31 @@ public class ReviewController {
                 reviewService.getReviewsByProduct(productId, page, size)
         );
     }
+
+    // 🔥 3. Lấy review của user
+    @GetMapping("/user/reviews/my")
+    public ResponseEntity<List<ReviewResponse>> getMyReviews(
+            HttpServletRequest httpRequest) {
+
+        String token = userService.extractToken(httpRequest);
+        Long userId = jwtService.extractUserId(token);
+
+        return ResponseEntity.ok(
+                reviewService.getReviewsByUser(userId)
+        );
+    }
+
+    // 🔥 4. (optional) Xóa review
+    @DeleteMapping("/user/review/{id}")
+    public ResponseEntity<?> deleteReview(
+            @PathVariable Long id,
+            HttpServletRequest httpRequest) {
+
+        String token = userService.extractToken(httpRequest);
+        Long userId = jwtService.extractUserId(token);
+
+        reviewService.deleteReview(id, userId);
+
+        return ResponseEntity.ok("Xóa đánh giá thành công");
+    }
 }
-//
-//    // 🔥 3. (optional) Lấy review của user
-//    @GetMapping("/my")
-//    public ResponseEntity<List<ReviewResponse>> getMyReviews(
-//            HttpServletRequest request) {
-//
-//        Long userId = jwtService.extractUserId(request);
-//
-//        return ResponseEntity.ok(
-//                reviewService.getReviewsByUser(userId)
-//        );
-//    }
-//
-//    // 🔥 4. (optional) Xóa review
-//    @DeleteMapping("/{id}")
-//    public ResponseEntity<?> deleteReview(
-//            @PathVariable Long id,
-//            HttpServletRequest request) {
-//
-//        Long userId = jwtService.extractUserId(request);
-//
-//        reviewService.deleteReview(id, userId);
-//
-//        return ResponseEntity.ok("Xóa đánh giá thành công");
-//    }
-//}

@@ -20,6 +20,7 @@ import java.util.List;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@BatchSize(size = 100)
 public class Cart {
 
     @Id

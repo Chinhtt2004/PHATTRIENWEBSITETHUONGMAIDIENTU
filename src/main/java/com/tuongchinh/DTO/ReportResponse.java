@@ -21,6 +21,24 @@ public class ReportResponse {
     private List<DailyRevenue> revenueChart;
     private List<CategorySales> categoryChart;
     private List<TopProduct> topProducts;
+    private List<OrderStatusDistribution> statusChart;
+    private List<BrandSales> brandChart;
+
+    @Data
+    @AllArgsConstructor
+    public static class OrderStatusDistribution {
+        private String status;
+        private long count;
+        private String color;
+    }
+
+    @Data
+    @AllArgsConstructor
+    public static class BrandSales {
+        private String name;
+        private double value; // Percentage
+        private String color;
+    }
 
     @Data
     @AllArgsConstructor
