@@ -33,4 +33,12 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     AND pv.discountPrice < pv.price
     """)
     Page<Product> findSaleProducts(Pageable pageable);
+    @Query("""
+    SELECT p
+    FROM Product p
+    WHERE p.totalSold > 0
+    ORDER BY p.totalSold DESC
+    """)
+    Page<Product> findBestSelling(Pageable pageable);
+    Page<Product> findAllByOrderByTotalSoldDesc(Pageable pageable);
 }

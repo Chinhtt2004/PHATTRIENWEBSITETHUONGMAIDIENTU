@@ -109,4 +109,11 @@ public class ProductController {
         productService.removeSale(variantId);
         return ResponseEntity.noContent().build();
     }
+    @GetMapping("public/product/best-sellers")
+    public ResponseEntity<List<ProductResponse>> getBestSelling(
+            @RequestParam(defaultValue = "10") int limit
+    ) {
+        List<ProductResponse> result = productService.getBestSelling(limit);
+        return ResponseEntity.ok(result);
+    }
 }

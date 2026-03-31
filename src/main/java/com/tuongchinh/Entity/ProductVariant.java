@@ -27,6 +27,7 @@ public class ProductVariant {
     private String sku;
     private String imageUrl;
     private Boolean isActive = true;
+    private Integer totalSold = 0;
     @Column(name = "cost_price")
     private BigDecimal costPrice;
     @ManyToMany

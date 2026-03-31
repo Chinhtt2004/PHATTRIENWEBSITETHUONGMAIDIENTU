@@ -28,6 +28,7 @@ public class OrderService {
     private final VoucherUsageRepository voucherUsageRepository;
     private final AddressRepository addressRepository;
     private final PaymentService paymentService;
+    private final ProductRepository productRepository;
 
     @Transactional
     public OrderResponse checkout(Long userId, CheckoutRequest req, HttpServletRequest request) {
@@ -172,23 +173,23 @@ public class OrderService {
         cartItemRepository.deleteAll(cartItems);
 
         String paymentResult;
-        try {
-            paymentResult = paymentService.processPayment(
-                    order,
-                    req.getPaymentMethod(),
-                    request   // ⚠️ cần truyền HttpServletRequest
-            );
-        } catch (Exception e) {
-            throw new RuntimeException("Payment error: " + e.getMessage());
-        }
+//        try {
+//            paymentResult = paymentService.processPayment(
+//                    order,
+//                    req.getPaymentMethod(),
+//                    request   // ⚠️ cần truyền HttpServletRequest
+//            );
+//        } catch (Exception e) {
+//            throw new RuntimeException("Payment error: " + e.getMessage());
+//        }
 
 // 10. Trả về response
         OrderResponse response = mapToOrderResponse(order);
 
 // nếu là VNPay → trả thêm URL  
-        if ("VNPAY".equals(req.getPaymentMethod())) {
-            response.setPaymentUrl(paymentResult);
-        }
+//        if ("VNPAY".equals(req.getPaymentMethod())) {
+//            response.setPaymentUrl(paymentResult);
+//        }
 
         return response;
     }
@@ -210,6 +211,19 @@ public class OrderService {
         Order order = orderRepository.findById(request.getId())
                 .orElseThrow(() -> new RuntimeException("Order not found"));
         order.setOrderStatus(request.getStatus());
+        if(request.getStatus().equals("DELIVERED")) {
+            for (OrderItem item : order.getItems()) {
+                ProductVariant variant = item.getVariant();
+                Product product = variant.getProduct();
+                int quantity = item.getQuantity();
+                // cập nhật variant
+                variant.setTotalSold(variant.getTotalSold() + quantity);
+                productVariantRepository.save(variant);
+                // cập nhật product
+                product.setTotalSold(product.getTotalSold() + quantity);
+                productRepository.save(product);
+            }
+        }
         return mapToOrderResponse(orderRepository.save(order));
     }
 

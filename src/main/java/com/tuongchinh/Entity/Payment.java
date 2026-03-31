@@ -16,12 +16,8 @@ public class Payment {
 
     @ManyToOne
     private Order order;
-
     private BigDecimal amount;
-
     private String method; // COD, VNPAY
-
     private String status; // PENDING, SUCCESS, FAILED
-
     private String transactionId;
 }

@@ -46,5 +46,6 @@ public class Product {
 
     @Column(name = "total_reviews")
     private Integer totalReviews;
+    private Integer totalSold = 0;
 
 }

@@ -211,6 +211,27 @@ public class ProductService {
                 })
                 .toList();
     }
+    public List<ProductResponse> getBestSelling(int limit) {
+
+        Page<Product> products = productRepository.findBestSelling(
+                PageRequest.of(0, limit)
+        );
+        return products.map(product -> {
+
+            // lọc variant active
+            List<ProductVariant> variants = product.getVariants().stream()
+                    .filter(ProductVariant::getIsActive)
+                    .toList();
+
+            // lấy danh sách ảnh
+            List<String> images = product.getImages().stream()
+                    .map(ProductImage::getUrl)
+                    .toList();
+
+            return mapToResponse(product, variants, images);
+
+        }).getContent();
+    }
 
     private ProductResponse mapToResponse(Product product, List<ProductVariant> variants, List<String> images) {
         BigDecimal priceMin = variants.stream()
