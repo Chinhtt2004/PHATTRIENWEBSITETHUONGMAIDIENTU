@@ -14,7 +14,7 @@ import org.hibernate.annotations.BatchSize;
 @Table(name = "product")
 @Getter
 @Setter
-@BatchSize(size = 30)
+@BatchSize(size = 100)
 public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -35,11 +35,11 @@ public class Product {
     private LocalDateTime createdAt;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @BatchSize(size = 20)
+    @BatchSize(size = 100)
     private List<ProductVariant> variants = new ArrayList<>();
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @BatchSize(size = 20)
+    @BatchSize(size = 100)
     private List<ProductImage> images = new ArrayList<>();
     @Column(name = "average_rating")
     private Double averageRating;

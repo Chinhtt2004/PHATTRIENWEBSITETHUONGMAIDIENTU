@@ -279,14 +279,15 @@ export function CheckoutContent() {
       toast.success("Đặt hàng thành công!");
 
       if (paymentMethod === "vnpay") {
-        const vnpayResponse = await createVNPayPayment(order.id);
-        if (vnpayResponse.data) {
-          window.location.href = vnpayResponse.data;
+        if (order.paymentUrl) {
+          window.location.href = order.paymentUrl;
           return;
+        } else {
+          toast.error("Không tìm thấy liên kết thanh toán VNPay");
         }
       }
 
-      router.push("/checkout/success");
+      router.push("/payment-result?status=success");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Đặt hàng thất bại, vui lòng thử lại sau.";
       toast.error(message);

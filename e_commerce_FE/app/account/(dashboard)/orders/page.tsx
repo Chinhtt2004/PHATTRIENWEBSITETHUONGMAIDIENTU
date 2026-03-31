@@ -7,8 +7,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatPrice } from "@/lib/data";
-import { fetchMyOrders, type OrderResponse } from "@/lib/api";
+import { fetchMyOrders, type OrderResponse, createVNPayPayment } from "@/lib/api";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Star } from "lucide-react";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<OrderResponse[]>([]);
@@ -93,10 +95,35 @@ export default function OrdersPage() {
                     )}
                   </div>
                   <div className="flex justify-between items-center mt-4 pt-4 border-t border-border">
-                    <span className="text-muted-foreground">Tổng cộng:</span>
-                    <span className="text-lg font-bold text-primary">
-                      {formatPrice(order.totalPrice)}
-                    </span>
+                    <div className="flex gap-2">
+                       {order.orderStatus.toUpperCase() === "DELIVERED" && (
+                        <Link href={`/account/orders/${order.id}`}>
+                          <Button size="sm" variant="outline" className="h-8 text-xs gap-1 border-primary/20 hover:bg-primary/5">
+                            <Star className="h-3 w-3" />
+                            Đánh giá
+                          </Button>
+                        </Link>
+                      )}
+                      {order.orderStatus.toUpperCase() === "PENDING" && order.paymentUrl && (
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="h-8 text-xs text-info hover:text-info hover:bg-info/5"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            window.location.href = order.paymentUrl!;
+                          }}
+                        >
+                          Tới trang thanh toán
+                        </Button>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <span className="text-muted-foreground text-xs block">Tổng cộng:</span>
+                      <span className="text-lg font-bold text-primary">
+                        {formatPrice(order.totalPrice)}
+                      </span>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

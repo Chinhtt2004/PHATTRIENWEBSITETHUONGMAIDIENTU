@@ -19,6 +19,12 @@ public class VoucherService {
                 .map(this::mapToResponse)
                 .toList();
     }
+    public List<VoucherResponse> getAllVouchers() {
+        return voucherRepository.findAll()
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
     public VoucherApplyResponse applyVoucher(VoucherApplyRequest request) {
         Voucher voucher = voucherRepository.findByCode(request.getCode())
                 .orElseThrow(() -> new RuntimeException("Voucher không tồn tại"));

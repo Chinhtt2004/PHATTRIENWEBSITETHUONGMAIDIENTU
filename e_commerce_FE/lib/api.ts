@@ -161,6 +161,39 @@ export interface VoucherApplyResponse {
   message: string;
 }
 
+export interface ReviewRequest {
+  orderItemId: number;
+  rating: number;
+  comment: string;
+}
+
+export interface ReviewResponse {
+  id: number;
+  username: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  variant: {
+    id: number;
+    sku: string;
+    imageUrl?: string;
+    attributeValues?: { name: string; value: string }[];
+  };
+}
+
+export interface ReviewListResponse {
+  totalReviews: number;
+  reviews: ReviewResponse[];
+  currentPage: number;
+  totalPages: number;
+  pageSize: number;
+}
+
+export interface OrderUptateStatusRequest {
+  id: number;
+  status: string;
+}
+
 export interface BackendUser {
   id: number;
   name: string;
@@ -919,10 +952,11 @@ export interface OrderResponse {
   receiverName: string;
   phone: string;
   items?: OrderItemDTO[];
+  paymentUrl?: string;
 }
 
 export async function adminFetchAllOrders(): Promise<OrderResponse[]> {
-  const res = await fetch(`${API_BASE_URL}/api/user/orders/admin/all`, {
+  const res = await fetch(`${API_BASE_URL}/api/admin/orders/all`, {
     credentials: "include",
     cache: "no-store",
   });
@@ -930,10 +964,11 @@ export async function adminFetchAllOrders(): Promise<OrderResponse[]> {
 }
 
 export async function adminUpdateOrderStatus(id: number, status: string): Promise<OrderResponse> {
-  const params = new URLSearchParams({ status });
-  const res = await fetch(`${API_BASE_URL}/api/user/orders/admin/${id}/status?${params.toString()}`, {
+  const res = await fetch(`${API_BASE_URL}/api/admin/orders/status`, {
     method: "PUT",
+    headers: { "Content-Type": "application/json" },
     credentials: "include",
+    body: JSON.stringify({ id, status }),
   });
   return ensureOk(res);
 }
@@ -1077,3 +1112,25 @@ export const fetchAttributes = async (): Promise<Attribute[]> => {
   if (!response.ok) throw new Error("Failed to fetch attributes");
   return response.json();
 };
+
+// Reviews
+export async function createReview(data: ReviewRequest): Promise<string> {
+  const res = await fetch(`${API_BASE_URL}/api/user/review`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+  return ensureOk(res);
+}
+
+export async function fetchReviewsByProduct(productId: number, page = 0, size = 5): Promise<ReviewListResponse> {
+  const params = new URLSearchParams({
+    page: String(page),
+    size: String(size),
+  });
+  const res = await fetch(`${API_BASE_URL}/api/public/review/${productId}?${params.toString()}`, {
+    cache: "no-store",
+  });
+  return ensureOk(res);
+}

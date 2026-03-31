@@ -13,7 +13,7 @@ import org.hibernate.annotations.BatchSize;
 @Table(name = "product_variant")
 @Getter
 @Setter
-@BatchSize(size = 30)
+@BatchSize(size = 100)
 public class ProductVariant {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -32,7 +32,7 @@ public class ProductVariant {
     private BigDecimal costPrice;
     @ManyToMany
     @JoinTable(name = "variant_attribute_value", joinColumns = @JoinColumn(name = "variant_id"), inverseJoinColumns = @JoinColumn(name = "attribute_value_id"))
-    @org.hibernate.annotations.BatchSize(size = 30)
+    @org.hibernate.annotations.BatchSize(size = 100)
     private List<AttributeValue> attributeValues = new ArrayList<>();
     public BigDecimal getEffectivePrice() {
         return discountPrice != null ? discountPrice : price;

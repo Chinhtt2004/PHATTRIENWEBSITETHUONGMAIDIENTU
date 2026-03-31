@@ -23,6 +23,11 @@ public class VoucherController {
         return ResponseEntity.ok(voucherService.applyVoucher(request));
     }
 
+    @GetMapping("/api/admin/vouchers")
+    public ResponseEntity<List<VoucherResponse>> getAllVouchers() {
+        return ResponseEntity.ok(voucherService.getAllVouchers());
+    }
+
     @PostMapping("/api/admin/vouchers")
     public ResponseEntity<VoucherResponse> create(
             @RequestBody VoucherRequest request) {
