@@ -62,7 +62,6 @@ public class Order {
 
     @Column(name = "discount_amount")
     private BigDecimal discountAmount = BigDecimal.ZERO;
-
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

@@ -230,6 +230,8 @@ public class ProductService {
         res.setImages(images);
         res.setPriceMin(priceMin);
         res.setVariants(variants.stream().map(this::mapVariant).toList());
+        res.setAverageRating(product.getAverageRating());
+        res.setTotalReviews(product.getTotalReviews());
         return res;
     }
 

@@ -27,7 +27,6 @@ public class User {
     private boolean isActive = true;
     @Column(name = "created_at")
     private java.time.LocalDateTime createdAt;
-
     @PrePersist
     protected void onCreate() {
         createdAt = java.time.LocalDateTime.now();

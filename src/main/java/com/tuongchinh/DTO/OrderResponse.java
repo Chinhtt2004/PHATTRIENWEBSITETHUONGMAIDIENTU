@@ -18,5 +18,6 @@ public class OrderResponse {
     private String phone;
     private String paymentMethod;
     private LocalDateTime orderDate;
+    private String paymentUrl;
     private List<OrderItemDTO> items;
 }

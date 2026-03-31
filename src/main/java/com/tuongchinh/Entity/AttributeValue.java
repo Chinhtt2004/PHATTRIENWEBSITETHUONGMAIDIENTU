@@ -12,10 +12,8 @@ public class AttributeValue {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     @ManyToOne
     @JoinColumn(name = "attribute_id")
     private Attribute attribute;
-
     private String value;
 }

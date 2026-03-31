@@ -1,18 +1,27 @@
 package com.tuongchinh.Entity;
 
 import jakarta.persistence.*;
+import lombok.Data;
+
+import java.math.BigDecimal;
 
 @Entity
+@Data
 @Table(name = "payment")
 public class Payment {
+
     @Id
     @GeneratedValue
     private Long id;
 
-    @OneToOne
+    @ManyToOne
     private Order order;
 
-    private String method;
-    private String status;
+    private BigDecimal amount;
+
+    private String method; // COD, VNPAY
+
+    private String status; // PENDING, SUCCESS, FAILED
+
     private String transactionId;
 }

@@ -15,6 +15,8 @@ public class ProductResponse {
     private Long brandId;
     private String brandName;
     private String thumbnail;
+    private Double averageRating;
+    private Integer totalReviews;
     private List<String> images;
     private BigDecimal priceMin;
     private List<VariantResponse> variants;
@@ -31,7 +33,8 @@ public class ProductResponse {
         private Boolean isActive;
         private BigDecimal discountPrice; // ← thêm
         private BigDecimal effectivePrice; // ← thêm
-        private Integer discountPercent; // ← thêm
+        private Integer discountPercent;
+        // ← thêm
         private List<AttributeValueResponse> attributeValues;
     }
 

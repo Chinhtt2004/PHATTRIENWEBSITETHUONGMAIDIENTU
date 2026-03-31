@@ -2,6 +2,7 @@ package com.tuongchinh.Controller;
 
 import com.tuongchinh.DTO.CheckoutRequest;
 import com.tuongchinh.DTO.OrderResponse;
+import com.tuongchinh.DTO.OrderUptateStatusRequest;
 import com.tuongchinh.Service.JwtService;
 import com.tuongchinh.Service.OrderService;
 import com.tuongchinh.Service.UserService;
@@ -29,7 +30,7 @@ public class OrderController {
     ) {
         String token = userService.extractToken(request);
         Long userId = jwtService.extractUserId(token);
-        OrderResponse response = orderService.checkout(userId, req);
+        OrderResponse response = orderService.checkout(userId, req, request);
         return ResponseEntity.ok(response);
     }
 
@@ -76,9 +77,8 @@ public class OrderController {
 
     @PutMapping("/admin/orders/status")
     public ResponseEntity<OrderResponse> updateStatus(
-            @PathVariable Long id,
-            @RequestParam String status
-    ) {
-        return ResponseEntity.ok(orderService.updateOrderStatus(id, status));
+            @RequestBody OrderUptateStatusRequest request
+            ) {
+        return ResponseEntity.ok(orderService.updateOrderStatus(request));
     }
 }

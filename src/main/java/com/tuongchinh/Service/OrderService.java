@@ -3,8 +3,10 @@ package com.tuongchinh.Service;
 import com.tuongchinh.DTO.CheckoutRequest;
 import com.tuongchinh.DTO.OrderItemDTO;
 import com.tuongchinh.DTO.OrderResponse;
+import com.tuongchinh.DTO.OrderUptateStatusRequest;
 import com.tuongchinh.Entity.*;
 import com.tuongchinh.Repository.*;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -25,9 +27,10 @@ public class OrderService {
     private final VoucherRepository voucherRepository;
     private final VoucherUsageRepository voucherUsageRepository;
     private final AddressRepository addressRepository;
+    private final PaymentService paymentService;
 
     @Transactional
-    public OrderResponse checkout(Long userId, CheckoutRequest req) {
+    public OrderResponse checkout(Long userId, CheckoutRequest req, HttpServletRequest request) {
         validateCheckoutRequest(req);
         List<CartItem> cartItems = cartItemRepository.findAllByIdIn(req.getCartItemIds());
         if (cartItems.isEmpty()) {
@@ -168,7 +171,26 @@ public class OrderService {
         // 8. Xóa cart items đã mua
         cartItemRepository.deleteAll(cartItems);
 
-        return mapToOrderResponse(order);
+        String paymentResult;
+        try {
+            paymentResult = paymentService.processPayment(
+                    order,
+                    req.getPaymentMethod(),
+                    request   // ⚠️ cần truyền HttpServletRequest
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("Payment error: " + e.getMessage());
+        }
+
+// 10. Trả về response
+        OrderResponse response = mapToOrderResponse(order);
+
+// nếu là VNPay → trả thêm URL  
+        if ("VNPAY".equals(req.getPaymentMethod())) {
+            response.setPaymentUrl(paymentResult);
+        }
+
+        return response;
     }
 
     public List<OrderResponse> getAllOrders() {
@@ -184,10 +206,10 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderResponse updateOrderStatus(Long orderId, String status) {
-        Order order = orderRepository.findById(orderId)
+    public OrderResponse updateOrderStatus(OrderUptateStatusRequest request) {
+        Order order = orderRepository.findById(request.getId())
                 .orElseThrow(() -> new RuntimeException("Order not found"));
-        order.setOrderStatus(status);
+        order.setOrderStatus(request.getStatus());
         return mapToOrderResponse(orderRepository.save(order));
     }
 
