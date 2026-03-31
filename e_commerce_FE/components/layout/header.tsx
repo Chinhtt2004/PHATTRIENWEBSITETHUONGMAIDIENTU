@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, ShoppingBag, User, Menu, X, Heart, Zap, Minus, Plus } from "lucide-react";
+import { Search, ShoppingBag, User, Menu, X, Heart, Zap, Minus, Plus, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -26,6 +26,22 @@ import { fetchCategories, fetchUserProfile, logoutUser, type UserProfileResponse
 import { useCart } from "@/contexts/cart-context";
 import { toast } from "sonner";
 import { useRouter, usePathname } from "next/navigation";
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+  navigationMenuTriggerStyle,
+} from "@/components/ui/navigation-menu";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { buildCategoryTree, cn } from "@/lib/utils";
 
 const navigation = [
   { name: "Trang chủ", href: "/", highlight: false },
@@ -48,6 +64,24 @@ export function Header() {
   const { cartItems, isLoading: isLoadingCart, loadCart, removeItem, updateQuantity } = useCart();
   const cartItemCount = cartItems.length;
 
+  const categoryTree = buildCategoryTree(categories);
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [categoriesData, profileData] = await Promise.all([
+          fetchCategories(),
+          fetchUserProfile()
+        ]).catch(() => [[], null]);
+        
+        setCategories(categoriesData as Category[]);
+        setUser(profileData as UserProfileResponse);
+      } catch (error) {
+        console.error("Failed to fetch initial data:", error);
+      }
+    }
+    loadData();
+  }, []);
   const [searchTerm, setSearchTerm] = useState("");
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -87,19 +121,21 @@ export function Header() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetchCategories()
-      .then((data) => { if (!cancelled) setCategories(data); })
-      .catch(() => undefined);
-    
-    // Check session
-    fetchUserProfile()
-      .then((profile) => { if (!cancelled) setUser(profile); })
-      .catch(() => { if (!cancelled) setUser(null); });
 
-    return () => { cancelled = true; };
-  }, [pathname]);
+  const updateFilters = useCallback((newParams: Record<string, string | number | undefined>) => {
+    // Actually using current URL params
+    const searchParamsObj = new URLSearchParams(window.location.search);
+    
+    Object.entries(newParams).forEach(([key, value]) => {
+      if (value === undefined || value === "") {
+        searchParamsObj.delete(key);
+      } else {
+        searchParamsObj.set(key, String(value));
+      }
+    });
+
+    router.push(`/products?${searchParamsObj.toString()}`);
+  }, [router]);
 
   const handleSheetOpenChange = (open: boolean) => {
     setSheetOpen(open);
@@ -154,45 +190,68 @@ export function Header() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-6">
+          <nav className="hidden lg:flex items-center gap-2">
             {navigation.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
-                className={`text-sm font-medium transition-colors hover:text-primary ${
-                  item.highlight
-                    ? "text-destructive font-bold relative flex items-center gap-1"
-                    : "text-foreground/80"
-                }`}
-              >
-                {item.highlight && (
-                  <Zap className="h-3.5 w-3.5 fill-destructive" />
+                className={cn(
+                  "text-sm font-medium px-3 py-2 rounded-lg transition-all hover:bg-primary/5",
+                  item.highlight ? "text-primary font-bold relative flex items-center gap-1" : "text-foreground/80 hover:text-primary",
+                  pathname === item.href && "text-primary bg-primary/5"
                 )}
+              >
+                {item.highlight && <Zap className="h-3.5 w-3.5 fill-primary" />}
                 {item.name}
                 {item.highlight && (
-                  <span className="absolute -top-2 -right-4 text-[10px] bg-destructive text-destructive-foreground px-1 rounded-sm leading-tight animate-pulse">
+                  <span className="absolute -top-1 -right-2 text-[8px] bg-primary text-white px-1 rounded-full leading-tight animate-bounce">
                     HOT
                   </span>
                 )}
               </Link>
             ))}
+            
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="text-sm font-medium text-foreground/80 hover:text-primary">
+                <Button variant="ghost" className="text-sm font-medium text-foreground/80 hover:text-primary transition-all flex items-center gap-1 h-9 px-3 rounded-lg hover:bg-primary/5">
                   Danh mục
+                  <ChevronDown className="h-3 w-3 opacity-50 group-data-[state=open]:rotate-180 transition-transform" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="center" className="w-56">
-                {categories.map((category) => (
-                  <DropdownMenuItem key={category.id} asChild>
-                    <Link href={`/category/${category.slug}`} className="cursor-pointer">
-                      {category.name}
-                      <span className="ml-auto text-muted-foreground text-xs">
-                        ({category.productCount})
-                      </span>
-                    </Link>
-                  </DropdownMenuItem>
-                ))}
+              <DropdownMenuContent align="center" className="p-0 border-none shadow-2xl rounded-2xl overflow-hidden mt-2 animate-in fade-in zoom-in-95 duration-200">
+                <div className="grid grid-cols-2 w-[500px] gap-2 p-3 bg-popover border border-border/50">
+                  {categoryTree.length > 0 ? (
+                    categoryTree.map((category) => (
+                      <div key={category.id} className="space-y-2 p-3 rounded-xl hover:bg-accent/50 transition-colors group/item">
+                        <Link 
+                          href={`/category/${category.slug}`}
+                          className="block text-sm font-bold text-popover-foreground hover:text-primary transition-colors flex items-center justify-between"
+                        >
+                          {category.name}
+                          <ChevronRight className="h-3 w-3 opacity-0 group-hover/item:opacity-100 transition-opacity" />
+                        </Link>
+                        {category.children && category.children.length > 0 && (
+                          <ul className="space-y-1.5 border-l border-primary/10 ml-1 pl-3">
+                            {category.children.map((child) => (
+                              <li key={child.id}>
+                                <Link 
+                                  href={`/category/${child.slug}`}
+                                  className="text-[13px] text-muted-foreground hover:text-primary transition-colors block py-0.5"
+                                >
+                                  {child.name}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <div className="col-span-2 p-8 text-center text-muted-foreground text-sm italic">
+                      Đang tải danh mục...
+                    </div>
+                  )}
+                </div>
               </DropdownMenuContent>
             </DropdownMenu>
           </nav>
@@ -615,17 +674,41 @@ export function Header() {
               )}
             </div>
             <div className="border-t border-border pt-4 mt-4">
-              <p className="text-sm font-semibold text-muted-foreground mb-3">Danh mục</p>
-              {categories.map((category) => (
-                <Link
-                  key={category.id}
-                  href={`/category/${category.slug}`}
-                  className="block py-2 text-foreground/80 hover:text-primary"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  {category.name}
-                </Link>
-              ))}
+              <p className="text-sm font-semibold text-muted-foreground mb-3 px-2">Danh mục</p>
+              <Accordion type="single" collapsible className="w-full">
+                {categoryTree.map((category) => (
+                  <AccordionItem key={category.id} value={category.id} className="border-none">
+                    <div className="flex items-center gap-2 group">
+                      <Link
+                        href={`/category/${category.slug}`}
+                        className="flex-1 py-3 px-3 text-sm font-bold text-foreground hover:text-primary transition-colors hover:bg-primary/5 rounded-lg"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        {category.name}
+                      </Link>
+                      {category.children && category.children.length > 0 && (
+                        <AccordionTrigger className="w-12 h-12 flex items-center justify-center p-0 hover:no-underline" />
+                      )}
+                    </div>
+                    {category.children && category.children.length > 0 && (
+                      <AccordionContent className="pb-2 pt-0">
+                        <div className="pl-6 space-y-1 mb-2 border-l border-primary/10 ml-5">
+                          {category.children.map((child) => (
+                            <Link
+                              key={child.id}
+                              href={`/category/${child.slug}`}
+                              className="block py-2.5 px-3 text-xs text-muted-foreground hover:text-primary transition-colors hover:bg-primary/5 rounded-lg"
+                              onClick={() => setIsMobileMenuOpen(false)}
+                            >
+                              {child.name}
+                            </Link>
+                          ))}
+                        </div>
+                      </AccordionContent>
+                    )}
+                  </AccordionItem>
+                ))}
+              </Accordion>
             </div>
           </nav>
         </SheetContent>

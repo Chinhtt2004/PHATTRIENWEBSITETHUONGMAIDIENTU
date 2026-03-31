@@ -26,13 +26,16 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import {
-  Line,
-  LineChart,
+  Area,
+  AreaChart,
   XAxis,
   YAxis,
   ResponsiveContainer,
   Bar,
   BarChart,
+  Pie,
+  PieChart,
+  Cell,
 } from "recharts";
 
 const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
@@ -145,7 +148,7 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* Charts */}
+      {/* Charts Row 1 */}
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
@@ -162,7 +165,21 @@ export default function AdminDashboard() {
               className="h-[300px] w-full"
             >
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={report?.revenueChart || []}>
+                <AreaChart data={report?.revenueChart || []}>
+                  <defs>
+                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop
+                        offset="5%"
+                        stopColor="hsl(var(--primary))"
+                        stopOpacity={0.3}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor="hsl(var(--primary))"
+                        stopOpacity={0}
+                      />
+                    </linearGradient>
+                  </defs>
                   <XAxis dataKey="date" tickLine={false} axisLine={false} />
                   <YAxis
                     tickLine={false}
@@ -176,14 +193,14 @@ export default function AdminDashboard() {
                       />
                     }
                   />
-                  <Line
+                  <Area
                     type="monotone"
                     dataKey="revenue"
                     stroke="hsl(var(--primary))"
                     strokeWidth={2}
-                    dot={false}
+                    fill="url(#colorRevenue)"
                   />
-                </LineChart>
+                </AreaChart>
               </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
@@ -223,6 +240,105 @@ export default function AdminDashboard() {
                     fill="hsl(var(--primary))"
                     radius={[0, 4, 4, 0]}
                   />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts Row 2 */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Trạng thái đơn hàng</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer
+              config={{
+                count: {
+                  label: "Số lượng",
+                  color: "hsl(var(--primary))",
+                },
+              }}
+              className="h-[300px] w-full"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={report?.statusChart || []}
+                    dataKey="count"
+                    nameKey="status"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                  >
+                    {(report?.statusChart || []).map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent 
+                        formatter={(value, name) => [
+                          `${value} đơn`, 
+                          statusMap[name as string]?.label || name
+                        ]} 
+                      />
+                    }
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+            {/* Simple Legend */}
+            <div className="mt-4 flex flex-wrap justify-center gap-4">
+              {(report?.statusChart || []).map((entry) => (
+                <div key={entry.status} className="flex items-center gap-2">
+                  <div className="h-3 w-3 rounded-full" style={{ backgroundColor: entry.color }}></div>
+                  <span className="text-xs text-muted-foreground">{statusMap[entry.status]?.label || entry.status}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Doanh thu theo thương hiệu</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer
+              config={{
+                value: {
+                  label: "Tỷ lệ",
+                  color: "hsl(var(--primary))",
+                },
+              }}
+              className="h-[300px] w-full"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={report?.brandChart || []}>
+                  <XAxis dataKey="name" tickLine={false} axisLine={false} />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) => `${value}%`}
+                  />
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent formatter={(value) => `${value}%`} />
+                    }
+                  />
+                  <Bar
+                    dataKey="value"
+                    radius={[4, 4, 0, 0]}
+                  >
+                    {(report?.brandChart || []).map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </ChartContainer>

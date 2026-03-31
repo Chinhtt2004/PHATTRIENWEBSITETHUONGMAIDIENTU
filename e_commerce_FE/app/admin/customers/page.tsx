@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Search, MoreHorizontal, Eye, Mail, UserX, UserCheck, Crown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -115,7 +116,7 @@ export default function AdminCustomersPage() {
         <Card>
           <CardContent className="p-4">
             <p className="text-2xl font-bold">
-              {formatCurrency(0)}
+              {formatCurrency(users.length > 0 ? users.reduce((acc, u) => acc + (u.totalSpent || 0), 0) / users.length : 0)}
             </p>
             <p className="text-sm text-muted-foreground">
               Chi tiêu trung bình
@@ -125,7 +126,7 @@ export default function AdminCustomersPage() {
         <Card>
           <CardContent className="p-4">
             <p className="text-2xl font-bold">
-              0.0
+              {(users.length > 0 ? users.reduce((acc, u) => acc + (u.orderCount || 0), 0) / users.length : 0).toFixed(1)}
             </p>
             <p className="text-sm text-muted-foreground">
               Đơn hàng trung bình
@@ -193,9 +194,9 @@ export default function AdminCustomersPage() {
                         </p>
                       </div>
                     </TableCell>
-                    <TableCell>0</TableCell>
+                    <TableCell>{customer.orderCount || 0}</TableCell>
                     <TableCell className="font-medium">
-                      {formatCurrency(0)}
+                      {formatCurrency(customer.totalSpent || 0)}
                     </TableCell>
                     <TableCell>
                       <Badge className={customer.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
@@ -213,9 +214,11 @@ export default function AdminCustomersPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
-                            <Eye className="mr-2 h-4 w-4" />
-                            Xem chi tiết
+                          <DropdownMenuItem asChild>
+                            <Link href={`/admin/customers/${customer.id}`} className="flex items-center cursor-pointer">
+                              <Eye className="mr-2 h-4 w-4" />
+                              Xem chi tiết
+                            </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem>
                             <Mail className="mr-2 h-4 w-4" />

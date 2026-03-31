@@ -34,6 +34,8 @@ import {
   Cell,
   Area,
   AreaChart,
+  Bar,
+  BarChart,
 } from "recharts";
 import {
   Table,
@@ -49,6 +51,14 @@ import { fetchAdminReportSummary, type ReportSummary } from "@/lib/api";
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
 }
+
+const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
+  PENDING: { label: "Chờ xử lý", variant: "outline" },
+  PROCESSING: { label: "Đang xử lý", variant: "secondary" },
+  SHIPPED: { label: "Đang giao", variant: "default" },
+  DELIVERED: { label: "Đã giao", variant: "default" },
+  CANCELLED: { label: "Đã hủy", variant: "destructive" },
+};
 
 export default function AdminReportsPage() {
   const [dateRange, setDateRange] = useState("30days");
@@ -275,6 +285,100 @@ export default function AdminReportsPage() {
                 </div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts Row 2 */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Trạng thái đơn hàng</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer
+              config={{
+                count: { label: "Số lượng", color: "hsl(var(--primary))" },
+              }}
+              className="h-[300px] w-full"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={report?.statusChart || []}
+                    dataKey="count"
+                    nameKey="status"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                  >
+                    {(report?.statusChart || []).map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        formatter={(value, name) => [
+                          `${value} đơn`,
+                          statusMap[name as string]?.label || name,
+                        ]}
+                      />
+                    }
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+            <div className="mt-4 flex flex-wrap justify-center gap-4">
+              {(report?.statusChart || []).map((entry) => (
+                <div key={entry.status} className="flex items-center gap-2">
+                  <div
+                    className="h-3 w-3 rounded-full"
+                    style={{ backgroundColor: entry.color }}
+                  />
+                  <span className="text-xs text-muted-foreground">
+                    {statusMap[entry.status]?.label || entry.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Doanh thu theo thương hiệu</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer
+              config={{
+                value: { label: "Tỷ lệ", color: "hsl(var(--primary))" },
+              }}
+              className="h-[300px] w-full"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={report?.brandChart || []}>
+                  <XAxis dataKey="name" tickLine={false} axisLine={false} />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) => `${value}%`}
+                  />
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent formatter={(value) => `${value}%`} />
+                    }
+                  />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                    {(report?.brandChart || []).map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
           </CardContent>
         </Card>
       </div>

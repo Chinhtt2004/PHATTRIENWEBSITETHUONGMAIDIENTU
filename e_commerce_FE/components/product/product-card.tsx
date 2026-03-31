@@ -128,6 +128,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
             ))}
           </div>
           <span className="text-xs text-muted-foreground ml-1">({product.rating.count})</span>
+          <span className="text-[10px] text-muted-foreground/60 ml-auto font-medium">Đã bán {product.totalSold}</span>
         </div>
 
         {/* Title */}

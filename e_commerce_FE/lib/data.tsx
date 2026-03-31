@@ -30,6 +30,7 @@ export interface Product {
   variants: ProductVariant[];
   attributes: Record<string, string[]>;
   rating: { average: number; count: number };
+  totalSold: number;
   badges: string[];
   inventory: { available: boolean; quantity: number };
   ingredients: string[];
@@ -66,6 +67,7 @@ export interface Category {
   image: string;
   productCount: number;
   parentId?: string;
+  level?: number;
   children?: Category[];
 }
 
@@ -241,6 +243,7 @@ export const products: Product[] = [
     ],
     attributes: { skin_type: ["dry", "normal"], concerns: ["dehydration"] },
     rating: { average: 4.8, count: 256 },
+    totalSold: 450,
     badges: ["new"],
     inventory: { available: true, quantity: 30 },
     ingredients: [

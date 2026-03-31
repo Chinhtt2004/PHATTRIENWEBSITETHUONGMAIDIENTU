@@ -271,6 +271,8 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
                   </span>
                 </div>
                 <span className="text-muted-foreground">|</span>
+                <span className="text-muted-foreground font-medium">Đã bán {product.totalSold}</span>
+                <span className="text-muted-foreground">|</span>
                 <span className="text-muted-foreground">SKU: {product.sku}</span>
               </div>
             </div>

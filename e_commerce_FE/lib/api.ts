@@ -70,6 +70,9 @@ export interface BackendProduct {
   category?: BackendProductCategory | null;
   variants?: BackendProductVariant[];
   createdAt?: string;
+  averageRating?: number;
+  totalReviews?: number;
+  totalSold?: number;
   // Legacy fields kept for backward-compat during migration
   price?: number | string;
   stockQuantity?: number;
@@ -169,6 +172,8 @@ export interface ReviewRequest {
 
 export interface ReviewResponse {
   id: number;
+  productId: number;
+  productName: string;
   username: string;
   rating: number;
   comment: string;
@@ -202,6 +207,24 @@ export interface BackendUser {
   role: string;
   isActive: boolean;
   createdAt?: string;
+  orderCount?: number;
+  totalSpent?: number;
+}
+
+export async function adminFetchUserById(id: number): Promise<BackendUser> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/users/${id}`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  return ensureOk(res);
+}
+
+export async function adminFetchUserOrders(userId: number): Promise<OrderResponse[]> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/orders/user/${userId}`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  return ensureOk(res);
 }
 
 // Request Types
@@ -426,7 +449,11 @@ export function mapBackendProduct(product: BackendProduct): Product {
     images,
     variants: mappedVariants,
     attributes: { skin_type: ["all"], concerns: [] },
-    rating: { average: 4.8, count: 0 },
+    rating: { 
+      average: product.averageRating ?? 0, 
+      count: product.totalReviews ?? 0 
+    },
+    totalSold: product.totalSold ?? 0,
     badges: [badge],
     inventory: { available: totalStock > 0, quantity: totalStock },
     ingredients: [],
@@ -434,7 +461,12 @@ export function mapBackendProduct(product: BackendProduct): Product {
   };
 }
 
-export function mapBackendCategory(category: BackendCategory, productCount: number, index: number): Category {
+export function mapBackendCategory(
+  category: BackendCategory, 
+  productCount: number, 
+  index: number,
+  level: number = 0
+): Category {
   return {
     id: String(category.id),
     name: category.name,
@@ -442,6 +474,8 @@ export function mapBackendCategory(category: BackendCategory, productCount: numb
     description: category.description || `Khám phá các sản phẩm ${category.name.toLowerCase()}`,
     image: categoryImages[index % categoryImages.length],
     productCount,
+    parentId: category.parentId ? String(category.parentId) : undefined,
+    level,
   };
 }
 
@@ -520,7 +554,9 @@ export async function fetchProducts(options: {
   keyword?: string;
   minPrice?: number;
   maxPrice?: number;
-  categoryId?: number;
+  categoryIds?: number[];
+  brandIds?: number[];
+  attributeValueIds?: number[];
   page?: number;
   size?: number;
   sortBy?: string;
@@ -534,7 +570,9 @@ export async function fetchProductsPage(options: {
   keyword?: string;
   minPrice?: number;
   maxPrice?: number;
-  categoryId?: number;
+  categoryIds?: number[];
+  brandIds?: number[];
+  attributeValueIds?: number[];
   page?: number;
   size?: number;
   sortBy?: string;
@@ -544,7 +582,17 @@ export async function fetchProductsPage(options: {
   if (options.keyword) params.append("keyword", options.keyword);
   if (options.minPrice !== undefined) params.append("minPrice", String(options.minPrice));
   if (options.maxPrice !== undefined) params.append("maxPrice", String(options.maxPrice));
-  if (options.categoryId) params.append("categoryId", String(options.categoryId));
+  
+  if (options.categoryIds && options.categoryIds.length > 0) {
+    options.categoryIds.forEach(id => params.append("categoryIds", String(id)));
+  }
+  if (options.brandIds && options.brandIds.length > 0) {
+    options.brandIds.forEach(id => params.append("brandIds", String(id)));
+  }
+  if (options.attributeValueIds && options.attributeValueIds.length > 0) {
+    options.attributeValueIds.forEach(id => params.append("attributeValueIds", String(id)));
+  }
+
   params.append("page", String(options.page || 0));
   params.append("size", String(options.size || 20));
   params.append("sortBy", options.sortBy || "id");
@@ -687,20 +735,20 @@ export async function fetchCategories(providedProducts?: Product[]): Promise<Cat
   };
 
   // Recursive function to flatten categories top-down
-  const flattenCategories = (backendCat: BackendCategory, index: number) => {
+  const flattenCategories = (backendCat: BackendCategory, index: number, level: number = 0) => {
     const totalCount = getCategoryCount(backendCat);
-    const mapped = mapBackendCategory(backendCat, totalCount, index);
+    const mapped = mapBackendCategory(backendCat, totalCount, index, level);
     flatCategories.push(mapped);
 
-    if (backendCat.children) {
+    if (backendCat.children && backendCat.children.length > 0) {
       backendCat.children.forEach((child, childIndex) => {
-        flattenCategories(child, childIndex);
+        flattenCategories(child, childIndex, level + 1);
       });
     }
   };
 
   data.forEach((cat, index) => {
-    flattenCategories(cat, index);
+    flattenCategories(cat, index, 0);
   });
 
   return flatCategories;
@@ -919,6 +967,8 @@ export interface ReportSummary {
   revenueChart: { date: string; revenue: number; orders: number }[];
   categoryChart: { name: string; value: number; color: string }[];
   topProducts: { name: string; sales: number; revenue: number; growth: number }[];
+  statusChart: { status: string; count: number; color: string }[];
+  brandChart: { name: string; value: number; color: string }[];
 }
 
 export async function fetchAdminReportSummary(): Promise<ReportSummary> {
@@ -953,10 +1003,20 @@ export interface OrderResponse {
   phone: string;
   items?: OrderItemDTO[];
   paymentUrl?: string;
+  voucherCode?: string;
+  discountAmount?: number;
 }
 
 export async function adminFetchAllOrders(): Promise<OrderResponse[]> {
   const res = await fetch(`${API_BASE_URL}/api/admin/orders/all`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  return ensureOk(res);
+}
+
+export async function adminFetchOrderById(id: number | string): Promise<OrderResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/orders/${id}`, {
     credentials: "include",
     cache: "no-store",
   });
@@ -1134,3 +1194,21 @@ export async function fetchReviewsByProduct(productId: number, page = 0, size = 
   });
   return ensureOk(res);
 }
+
+export async function fetchMyReviews(): Promise<ReviewResponse[]> {
+  const res = await fetch(`${API_BASE_URL}/api/user/reviews/my`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  return ensureOk(res);
+}
+
+export async function deleteReview(reviewId: number): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/api/user/review/${reviewId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  return ensureOk(res);
+}
+
+
