@@ -26,8 +26,8 @@ const slides = [
     cta: "Mua ngay",
     href: "/sale",
     image:
-      "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=1200&h=500&fit=crop",
-    gradient: "from-rose-400/50 via-pink-400/40 to-rose-300/50",
+      "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=1400&h=600&fit=crop",
+    gradient: "from-rose-400/40 via-pink-300/30 to-rose-200/40",
     accent: "✿",
     decorations: ["✦", "♡", "✿", "·"],
   },
@@ -126,11 +126,11 @@ export function PromotionalSlide() {
         <div className="flex flex-col lg:flex-row gap-3">
           {/* Left: Main carousel */}
           <div
-            className="relative flex-1 rounded-xl overflow-hidden group"
+            className="relative flex-1 rounded-xl overflow-hidden group border border-border shadow-sm"
             onMouseEnter={() => setIsAutoPlaying(false)}
             onMouseLeave={() => setIsAutoPlaying(true)}
           >
-            <div className="relative h-[220px] sm:h-[280px] lg:h-[340px]">
+            <div className="relative aspect-[16/9] sm:aspect-[21/9] lg:h-full lg:min-h-[360px]">
               {slides.map((slide, index) => (
                 <Link
                   key={slide.id}
