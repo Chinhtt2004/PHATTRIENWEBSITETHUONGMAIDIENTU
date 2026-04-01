@@ -117,4 +117,11 @@ public class ProductController {
         List<ProductResponse> result = productService.getBestSelling(limit);
         return ResponseEntity.ok(result);
     }
+
+    @GetMapping("public/product/flash-sale")
+    public ResponseEntity<List<ProductResponse>> getFlashSale(
+            @RequestParam(defaultValue = "10") int limit
+    ) {
+        return ResponseEntity.ok(productService.getFlashSale(limit));
+    }
 }

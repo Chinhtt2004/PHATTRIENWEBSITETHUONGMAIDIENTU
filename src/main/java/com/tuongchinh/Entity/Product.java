@@ -42,10 +42,10 @@ public class Product {
     @BatchSize(size = 100)
     private List<ProductImage> images = new ArrayList<>();
     @Column(name = "average_rating")
-    private Double averageRating;
+    private Double averageRating = 0.0;
 
     @Column(name = "total_reviews")
-    private Integer totalReviews;
+    private Integer totalReviews = 0;
     private Integer totalSold = 0;
 
 }

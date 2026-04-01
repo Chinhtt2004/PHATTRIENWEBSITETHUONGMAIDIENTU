@@ -3,14 +3,14 @@ import os
 from vector_store import index_products
 
 # This script would be run periodically to sync DB with Vector Store
-API_URL = os.getenv("API_URL", "http://localhost:8081/api/public/products")
+API_URL = os.getenv("API_URL", "http://localhost:8081/api/public/product")
 
 def sync_products():
     # In a real app, you'd fetch from your Spring Boot API
     # For now, this is a skeleton
     print("Fetching products from database...")
     products = []
-    for page in range(10):
+    for page in range(20):
         print("Fetching page", page)
         response = requests.get(API_URL + "?page=" + str(page))
         page_products = response.json()["content"]

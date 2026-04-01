@@ -62,8 +62,8 @@ public class ReviewService {
         review.setProduct(item.getVariant().getProduct());
         review.setOrderItem(item);
         Product product=review.getOrderItem().getVariant().getProduct();
-        int oldTotal = product.getTotalReviews();
-        double oldAvg = product.getAverageRating();
+        int oldTotal = (product.getTotalReviews() != null) ? product.getTotalReviews() : 0;
+        double oldAvg = (product.getAverageRating() != null) ? product.getAverageRating() : 0.0;
         int newRating = review.getRating();
         double newAvg = (oldAvg * oldTotal + newRating) / (oldTotal + 1);
         product.setAverageRating(newAvg);
@@ -154,8 +154,8 @@ public class ReviewService {
         }
 
         Product product = review.getProduct();
-        int oldTotal = product.getTotalReviews();
-        double oldAvg = product.getAverageRating();
+        int oldTotal = (product.getTotalReviews() != null) ? product.getTotalReviews() : 0;
+        double oldAvg = (product.getAverageRating() != null) ? product.getAverageRating() : 0.0;
         int ratingToDelete = review.getRating();
 
         if (oldTotal > 1) {

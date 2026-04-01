@@ -31,7 +31,7 @@ public class VNPayService {
     public String createPaymentUrl(Long orderId, BigDecimal amount, HttpServletRequest request) throws Exception {
         // === 1. Chuẩn bị thông tin thanh toán ===
         String vnp_TxnRef = String.valueOf(orderId); // mã tham chiếu đơn hàng, duy nhất
-        String vnp_OrderInfo = "Thanh toan don hang " + orderId;
+        String vnp_OrderInfo ="Thanh toan don hang"+orderId;
         // VNPay yêu cầu số nguyên, nhân 100
         String vnp_Amount = amount.multiply(new BigDecimal(100))
                 .setScale(0, RoundingMode.DOWN)

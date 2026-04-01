@@ -54,7 +54,6 @@ public class PaymentService {
         if (!isValid) {
             throw new RuntimeException("Invalid signature");
         }
-
         String responseCode = params.get("vnp_ResponseCode");
         Long orderId = Long.valueOf(params.get("vnp_TxnRef"));
 

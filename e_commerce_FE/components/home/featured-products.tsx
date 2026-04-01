@@ -145,7 +145,11 @@ export function FeaturedProducts({ title, filter }: FeaturedProductsProps) {
                 key={product.id}
                 className="pl-4 basis-1/2 md:basis-1/3 lg:basis-1/4"
               >
-                <ProductCard product={product} priority={index < 2} />
+                <ProductCard 
+                  product={product} 
+                  priority={index < 2} 
+                  rank={filter === "bestseller" ? index + 1 : undefined}
+                />
               </CarouselItem>
             ))}
           </CarouselContent>

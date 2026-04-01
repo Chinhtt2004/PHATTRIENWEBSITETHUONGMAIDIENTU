@@ -23,6 +23,8 @@ public class User {
     @JsonIgnore
     private Cart cart;
     private String phone;
+    private String imageUrl;
+    private String gender; // male / female
     @Column(name = "is_active")
     @com.fasterxml.jackson.annotation.JsonProperty("isActive")
     private boolean isActive = true;

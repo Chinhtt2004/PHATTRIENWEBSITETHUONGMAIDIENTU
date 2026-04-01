@@ -10,4 +10,6 @@ public class UserRequest {
     private String email;
     private String phone;
     private String address;
+    private String imageUrl;
+    private String gender;
 }

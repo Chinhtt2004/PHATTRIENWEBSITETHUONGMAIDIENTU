@@ -68,16 +68,22 @@ export function Header() {
 
   useEffect(() => {
     async function loadData() {
+      // Fetch categories independently as they should be public
       try {
-        const [categoriesData, profileData] = await Promise.all([
-          fetchCategories(),
-          fetchUserProfile()
-        ]).catch(() => [[], null]);
-        
-        setCategories(categoriesData as Category[]);
-        setUser(profileData as UserProfileResponse);
+        const categoriesData = await fetchCategories();
+        setCategories(categoriesData);
       } catch (error) {
-        console.error("Failed to fetch initial data:", error);
+        console.error("Failed to fetch categories:", error);
+        setCategories([]);
+      }
+
+      // Fetch user profile only if possible (it will fail for guests)
+      try {
+        const profileData = await fetchUserProfile();
+        setUser(profileData);
+      } catch (error) {
+        // Silent error for profile if not logged in
+        setUser(null);
       }
     }
     loadData();
@@ -622,8 +628,26 @@ export function Header() {
               {user ? (
                 <>
                   <div className="flex items-center gap-3 px-2 py-3 bg-muted/50 rounded-lg mb-4">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                      {user.name.charAt(0).toUpperCase()}
+                    <div className="h-10 w-10 rounded-full overflow-hidden border border-primary/20 bg-primary/10 flex items-center justify-center text-primary font-bold relative shrink-0">
+                      {user.imageUrl ? (
+                        <Image 
+                          src={user.imageUrl} 
+                          alt={user.name} 
+                          fill 
+                          className="object-cover"
+                        />
+                      ) : user.gender ? (
+                        <Image 
+                          src={user.gender === "male" 
+                            ? "https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=200&h=200&fit=crop" 
+                            : "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&h=200&fit=crop"} 
+                          alt={user.name} 
+                          fill 
+                          className="object-cover"
+                        />
+                      ) : (
+                        user.name.charAt(0).toUpperCase()
+                      )}
                     </div>
                     <div className="flex flex-col">
                       <p className="text-sm font-medium">{user.name}</p>

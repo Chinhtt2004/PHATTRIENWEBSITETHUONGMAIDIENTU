@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final com.tuongchinh.Repository.ProductRepository productRepository;
 
     @Override
     public List<CategoryResponse> getAll() {
@@ -30,61 +31,64 @@ public class CategoryServiceImpl implements CategoryService {
                 .toList();
     }
 
-//    @Override
-//    public CategoryResponse getById(Long id) {
-//        Category category = categoryRepository.findById(id)
-//                .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục: " + id));
-//        return mapToResponse(category);
-//    }
-//
-@Override
-public String create(CategoryRequest request) {
-    try {
-        Category category = new Category();
-        category.setName(request.getName());
-        category.setDescription(request.getDescription());
-        if (request.getParentId() != null) {
-            Category parent = categoryRepository.findById(request.getParentId())
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục cha: " + request.getParentId()));
-            category.setParent(parent);
+    // @Override
+    // public CategoryResponse getById(Long id) {
+    // Category category = categoryRepository.findById(id)
+    // .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục: " + id));
+    // return mapToResponse(category);
+    // }
+    //
+    @Override
+    public String create(CategoryRequest request) {
+        try {
+            Category category = new Category();
+            category.setName(request.getName());
+            category.setDescription(request.getDescription());
+            if (request.getParentId() != null) {
+                Category parent = categoryRepository.findById(request.getParentId())
+                        .orElseThrow(
+                                () -> new RuntimeException("Không tìm thấy danh mục cha: " + request.getParentId()));
+                category.setParent(parent);
+            }
+            categoryRepository.save(category);
+            return "Tạo danh mục thành công";
+        } catch (Exception e) {
+            return "Lỗi: " + e.getMessage();
         }
-        categoryRepository.save(category);
-        return "Tạo danh mục thành công";
-    } catch (Exception e) {
-        return "Lỗi: " + e.getMessage();
     }
-}
-@Override
-public void delete(Long id) {
-    Category category = categoryRepository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục: " + id));
-    categoryRepository.delete(category);
-}
-//    @Override
-//    public CategoryResponse update(Long id, CategoryRequest request) {
-//        Category category = categoryRepository.findById(id)
-//                .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục: " + id));
-//
-//        category.setName(request.getName());
-//        category.setDescription(request.getDescription());
-//
-//        if (request.getParentId() != null) {
-//            Category parent = categoryRepository.findById(request.getParentId())
-//                    .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục cha: " + request.getParentId()));
-//            category.setParent(parent);
-//        } else {
-//            category.setParent(null); // đổi thành danh mục cha
-//        }
-//
-//        return mapToResponse(categoryRepository.save(category));
-//    }
-//
-//    @Override
-//    public void delete(Long id) {
-//        Category category = categoryRepository.findById(id)
-//                .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục: " + id));
-//        categoryRepository.delete(category);
-//    }
+
+    @Override
+    public void delete(Long id) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục: " + id));
+        categoryRepository.delete(category);
+    }
+    // @Override
+    // public CategoryResponse update(Long id, CategoryRequest request) {
+    // Category category = categoryRepository.findById(id)
+    // .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục: " + id));
+    //
+    // category.setName(request.getName());
+    // category.setDescription(request.getDescription());
+    //
+    // if (request.getParentId() != null) {
+    // Category parent = categoryRepository.findById(request.getParentId())
+    // .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục cha: " +
+    // request.getParentId()));
+    // category.setParent(parent);
+    // } else {
+    // category.setParent(null); // đổi thành danh mục cha
+    // }
+    //
+    // return mapToResponse(categoryRepository.save(category));
+    // }
+    //
+    // @Override
+    // public void delete(Long id) {
+    // Category category = categoryRepository.findById(id)
+    // .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục: " + id));
+    // categoryRepository.delete(category);
+    // }
 
     // Map entity sang response
     public CategoryResponse mapToResponse(Category category, Map<Long, List<Category>> groupByParent) {
@@ -93,14 +97,27 @@ public void delete(Long id) {
         response.setName(category.getName());
         response.setDescription(category.getDescription());
         response.setParentId(category.getParent() != null ? category.getParent().getId() : null);
-        // Dùng groupByParent đã build sẵn thay vì gọi getChildren() (tránh N+1 lazy load)
+
+        // Dùng groupByParent đã build sẵn thay vì gọi getChildren() (tránh N+1 lazy
+        // load)
         List<Category> children = groupByParent.getOrDefault(category.getId(), List.of());
-        response.setChildren(children.stream()
+
+        // Map con trước để tính productCount của con
+        List<CategoryResponse> mappedChildren = children.stream()
                 .map(c -> mapToResponse(c, groupByParent))
-                .toList());
+                .toList();
+        response.setChildren(mappedChildren);
+
+        // Tính productCount = của bản thân + tổng của con
+        long count = productRepository.countByCategoryId(category.getId());
+        for (CategoryResponse child : mappedChildren) {
+            count += (child.getProductCount() != null ? child.getProductCount() : 0);
+        }
+        response.setProductCount(count);
 
         return response;
     }
+
     @Override
     public CategoryResponse update(Long id, CategoryRequest request) {
         Category category = categoryRepository.findById(id)

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Package, ChevronRight, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Star } from "lucide-react";
 
 export default function OrdersPage() {
+  const router = useRouter();
   const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -64,8 +66,12 @@ export default function OrdersPage() {
         filteredOrders.map((order) => {
           const status = getStatusInfo(order.orderStatus);
           return (
-            <Link key={order.id} href={`/account/orders/${order.id}`}>
-              <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+            <div 
+              key={order.id} 
+              onClick={() => router.push(`/account/orders/${order.id}`)}
+              className="block"
+            >
+              <Card className="hover:border-primary/50 transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md ring-1 ring-primary/5">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-4">
                     <div>
@@ -96,14 +102,20 @@ export default function OrdersPage() {
                   </div>
                   <div className="flex justify-between items-center mt-4 pt-4 border-t border-border">
                     <div className="flex gap-2">
-                       {order.orderStatus.toUpperCase() === "DELIVERED" && (
-                        <Link href={`/account/orders/${order.id}`}>
-                          <Button size="sm" variant="outline" className="h-8 text-xs gap-1 border-primary/20 hover:bg-primary/5">
+                        {order.orderStatus.toUpperCase() === "DELIVERED" && (
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="h-8 text-xs gap-1 border-primary/20 hover:bg-primary/5"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/account/orders/${order.id}`);
+                            }}
+                          >
                             <Star className="h-3 w-3" />
                             Đánh giá
                           </Button>
-                        </Link>
-                      )}
+                        )}
                       {order.orderStatus.toUpperCase() === "PENDING" && order.paymentUrl && (
                         <Button 
                           size="sm" 
@@ -111,6 +123,7 @@ export default function OrdersPage() {
                           className="h-8 text-xs text-info hover:text-info hover:bg-info/5"
                           onClick={(e) => {
                             e.preventDefault();
+                            e.stopPropagation();
                             window.location.href = order.paymentUrl!;
                           }}
                         >
@@ -127,7 +140,7 @@ export default function OrdersPage() {
                   </div>
                 </CardContent>
               </Card>
-            </Link>
+            </div>
           );
         })
       )}

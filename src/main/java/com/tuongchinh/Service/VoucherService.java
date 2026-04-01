@@ -8,10 +8,12 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class VoucherService {
     private final VoucherRepository voucherRepository;
+
     public List<VoucherResponse> getActiveVouchers() {
         return voucherRepository
                 .findByIsActiveTrueAndExpiryDateAfter(LocalDateTime.now())
@@ -19,12 +21,14 @@ public class VoucherService {
                 .map(this::mapToResponse)
                 .toList();
     }
+
     public List<VoucherResponse> getAllVouchers() {
         return voucherRepository.findAll()
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
     }
+
     public VoucherApplyResponse applyVoucher(VoucherApplyRequest request) {
         Voucher voucher = voucherRepository.findByCode(request.getCode())
                 .orElseThrow(() -> new RuntimeException("Voucher không tồn tại"));
@@ -34,8 +38,7 @@ public class VoucherService {
         }
         if (request.getOrderAmount().compareTo(voucher.getMinOrderValue()) < 0) {
             throw new RuntimeException(
-                    "Đơn hàng tối thiểu " + voucher.getMinOrderValue() + "đ để dùng voucher này"
-            );
+                    "Đơn hàng tối thiểu " + voucher.getMinOrderValue() + "đ để dùng voucher này");
         }
         BigDecimal discountAmount = calculateDiscount(voucher, request.getOrderAmount());
         BigDecimal finalAmount = request.getOrderAmount().subtract(discountAmount);
@@ -47,6 +50,7 @@ public class VoucherService {
         res.setMessage("Áp dụng voucher thành công, giảm " + discountAmount + "đ");
         return res;
     }
+
     public VoucherResponse create(VoucherRequest request) {
 
         if (voucherRepository.findByCode(request.getCode()).isPresent()) {
@@ -61,10 +65,10 @@ public class VoucherService {
         voucher.setExpiryDate(request.getExpiryDate());
         voucher.setUsageLimit(request.getUsageLimit());
         voucher.setIsActive(
-                request.getIsActive() != null ? request.getIsActive() : true
-        );
+                request.getIsActive() != null ? request.getIsActive() : true);
         return mapToResponse(voucherRepository.save(voucher));
     }
+
     public VoucherResponse update(Long id, VoucherRequest request) {
         Voucher voucher = voucherRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy voucher"));
@@ -72,11 +76,13 @@ public class VoucherService {
         mapToEntity(voucher, request);
         return mapToResponse(voucherRepository.save(voucher));
     }
+
     public void delete(Long id) {
         Voucher voucher = voucherRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy voucher"));
         voucherRepository.delete(voucher);
     }
+
     public BigDecimal calculateDiscount(Voucher voucher, BigDecimal orderAmount) {
         BigDecimal discount;
         if ("PERCENT".equals(voucher.getType())) {
@@ -96,6 +102,7 @@ public class VoucherService {
         }
         return discount;
     }
+
     public Voucher validateAndUse(String code, BigDecimal orderAmount) {
         Voucher voucher = voucherRepository.findByCode(code)
                 .orElseThrow(() -> new RuntimeException("Voucher không tồn tại"));
@@ -106,14 +113,14 @@ public class VoucherService {
 
         if (orderAmount.compareTo(voucher.getMinOrderValue()) < 0) {
             throw new RuntimeException(
-                    "Đơn hàng tối thiểu " + voucher.getMinOrderValue() + "đ"
-            );
+                    "Đơn hàng tối thiểu " + voucher.getMinOrderValue() + "đ");
         }
         voucher.setUsedCount(voucher.getUsedCount() + 1);
         voucherRepository.save(voucher);
 
         return voucher;
     }
+
     private void mapToEntity(Voucher voucher, VoucherRequest request) {
         voucher.setCode(request.getCode());
         voucher.setType(request.getType());
@@ -124,6 +131,7 @@ public class VoucherService {
         voucher.setUsageLimit(request.getUsageLimit());
         voucher.setIsActive(request.getIsActive());
     }
+
     private VoucherResponse mapToResponse(Voucher v) {
         VoucherResponse res = new VoucherResponse();
         res.setId(v.getId());

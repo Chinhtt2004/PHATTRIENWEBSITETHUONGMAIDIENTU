@@ -282,12 +282,12 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
               <span className="text-3xl font-bold text-primary">
                 {formatPrice(selectedVariant.price)}
               </span>
-              { (selectedVariant.compareAtPrice || product.compareAtPrice) && (
+              { (selectedVariant.compareAtPrice || product.compareAtPrice || 0) > selectedVariant.price && (
                 <>
                   <span className="text-xl text-muted-foreground line-through">
                     {formatPrice(selectedVariant.compareAtPrice || product.compareAtPrice || 0)}
                   </span>
-                  {discount && (
+                  {Boolean(discount && discount > 0) && (
                     <Badge variant="destructive">Tiết kiệm {discount}%</Badge>
                   )}
                 </>

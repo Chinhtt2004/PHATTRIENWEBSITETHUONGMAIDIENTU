@@ -2,6 +2,7 @@ package com.tuongchinh.DTO;
 
 import lombok.Data;
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 public class SaleResponse {
@@ -23,6 +24,9 @@ public class SaleResponse {
     // Lợi nhuận (chỉ admin thấy)
     private BigDecimal profit;
     private BigDecimal profitPercent;
+
+    // Thuộc tính biến thể (màu sắc, kích thước, ...)
+    private List<ProductResponse.AttributeValueResponse> attributeValues;
 
     // Cảnh báo
     private String warningLevel;
