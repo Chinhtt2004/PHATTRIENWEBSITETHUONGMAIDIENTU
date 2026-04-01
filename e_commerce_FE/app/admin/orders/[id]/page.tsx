@@ -165,9 +165,25 @@ export default function OrderDetailPage({
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{item.productName}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {item.variantName} - SKU: {item.sku}
-                      </p>
+                      {/* Hiển thị thuộc tính variant dưới dạng badges */}
+                      {item.attributeValues && item.attributeValues.length > 0 ? (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {item.attributeValues.map((attr, idx) => (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center gap-1 rounded-full bg-primary/8 border border-primary/20 px-2 py-0.5 text-xs text-primary font-medium"
+                            >
+                              <span className="text-muted-foreground font-normal">{attr.name}:</span>
+                              {attr.value}
+                            </span>
+                          ))}
+                          <span className="text-xs text-muted-foreground mt-0.5">SKU: {item.sku}</span>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          {item.variantName} - SKU: {item.sku}
+                        </p>
+                      )}
                     </div>
                     <div className="text-right">
                       <p className="font-medium">{formatCurrency(item.price)}</p>
@@ -179,6 +195,7 @@ export default function OrderDetailPage({
                       {formatCurrency(item.price * item.quantity)}
                     </p>
                   </div>
+
                 ))}
               </div>
 

@@ -347,10 +347,10 @@ export function CheckoutContent() {
             <div key={step.id} className="flex flex-col items-center relative z-10">
               <div
                 className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 ${currentStep > step.id
-                    ? "bg-gradient-to-br from-primary to-rose-400 text-white shadow-lg shadow-primary/30"
-                    : currentStep === step.id
-                      ? "bg-white text-primary border-2 border-primary shadow-lg shadow-primary/20"
-                      : "bg-muted/60 text-muted-foreground border border-border"
+                  ? "bg-gradient-to-br from-primary to-rose-400 text-white shadow-lg shadow-primary/30"
+                  : currentStep === step.id
+                    ? "bg-white text-primary border-2 border-primary shadow-lg shadow-primary/20"
+                    : "bg-muted/60 text-muted-foreground border border-border"
                   }`}
               >
                 {currentStep > step.id ? (
@@ -361,8 +361,8 @@ export function CheckoutContent() {
               </div>
               <span
                 className={`mt-2 text-xs font-medium transition-colors ${currentStep >= step.id
-                    ? "text-primary"
-                    : "text-muted-foreground"
+                  ? "text-primary"
+                  : "text-muted-foreground"
                   }`}
               >
                 {step.name}
@@ -390,8 +390,8 @@ export function CheckoutContent() {
                 {userAddresses.length > 0 && (
                   <div className="space-y-2 pb-2 border-b border-dashed border-primary/20">
                     <Label className="text-sm font-medium text-primary">Chọn từ địa chỉ đã lưu</Label>
-                    <Select 
-                      value={selectedAddressId?.toString()} 
+                    <Select
+                      value={selectedAddressId?.toString()}
                       onValueChange={handleAddressSelect}
                     >
                       <SelectTrigger className="rounded-lg border-primary/20">
@@ -485,7 +485,8 @@ export function CheckoutContent() {
                   />
                 </div>
 
-                <div className="grid sm:grid-cols-3 gap-4">
+                {/* Tạm ẩn Phường, Quận, Thành phố */}
+                <div className="hidden grid sm:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="ward" className="text-sm font-medium">
                       Phường/Xã
@@ -510,7 +511,6 @@ export function CheckoutContent() {
                       value={formData.district}
                       onChange={handleInputChange}
                       className="rounded-lg border-primary/15 focus:border-primary focus:ring-primary/20"
-                      required
                     />
                   </div>
                   <div className="space-y-2">
@@ -524,7 +524,6 @@ export function CheckoutContent() {
                       value={formData.city}
                       onChange={handleInputChange}
                       className="rounded-lg border-primary/15 focus:border-primary focus:ring-primary/20"
-                      required
                     />
                   </div>
                 </div>
@@ -572,8 +571,8 @@ export function CheckoutContent() {
                       <label
                         key={method.id}
                         className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 ${isSelected
-                            ? "border-primary bg-gradient-to-r from-primary-light/30 to-secondary/15 shadow-sm"
-                            : "border-border hover:border-primary/30 hover:bg-primary-light/10"
+                          ? "border-primary bg-gradient-to-r from-primary-light/30 to-secondary/15 shadow-sm"
+                          : "border-border hover:border-primary/30 hover:bg-primary-light/10"
                           } ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
                       >
                         <div className="flex items-center gap-4">
@@ -584,8 +583,8 @@ export function CheckoutContent() {
                           />
                           <div
                             className={`w-10 h-10 rounded-full flex items-center justify-center ${isSelected
-                                ? "bg-primary/15 text-primary"
-                                : "bg-muted text-muted-foreground"
+                              ? "bg-primary/15 text-primary"
+                              : "bg-muted text-muted-foreground"
                               }`}
                           >
                             <IconComp className="h-5 w-5" />
@@ -647,15 +646,15 @@ export function CheckoutContent() {
                       <label
                         key={method.id}
                         className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 ${isSelected
-                            ? "border-primary bg-gradient-to-r from-primary-light/30 to-secondary/15 shadow-sm"
-                            : "border-border hover:border-primary/30 hover:bg-primary-light/10"
+                          ? "border-primary bg-gradient-to-r from-primary-light/30 to-secondary/15 shadow-sm"
+                          : "border-border hover:border-primary/30 hover:bg-primary-light/10"
                           }`}
                       >
                         <RadioGroupItem value={method.id} id={method.id} />
                         <div
                           className={`w-10 h-10 rounded-full flex items-center justify-center ${isSelected
-                              ? "bg-primary/15 text-primary"
-                              : "bg-muted text-muted-foreground"
+                            ? "bg-primary/15 text-primary"
+                            : "bg-muted text-muted-foreground"
                             }`}
                         >
                           <IconComp className="h-5 w-5" />
@@ -712,11 +711,14 @@ export function CheckoutContent() {
                     <p className="text-xs text-muted-foreground mb-1">Địa chỉ</p>
                     <p className="text-sm font-medium">
                       {formData.address}
-                      {formData.ward && `, ${formData.ward}`}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {formData.district}, {formData.city}
-                    </p>
+                    {/* Tạm ẩn thông tin chi tiết địa chỉ */}
+                    {(formData.ward || formData.district || formData.city) && (
+                      <p className="hidden text-xs text-muted-foreground mt-1">
+                        {formData.ward && `${formData.ward}, `}
+                        {formData.district}, {formData.city}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="p-3 rounded-lg bg-muted/40">
@@ -847,7 +849,7 @@ export function CheckoutContent() {
                       Áp dụng
                     </Button>
                   </div>
-                    <Button
+                  <Button
                     variant="link"
                     onClick={() => setIsVoucherDialogOpen(true)}
                     className="text-xs text-primary h-auto p-0 flex items-center gap-1"
@@ -948,10 +950,10 @@ export function CheckoutContent() {
                             }
                           }}
                           className={`relative p-4 rounded-xl border-2 transition-all cursor-pointer group ${isSelected
-                              ? "border-primary bg-primary-light/10"
-                              : isEligible
-                                ? "border-muted hover:border-primary/50"
-                                : "opacity-50 grayscale cursor-not-allowed"
+                            ? "border-primary bg-primary-light/10"
+                            : isEligible
+                              ? "border-muted hover:border-primary/50"
+                              : "opacity-50 grayscale cursor-not-allowed"
                             }`}
                         >
                           <div className="flex items-start gap-4">

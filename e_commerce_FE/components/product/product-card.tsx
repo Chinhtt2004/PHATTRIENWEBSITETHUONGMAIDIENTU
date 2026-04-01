@@ -9,14 +9,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { type Product, formatPrice, getDiscountPercentage, getBadgeLabel } from "@/lib/data";
 import { useCart } from "@/contexts/cart-context";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface ProductCardProps {
   product: Product;
   priority?: boolean;
+  rank?: number;
 }
 
-export function ProductCard({ product, priority = false }: ProductCardProps) {
+export function ProductCard({ product, priority = false, rank }: ProductCardProps) {
   const router = useRouter();
   const [isAdding, setIsAdding] = useState(false);
   const discount = getDiscountPercentage(product.price, product.compareAtPrice);
@@ -88,6 +90,34 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
             </Badge>
           ))}
         </div>
+
+        {/* Rank Badge for Best Sellers */}
+        {rank !== undefined && (
+          <div className="absolute -top-1 -right-1 p-2 pointer-events-none z-10">
+            <div className="relative flex items-center justify-center">
+              <div className={cn(
+                "absolute inset-0 blur-lg opacity-40 rounded-full",
+                rank === 1 ? "bg-amber-400" :
+                rank === 2 ? "bg-slate-300" :
+                rank === 3 ? "bg-amber-600" :
+                "bg-primary/20"
+              )} />
+              <div className={cn(
+                "relative flex items-center justify-center w-8 h-8 rounded-full border shadow-lg transform rotate-12 group-hover:rotate-0 transition-transform duration-500",
+                rank === 1 ? "bg-gradient-to-br from-amber-300 via-yellow-500 to-amber-600 border-amber-200 text-white" :
+                rank === 2 ? "bg-gradient-to-br from-slate-200 via-slate-400 to-slate-500 border-slate-100 text-white" :
+                rank === 3 ? "bg-gradient-to-br from-amber-600 via-amber-700 to-amber-900 border-amber-500 text-white" :
+                "bg-white/90 backdrop-blur-sm border-primary/20 text-primary"
+              )}>
+                <span className="text-[10px] font-black leading-none select-none tracking-tighter">
+                  TOP
+                  <br />
+                  {rank.toString().padStart(2, '0')}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Quick Actions */}
         <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">

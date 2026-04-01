@@ -7,15 +7,15 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
-    @EntityGraph(attributePaths = {"items", "address"})
+    @EntityGraph(attributePaths = { "items", "address" })
     List<Order> findByUserIdOrderByOrderDateDesc(Long userId);
 
     @EntityGraph(attributePaths = {
-            "items", 
-            "address", 
-            "user", 
+            "items",
+            "address",
+            "user",
             "user.cart",
-            "items.variant", 
+            "items.variant",
             "items.variant.product"
     })
     @org.springframework.data.jpa.repository.Query("SELECT COUNT(o) FROM Order o WHERE o.user.id = :userId")

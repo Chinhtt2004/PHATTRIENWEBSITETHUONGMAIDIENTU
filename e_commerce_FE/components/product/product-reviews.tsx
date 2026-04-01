@@ -103,7 +103,9 @@ export function ProductReviews({ productId }: ProductReviewsProps) {
                 </div>
 
                 <div className="text-xs text-muted-foreground mb-3 bg-muted/50 p-2 rounded inline-block">
-                  Phân loại: {review.variant.sku}
+                  Phân loại: {review.variant.attributeValues && review.variant.attributeValues.length > 0 
+                    ? review.variant.attributeValues.map(av => av.value).join(" / ")
+                    : review.variant.sku}
                 </div>
 
                 <p className="text-sm text-foreground leading-relaxed mb-4">

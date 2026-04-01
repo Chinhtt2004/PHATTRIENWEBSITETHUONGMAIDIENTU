@@ -46,10 +46,10 @@ public class ProductService {
         return products.map(product -> {
             List<ProductVariant> variants = product.getVariants().stream()
                     .filter(ProductVariant::getIsActive)
-                    .toList();
+                    .collect(Collectors.toList());
             List<String> images = product.getImages().stream()
                     .map(ProductImage::getUrl)
-                    .toList();
+                    .collect(Collectors.toList());
             return mapToResponse(product, variants, images);
         });
     }
@@ -60,10 +60,10 @@ public class ProductService {
 
         List<ProductVariant> variants = product.getVariants().stream()
                 .filter(ProductVariant::getIsActive)
-                .toList();
+                .collect(Collectors.toList());
         List<String> images = product.getImages().stream()
                 .map(ProductImage::getUrl)
-                .toList();
+                .collect(Collectors.toList());
 
         return mapToResponse(product, variants, images);
     }
@@ -98,6 +98,10 @@ public class ProductService {
                 ProductVariant variant = new ProductVariant();
                 variant.setProduct(product);
                 variant.setSku(vr.getSku());
+
+                // Validate giá trước khi gán
+                validatePrices(vr);
+
                 variant.setPrice(vr.getPrice());
                 variant.setDiscountPrice(vr.getDiscountPrice());
                 // Nếu không có compareAtPrice thì lấy từ price (Giá gốc)
@@ -167,8 +171,13 @@ public class ProductService {
 
                 variant.setProduct(product);
                 variant.setSku(vr.getSku());
+
+                // Validate giá trước khi gán
+                validatePrices(vr);
+
                 variant.setDiscountPrice(vr.getDiscountPrice());
-                variant.setCompareAtPrice(vr.getPrice());
+                // Sửa logic: Lấy từ request chứ không ép bằng price
+                variant.setCompareAtPrice(vr.getCompareAtPrice() != null ? vr.getCompareAtPrice() : vr.getPrice());
                 variant.setPrice(vr.getPrice());
                 variant.setCostPrice(vr.getCostPrice());
                 variant.setStock(vr.getStock());
@@ -213,13 +222,13 @@ public class ProductService {
                 .map(product -> {
                     List<ProductVariant> variants = product.getVariants().stream()
                             .filter(ProductVariant::getIsActive)
-                            .toList();
+                            .collect(Collectors.toList());
                     List<String> images = product.getImages().stream()
                             .map(ProductImage::getUrl)
-                            .toList();
+                            .collect(Collectors.toList());
                     return mapToResponse(product, variants, images);
                 })
-                .toList();
+                .collect(Collectors.toList());
     }
 
     public List<ProductResponse> getNewProducts(int limit) {
@@ -228,13 +237,28 @@ public class ProductService {
                 .map(product -> {
                     List<ProductVariant> variants = product.getVariants().stream()
                             .filter(ProductVariant::getIsActive)
-                            .toList();
+                            .collect(Collectors.toList());
                     List<String> images = product.getImages().stream()
                             .map(ProductImage::getUrl)
-                            .toList();
+                            .collect(Collectors.toList());
                     return mapToResponse(product, variants, images);
                 })
-                .toList();
+                .collect(Collectors.toList());
+    }
+
+    public List<ProductResponse> getFlashSale(int limit) {
+        Page<Product> products = productRepository.findFlashSales(PageRequest.of(0, limit));
+        return products.stream()
+                .map(product -> {
+                    List<ProductVariant> variants = product.getVariants().stream()
+                            .filter(ProductVariant::getIsActive)
+                            .collect(Collectors.toList());
+                    List<String> images = product.getImages().stream()
+                            .map(ProductImage::getUrl)
+                            .collect(Collectors.toList());
+                    return mapToResponse(product, variants, images);
+                })
+                .collect(Collectors.toList());
     }
 
     public List<ProductResponse> getBestSelling(int limit) {
@@ -246,12 +270,12 @@ public class ProductService {
             // lọc variant active
             List<ProductVariant> variants = product.getVariants().stream()
                     .filter(ProductVariant::getIsActive)
-                    .toList();
+                    .collect(Collectors.toList());
 
             // lấy danh sách ảnh
             List<String> images = product.getImages().stream()
                     .map(ProductImage::getUrl)
-                    .toList();
+                    .collect(Collectors.toList());
 
             return mapToResponse(product, variants, images);
 
@@ -275,7 +299,7 @@ public class ProductService {
         res.setThumbnail(images.isEmpty() ? null : images.get(0));
         res.setImages(images);
         res.setPriceMin(priceMin);
-        res.setVariants(variants.stream().map(this::mapVariant).toList());
+        res.setVariants(variants.stream().map(this::mapVariant).collect(Collectors.toList()));
         res.setAverageRating(product.getAverageRating());
         res.setTotalReviews(product.getTotalReviews());
         res.setTotalSold(product.getTotalSold());
@@ -303,7 +327,7 @@ public class ProductService {
                 avr.setName(av.getAttribute().getName());
                 avr.setValue(av.getValue());
                 return avr;
-            }).toList());
+            }).collect(Collectors.toList()));
         }
 
         return vr;
@@ -344,10 +368,10 @@ public class ProductService {
                 .map(product -> {
                     List<ProductVariant> variants = product.getVariants().stream()
                             .filter(ProductVariant::getIsActive)
-                            .toList();
+                            .collect(Collectors.toList());
                     List<String> images = product.getImages().stream()
                             .map(ProductImage::getUrl)
-                            .toList();
+                            .collect(Collectors.toList());
                     return mapToResponse(product, variants, images);
                 });
     }
@@ -356,8 +380,21 @@ public class ProductService {
         SaleResponse res = new SaleResponse();
         res.setVariantId(variant.getId());
         res.setSku(variant.getSku());
+        res.setImageUrl(variant.getImageUrl());
         res.setProductName(variant.getProduct().getName());
+        res.setBrandName(variant.getProduct().getBrand() != null ? variant.getProduct().getBrand().getName() : null);
+        res.setOriginalPrice(variant.getPrice());
+        res.setDiscountPrice(variant.getDiscountPrice());
         res.setDiscountPercent(variant.getDiscountPercent());
+
+        if (variant.getAttributeValues() != null) {
+            res.setAttributeValues(variant.getAttributeValues().stream().map(av -> {
+                ProductResponse.AttributeValueResponse avr = new ProductResponse.AttributeValueResponse();
+                avr.setName(av.getAttribute().getName());
+                avr.setValue(av.getValue());
+                return avr;
+            }).collect(Collectors.toList()));
+        }
 
         if (variant.getCostPrice() != null) {
             res.setProfit(variant.getProfit());
@@ -382,6 +419,41 @@ public class ProductService {
         }
 
         return res;
+    }
+
+    private void validatePrices(ProductRequest.VariantRequest vr) {
+        if (vr.getCostPrice() == null) {
+            throw new RuntimeException("Giá nhập không được để trống (SKU: " + vr.getSku() + ")");
+        }
+
+        // 1. Giá bán >= Giá nhập
+        if (vr.getPrice() != null && vr.getPrice().compareTo(vr.getCostPrice()) < 0) {
+            throw new RuntimeException(String.format(
+                "LỖI (SKU: %s): Giá bán (%.0f) không được nhỏ hơn giá nhập (%.0f)",
+                vr.getSku(), vr.getPrice().doubleValue(), vr.getCostPrice().doubleValue()));
+        }
+
+        // 2. Giá sale >= Giá nhập (nếu có sale)
+        if (vr.getDiscountPrice() != null && vr.getDiscountPrice().compareTo(vr.getCostPrice()) < 0) {
+            throw new RuntimeException(String.format(
+                "LỖI (SKU: %s): Giá sale (%.0f) không được nhỏ hơn giá nhập (%.0f)",
+                vr.getSku(), vr.getDiscountPrice().doubleValue(), vr.getCostPrice().doubleValue()));
+        }
+
+        // 3. Giá sale < Giá bán
+        if (vr.getDiscountPrice() != null && vr.getDiscountPrice().compareTo(vr.getPrice()) >= 0) {
+            throw new RuntimeException(String.format(
+                "LỖI (SKU: %s): Giá sale (%.0f) phải nhỏ hơn giá bán hiện tại (%.0f)",
+                vr.getSku(), vr.getDiscountPrice().doubleValue(), vr.getPrice().doubleValue()));
+        }
+
+        // 4. Giá gốc >= Giá bán
+        BigDecimal comparePrice = vr.getCompareAtPrice() != null ? vr.getCompareAtPrice() : vr.getPrice();
+        if (comparePrice != null && comparePrice.compareTo(vr.getPrice()) < 0) {
+            throw new RuntimeException(String.format(
+                "LỖI (SKU: %s): Giá gốc (%.0f) không được nhỏ hơn giá bán (%.0f)",
+                vr.getSku(), comparePrice.doubleValue(), vr.getPrice().doubleValue()));
+        }
     }
 
 }

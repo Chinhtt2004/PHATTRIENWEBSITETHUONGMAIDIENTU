@@ -14,14 +14,21 @@ import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.util.List;
 
+import java.util.stream.Collectors;
+
 @RestController
 @RequestMapping("/api/user/cart")
-@RequiredArgsConstructor
 public class CartController {
 
     private final CartService cartService;
     private final JwtService jwtService;
     private final UserService userService;
+
+    public CartController(CartService cartService, JwtService jwtService, UserService userService) {
+        this.cartService = cartService;
+        this.jwtService = jwtService;
+        this.userService = userService;
+    }
 
     // Thêm vào giỏ hàng
     @PostMapping
@@ -73,12 +80,12 @@ public class CartController {
                             avr.setName(av.getAttribute().getName());
                             avr.setValue(av.getValue());
                             return avr;
-                        }).toList());
+                        }).collect(Collectors.toList()));
                     }
 
                     return dto;
                 })
-                .toList();
+                .collect(Collectors.toList());
 
         return ResponseEntity.ok(result);
     }

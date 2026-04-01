@@ -4,6 +4,7 @@ import com.tuongchinh.DTO.CheckoutRequest;
 import com.tuongchinh.DTO.OrderItemDTO;
 import com.tuongchinh.DTO.OrderResponse;
 import com.tuongchinh.DTO.OrderUptateStatusRequest;
+import com.tuongchinh.DTO.ProductResponse;
 import com.tuongchinh.Entity.*;
 import com.tuongchinh.Repository.*;
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,6 +16,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -39,7 +41,7 @@ public class OrderService {
         }
         Address address;
         if (req.getAddressId() != null) {
-           address = addressRepository.findById(req.getAddressId())
+            address = addressRepository.findById(req.getAddressId())
                     .orElseThrow(() -> new RuntimeException("Address not found"));
 
             if (!address.getUser().getId().equals(userId)) {
@@ -70,8 +72,7 @@ public class OrderService {
             if (variant.getStock() < item.getQuantity()) {
                 throw new RuntimeException(
                         "Product " + variant.getProduct().getName()
-                                + " (SKU: " + variant.getSku() + ") out of stock"
-                );
+                                + " (SKU: " + variant.getSku() + ") out of stock");
             }
 
             variant.setStock(variant.getStock() - item.getQuantity());
@@ -102,8 +103,7 @@ public class OrderService {
             // Kiểm tra giá trị đơn tối thiểu
             if (total.compareTo(voucher.getMinOrderValue()) < 0) {
                 throw new RuntimeException(
-                        "Minimum order value is " + voucher.getMinOrderValue() + " to apply this voucher"
-                );
+                        "Minimum order value is " + voucher.getMinOrderValue() + " to apply this voucher");
             }
 
             BigDecimal discount;
@@ -173,23 +173,23 @@ public class OrderService {
         cartItemRepository.deleteAll(cartItems);
 
         String paymentResult;
-//        try {
-//            paymentResult = paymentService.processPayment(
-//                    order,
-//                    req.getPaymentMethod(),
-//                    request   // ⚠️ cần truyền HttpServletRequest
-//            );
-//        } catch (Exception e) {
-//            throw new RuntimeException("Payment error: " + e.getMessage());
-//        }
+        // try {
+        // paymentResult = paymentService.processPayment(
+        // order,
+        // req.getPaymentMethod(),
+        // request // ⚠️ cần truyền HttpServletRequest
+        // );
+        // } catch (Exception e) {
+        // throw new RuntimeException("Payment error: " + e.getMessage());
+        // }
 
-// 10. Trả về response
+        // 10. Trả về response
         OrderResponse response = mapToOrderResponse(order);
 
-// nếu là VNPay → trả thêm URL  
-//        if ("VNPAY".equals(req.getPaymentMethod())) {
-//            response.setPaymentUrl(paymentResult);
-//        }
+        // nếu là VNPay → trả thêm URL
+        // if ("VNPAY".equals(req.getPaymentMethod())) {
+        // response.setPaymentUrl(paymentResult);
+        // }
 
         return response;
     }
@@ -211,7 +211,7 @@ public class OrderService {
         Order order = orderRepository.findById(request.getId())
                 .orElseThrow(() -> new RuntimeException("Order not found"));
         order.setOrderStatus(request.getStatus());
-        if(request.getStatus().equals("DELIVERED")) {
+        if (request.getStatus().equals("DELIVERED")) {
             order.setStatus("PAID");
             for (OrderItem item : order.getItems()) {
                 ProductVariant variant = item.getVariant();
@@ -253,7 +253,7 @@ public class OrderService {
             throw new RuntimeException("Unauthorized access to order");
         }
         if (!"PENDING".equalsIgnoreCase(order.getOrderStatus())) {
-             throw new RuntimeException("Only pending orders can be cancelled");
+            throw new RuntimeException("Only pending orders can be cancelled");
         }
         order.setOrderStatus("CANCELLED");
         return mapToOrderResponse(orderRepository.save(order));
@@ -290,9 +290,25 @@ public class OrderService {
                     if (v.getProduct() != null) {
                         dto.setProductName(v.getProduct().getName());
                     }
-                    // For variant name, we can use attribute values if available
-                    // For now, let's keep it simple or join attribute names
-                    dto.setVariantName(v.getSku()); // Fallback to SKU
+                    // Map attribute values sang DTO
+                    if (v.getAttributeValues() != null && !v.getAttributeValues().isEmpty()) {
+                        List<ProductResponse.AttributeValueResponse> attrs = v.getAttributeValues().stream()
+                                .map(av -> {
+                                    ProductResponse.AttributeValueResponse avr = new ProductResponse.AttributeValueResponse();
+                                    avr.setName(av.getAttribute() != null ? av.getAttribute().getName() : "");
+                                    avr.setValue(av.getValue());
+                                    return avr;
+                                })
+                                .collect(Collectors.toList());
+                        dto.setAttributeValues(attrs);
+                        // Tạo variantName từ giá trị thuộc tính, VD: "Đỏ / Size M"
+                        String variantName = attrs.stream()
+                                .map(ProductResponse.AttributeValueResponse::getValue)
+                                .collect(Collectors.joining(" / "));
+                        dto.setVariantName(variantName.isEmpty() ? v.getSku() : variantName);
+                    } else {
+                        dto.setVariantName(v.getSku());
+                    }
                     dto.setImageUrl(v.getImageUrl());
                 }
                 return dto;
@@ -300,6 +316,7 @@ public class OrderService {
         }
         return res;
     }
+
     private void validateCheckoutRequest(CheckoutRequest req) {
         if (req.getPaymentMethod() == null || req.getPaymentMethod().isBlank()) {
             throw new RuntimeException("Payment method is required");

@@ -630,10 +630,28 @@ export async function fetchProductsByCategoryId(categoryId: number): Promise<Pro
   return data.map(mapBackendProduct);
 }
 
+export async function fetchFlashSale(limit = 10): Promise<Product[]> {
+  const res = await fetch(`${API_BASE_URL}/api/public/product/flash-sale?limit=${limit}`, { cache: "no-store" });
+  const data = (await ensureOk(res)) as BackendProduct[];
+  const products = data.map(mapBackendProduct);
+  return products.map(p => {
+    if (!p.badges.includes("sale")) {
+      return { ...p, badges: [...p.badges, "sale"] };
+    }
+    return p;
+  });
+}
+
 export async function fetchBestSellers(limit = 10): Promise<Product[]> {
   const res = await fetch(`${API_BASE_URL}/api/public/product/best-sellers?limit=${limit}`, { cache: "no-store" });
   const data = (await ensureOk(res)) as BackendProduct[];
-  return data.map(mapBackendProduct);
+  const products = data.map(mapBackendProduct);
+  return products.map(p => {
+    if (!p.badges.includes("bestseller")) {
+      return { ...p, badges: [...p.badges, "bestseller"] };
+    }
+    return p;
+  });
 }
 
 export async function fetchNewProducts(limit = 10): Promise<Product[]> {
@@ -960,6 +978,11 @@ export async function fetchAdminReportSummary(): Promise<ReportSummary> {
 }
 
 // Admin Orders
+export interface OrderItemAttributeValue {
+  name: string;
+  value: string;
+}
+
 export interface OrderItemDTO {
   id: number;
   quantity: number;
@@ -969,6 +992,7 @@ export interface OrderItemDTO {
   productName: string;
   variantName: string;
   imageUrl: string;
+  attributeValues?: OrderItemAttributeValue[];
 }
 
 export interface OrderResponse {

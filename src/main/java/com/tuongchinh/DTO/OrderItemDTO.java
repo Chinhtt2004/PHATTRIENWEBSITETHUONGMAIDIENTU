@@ -2,6 +2,7 @@ package com.tuongchinh.DTO;
 
 import lombok.Data;
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 public class OrderItemDTO {
@@ -13,4 +14,6 @@ public class OrderItemDTO {
     private String productName;
     private String variantName;
     private String imageUrl;
+    // Thuộc tính biến thể: [{name:"Màu", value:"Đỏ"}, ...]
+    private List<ProductResponse.AttributeValueResponse> attributeValues;
 }

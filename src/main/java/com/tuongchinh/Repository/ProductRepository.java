@@ -35,11 +35,22 @@ public interface ProductRepository extends JpaRepository<Product, Long>, JpaSpec
     """)
     Page<Product> findSaleProducts(Pageable pageable);
     @Query("""
+    SELECT DISTINCT p FROM Product p
+    JOIN ProductVariant pv ON pv.product = p
+    WHERE pv.isActive = true
+    AND pv.discountPrice IS NOT NULL
+    AND pv.discountPrice < pv.price
+    ORDER BY p.totalSold DESC
+    """)
+    Page<Product> findFlashSales(Pageable pageable);
+
+    @Query("""
     SELECT p
     FROM Product p
     WHERE p.totalSold > 0
     ORDER BY p.totalSold DESC
     """)
     Page<Product> findBestSelling(Pageable pageable);
+    
     Page<Product> findAllByOrderByTotalSoldDesc(Pageable pageable);
 }
