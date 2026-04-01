@@ -64,7 +64,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
 
         {/* Badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-1.5">
-          {discount && (
+          {Boolean(discount && discount > 0) && (
             <Badge className="bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md shadow-rose-500/20 gap-1 font-semibold">
               <Zap className="h-3 w-3" />
               -{discount}%
@@ -143,7 +143,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
           <span className="text-lg font-bold bg-gradient-to-r from-primary to-rose-500 bg-clip-text text-transparent">
             {formatPrice(product.price)}
           </span>
-          {product.compareAtPrice && (
+          {(product.compareAtPrice || 0) > product.price && (
             <span className="text-xs text-muted-foreground line-through">
               {formatPrice(product.compareAtPrice)}
             </span>

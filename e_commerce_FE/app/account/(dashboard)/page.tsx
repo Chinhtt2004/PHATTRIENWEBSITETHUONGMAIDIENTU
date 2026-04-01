@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/data";
 import { useEffect, useState } from "react";
-import { fetchUserProfile, fetchMyOrders, fetchPublicVouchers, type OrderResponse, type Voucher } from "@/lib/api";
+import { fetchUserProfile, fetchMyOrders, fetchPublicVouchers, type OrderResponse, type Voucher, type UserProfileResponse } from "@/lib/api";
+import Image from "next/image";
 
 const quickActions = [
   { name: "Đơn hàng", href: "/account/orders", icon: Package, color: "bg-blue-500/10 text-blue-600" },
@@ -18,7 +19,7 @@ const quickActions = [
 ];
 
 export default function AccountPage() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<UserProfileResponse | null>(null);
   const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [vouchers, setVouchers] = useState<Voucher[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -58,6 +59,10 @@ export default function AccountPage() {
   const recentOrders = orders.slice(0, 3);
   const activeVouchersCount = vouchers.filter(v => v.isActive && new Date(v.expiryDate) > new Date()).length;
   const shippingOrdersCount = orders.filter(o => o.orderStatus === "SHIPPING" || o.orderStatus === "CONFIRMED").length;
+
+  const defaultAvatar = user?.gender === "male"
+    ? "https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=200&h=200&fit=crop"
+    : "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&h=200&fit=crop";
 
   const stats = [
     { label: "Tổng đơn hàng", value: orders.length, icon: Package, color: "text-blue-600" },
@@ -104,12 +109,22 @@ export default function AccountPage() {
       {/* Welcome Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-border/50 shadow-sm">
         <div className="flex items-center gap-4">
-          <div className="h-16 w-16 rounded-full bg-gradient-to-br from-primary to-rose-400 flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-primary/20">
-            {displayName.charAt(0).toUpperCase()}
+          <div className="h-16 w-16 rounded-full overflow-hidden border-2 border-primary/20 shadow-lg shrink-0 relative flex items-center justify-center bg-muted">
+            <Image
+              src={user?.imageUrl || defaultAvatar}
+              alt={displayName}
+              fill
+              className="object-cover"
+            />
           </div>
           <div>
             <h1 className="font-serif text-2xl md:text-3xl font-bold">Xin chào, {displayName}!</h1>
             <p className="text-muted-foreground">{user?.email}</p>
+            {user?.gender && (
+              <Badge variant="secondary" className="mt-1 text-[10px] h-5 px-2 rounded-full capitalize">
+                {user.gender === "male" ? "Nam" : "Nữ"}
+              </Badge>
+            )}
           </div>
         </div>
         <Button asChild variant="outline" className="rounded-full px-6">

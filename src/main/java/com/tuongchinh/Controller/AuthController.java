@@ -85,6 +85,9 @@ public class AuthController {
         UserRequest userRequest = new UserRequest();
         userRequest.setName(user.getName());
         userRequest.setEmail(user.getEmail());
+        userRequest.setPhone(user.getPhone());
+        userRequest.setImageUrl(user.getImageUrl());
+        userRequest.setGender(user.getGender());
         return userRequest;
     }
 

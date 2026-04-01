@@ -13,6 +13,7 @@ export interface BackendCategory {
   name: string;
   description?: string | null;
   parentId?: number | null;
+  productCount?: number;
   children?: BackendCategory[];
 }
 
@@ -123,6 +124,8 @@ export interface LoginResponse {
 export interface UserProfileResponse {
   name: string;
   email: string;
+  imageUrl?: string | null;
+  gender?: "male" | "female" | null;
 }
 
 export interface Voucher {
@@ -234,6 +237,7 @@ export interface ProductRequest {
   categoryId: number;
   brandId: number;
   variants?: {
+    id?: number;
     sku?: string;
     price: number;
     discountPrice?: number;
@@ -374,17 +378,17 @@ export function mapBackendProduct(product: BackendProduct): Product {
     product.variants && product.variants.length > 0
       ? product.variants
       : [
-          // Legacy fallback: synthesise a default variant from flat fields
-          {
-            id: product.id * 1000, // synthetic id unlikely to clash
-            sku: `SKU-${product.id}-DEF`,
-            price: Number(product.price ?? 0),
-            stock: product.stockQuantity ?? 0,
-            imageUrl: product.imageUrl,
-            isActive: true,
-            effectivePrice: Number(product.price ?? 0)
-          },
-        ];
+        // Legacy fallback: synthesise a default variant from flat fields
+        {
+          id: product.id * 1000, // synthetic id unlikely to clash
+          sku: `SKU-${product.id}-DEF`,
+          price: Number(product.price ?? 0),
+          stock: product.stockQuantity ?? 0,
+          imageUrl: product.imageUrl,
+          isActive: true,
+          effectivePrice: Number(product.price ?? 0)
+        },
+      ];
 
   const displayVariant = getDisplayVariant(backendVariants)!;
   const displayPrice = Number(displayVariant.effectivePrice ?? displayVariant.price ?? 0);
@@ -398,15 +402,16 @@ export function mapBackendProduct(product: BackendProduct): Product {
         attrs[av.name] = av.value;
       });
     }
-    
+
     // Build a human-readable name from the attribute values
     const attrLabel = Object.values(attrs).join(" / ") || bv.sku || "Mặc định";
-    
+
     return {
       id: String(bv.id),
       sku: bv.sku,
       name: attrLabel,
       price: Number(bv.effectivePrice ?? bv.price ?? 0),
+      discountPrice: bv.discountPrice ? Number(bv.discountPrice) : undefined,
       compareAtPrice: bv.compareAtPrice ? Number(bv.compareAtPrice) : (bv.discountPrice ? Number(bv.price) : undefined),
       costPrice: bv.costPrice ? Number(bv.costPrice) : undefined,
       stock: bv.stock ?? 0,
@@ -449,9 +454,9 @@ export function mapBackendProduct(product: BackendProduct): Product {
     images,
     variants: mappedVariants,
     attributes: { skin_type: ["all"], concerns: [] },
-    rating: { 
-      average: product.averageRating ?? 0, 
-      count: product.totalReviews ?? 0 
+    rating: {
+      average: product.averageRating ?? 0,
+      count: product.totalReviews ?? 0
     },
     totalSold: product.totalSold ?? 0,
     badges: [badge],
@@ -462,8 +467,8 @@ export function mapBackendProduct(product: BackendProduct): Product {
 }
 
 export function mapBackendCategory(
-  category: BackendCategory, 
-  productCount: number, 
+  category: BackendCategory,
+  productCount: number,
   index: number,
   level: number = 0
 ): Category {
@@ -582,7 +587,7 @@ export async function fetchProductsPage(options: {
   if (options.keyword) params.append("keyword", options.keyword);
   if (options.minPrice !== undefined) params.append("minPrice", String(options.minPrice));
   if (options.maxPrice !== undefined) params.append("maxPrice", String(options.maxPrice));
-  
+
   if (options.categoryIds && options.categoryIds.length > 0) {
     options.categoryIds.forEach(id => params.append("categoryIds", String(id)));
   }
@@ -600,7 +605,7 @@ export async function fetchProductsPage(options: {
 
   const res = await fetch(`${API_BASE_URL}/api/public/product?${params.toString()}`, { cache: "no-store" });
   const data = (await ensureOk(res)) as BackendProductPage;
-  
+
   return {
     content: (data.content || []).map(mapBackendProduct),
     totalPages: data.totalPages,
@@ -641,7 +646,7 @@ export async function fetchNewProducts(limit = 10): Promise<Product[]> {
 export async function adminCreateProduct(product: ProductRequest, imageFiles?: File | File[]) {
   const formData = new FormData();
   formData.append("product", new Blob([JSON.stringify(product)], { type: "application/json" }));
-  
+
   if (imageFiles) {
     const files = Array.isArray(imageFiles) ? imageFiles : [imageFiles];
     files.forEach(file => {
@@ -660,7 +665,7 @@ export async function adminCreateProduct(product: ProductRequest, imageFiles?: F
 export async function adminUpdateProduct(id: number, product: ProductRequest, imageFiles?: File | File[]) {
   const formData = new FormData();
   formData.append("product", new Blob([JSON.stringify(product)], { type: "application/json" }));
-  
+
   if (imageFiles) {
     const files = Array.isArray(imageFiles) ? imageFiles : [imageFiles];
     files.forEach(file => {
@@ -703,40 +708,15 @@ export async function adminToggleUserStatus(id: number, active: boolean) {
 }
 
 // Categories
-export async function fetchCategories(providedProducts?: Product[]): Promise<Category[]> {
+export async function fetchCategories(): Promise<Category[]> {
   const res = await fetch(`${API_BASE_URL}/api/public/categories`, { cache: "no-store" });
   const data = (await ensureOk(res)) as BackendCategory[];
 
-  let products = providedProducts;
-  if (!products) {
-    try {
-      products = await fetchProducts({ size: 1000 });
-    } catch (e) {
-      products = [];
-    }
-  }
-
-  const productCountMap = new Map<string, number>();
-  for (const product of products) {
-    productCountMap.set(product.categoryId, (productCountMap.get(product.categoryId) || 0) + 1);
-  }
-
   const flatCategories: Category[] = [];
-
-  // Recursive function to calculate total count for a category and its descendants
-  const getCategoryCount = (backendCat: BackendCategory): number => {
-    let count = productCountMap.get(String(backendCat.id)) || 0;
-    if (backendCat.children) {
-      backendCat.children.forEach(child => {
-        count += getCategoryCount(child);
-      });
-    }
-    return count;
-  };
 
   // Recursive function to flatten categories top-down
   const flattenCategories = (backendCat: BackendCategory, index: number, level: number = 0) => {
-    const totalCount = getCategoryCount(backendCat);
+    const totalCount = backendCat.productCount || 0;
     const mapped = mapBackendCategory(backendCat, totalCount, index, level);
     flatCategories.push(mapped);
 
@@ -856,7 +836,7 @@ export async function fetchProductsByCategoryRecursive(categoryId: number): Prom
 
 export async function testCategoryFetching() {
   const products = await fetchProducts();
-  const categories = await fetchCategories(products);
+  const categories = await fetchCategories();
 
   console.log("=== Test Category Fetching ===");
   console.log(`Total Products: ${products.length}`);
@@ -879,7 +859,7 @@ export const fetchBrands = cache(async (): Promise<Brand[]> => {
 
 export const fetchStorefrontData = cache(async () => {
   const products = await fetchProducts();
-  const categories = await fetchCategories(products);
+  const categories = await fetchCategories();
   return { products, categories };
 });
 

@@ -70,16 +70,17 @@ export default function ProductEditPage({
     description: string;
     categoryId: number;
     brandId: number;
-    variants: {
-      sku: string;
-      price: number; // Giá gốc
-      discountPrice: number; // Giá bán
-      compareAtPrice: number;
-      costPrice: number;
-      stock: number;
-      imageUrl: string;
-      attributeValueIds: number[];
-    }[];
+      variants: {
+        id?: number;
+        sku: string;
+        price: number; // Giá gốc
+        discountPrice: number; // Giá bán
+        compareAtPrice: number;
+        costPrice: number;
+        stock: number;
+        imageUrl: string;
+        attributeValueIds: number[];
+      }[];
   }>({
     name: "",
     description: "",
@@ -113,8 +114,9 @@ export default function ProductEditPage({
             categoryId: Number(prod.categoryId),
             brandId: Number(prod.brandId),
             variants: prod.variants.map(v => ({
+              id: Number(v.id),
               sku: v.sku,
-              price: v.price, // Giá gốc
+              price: v.compareAtPrice || v.price, // Giá gốc
               discountPrice: v.discountPrice || 0, // Giá bán
               compareAtPrice: v.compareAtPrice || 0,
               costPrice: v.costPrice || 0,
@@ -163,6 +165,7 @@ export default function ProductEditPage({
       categoryId: formData.categoryId,
       brandId: formData.brandId,
       variants: formData.variants.map(v => ({
+        id: v.id,
         sku: v.sku || undefined,
         price: v.price, // Gốc
         discountPrice: v.discountPrice || undefined, // Bán
