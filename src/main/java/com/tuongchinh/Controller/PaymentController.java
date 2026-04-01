@@ -20,10 +20,7 @@ public class PaymentController {
     public ResponseEntity<?> vnpayReturn(@RequestParam Map<String, String> params) {
 
         try {
-            // xử lý callback
             String result = paymentService.handleVNPayCallback(params);
-
-            // 👉 redirect về frontend (khuyên dùng)
             if ("SUCCESS".equals(result)) {
                 return ResponseEntity.status(HttpStatus.FOUND)
                         .header("Location", "http://localhost:3000/payment-result?status=success")

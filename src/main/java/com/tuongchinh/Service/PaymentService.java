@@ -35,7 +35,7 @@ public class PaymentService {
             return vnPayService.createPaymentUrl(
                     order.getId(),
                     order.getTotalAmount(),
-                    request   // ✅ truyền đúng
+                    request
             );
         }
 

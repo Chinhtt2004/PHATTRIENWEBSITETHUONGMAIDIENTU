@@ -168,29 +168,24 @@ public class OrderService {
             usage.setUsedAt(LocalDateTime.now());
             voucherUsageRepository.save(usage);
         }
-
-        // 8. Xóa cart items đã mua
         cartItemRepository.deleteAll(cartItems);
 
         String paymentResult;
-//        try {
-//            paymentResult = paymentService.processPayment(
-//                    order,
-//                    req.getPaymentMethod(),
-//                    request   // ⚠️ cần truyền HttpServletRequest
-//            );
-//        } catch (Exception e) {
-//            throw new RuntimeException("Payment error: " + e.getMessage());
-//        }
+        try {
+            paymentResult = paymentService.processPayment(
+                    order,
+                    req.getPaymentMethod(),
+                    request   // ⚠️ cần truyền HttpServletRequest
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("Payment error: " + e.getMessage());
+        }
 
 // 10. Trả về response
         OrderResponse response = mapToOrderResponse(order);
-
-// nếu là VNPay → trả thêm URL  
-//        if ("VNPAY".equals(req.getPaymentMethod())) {
-//            response.setPaymentUrl(paymentResult);
-//        }
-
+        if ("VNPAY".equals(req.getPaymentMethod())) {
+            response.setPaymentMethod(paymentResult);
+        }
         return response;
     }
 

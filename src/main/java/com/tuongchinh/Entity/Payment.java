@@ -11,9 +11,8 @@ import java.math.BigDecimal;
 public class Payment {
 
     @Id
-    @GeneratedValue
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     @ManyToOne
     private Order order;
     private BigDecimal amount;
