@@ -25,6 +25,7 @@ import {
   adminFetchOrderById,
   adminUpdateOrderStatus,
   type OrderResponse,
+  slugify,
 } from "@/lib/api";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -34,6 +35,7 @@ const statusMap: Record<
   { label: string; variant: "default" | "secondary" | "outline" | "destructive"; icon: React.ElementType }
 > = {
   PENDING: { label: "Chờ xử lý", variant: "outline", icon: Clock },
+  CONFIRMED: { label: "Đã xác nhận", variant: "secondary", icon: CheckCircle },
   PROCESSING: { label: "Đang xử lý", variant: "secondary", icon: Package },
   SHIPPED: { label: "Đang giao", variant: "default", icon: Truck },
   DELIVERED: { label: "Đã giao", variant: "default", icon: CheckCircle },
@@ -151,9 +153,10 @@ export default function OrderDetailPage({
             <CardContent>
               <div className="space-y-4">
                 {order.items?.map((item) => (
-                  <div
+                  <Link
                     key={item.id}
-                    className="flex items-center gap-4 rounded-lg border p-4"
+                    href={`/product/${slugify(item.productName)}-${item.productId}`}
+                    className="flex items-center gap-4 rounded-lg border p-4 hover:bg-muted/50 transition-colors"
                   >
                     <div className="relative h-16 w-16 overflow-hidden rounded-lg bg-muted flex-shrink-0">
                       <Image
@@ -194,7 +197,7 @@ export default function OrderDetailPage({
                     <p className="w-24 text-right font-medium">
                       {formatCurrency(item.price * item.quantity)}
                     </p>
-                  </div>
+                  </Link>
 
                 ))}
               </div>
@@ -244,7 +247,7 @@ export default function OrderDetailPage({
                   className="absolute top-[18px] left-[10%] h-1 bg-primary transition-all duration-500 rounded-full"
                   style={{ 
                     width: currentStatus === "PENDING" ? "0%" : 
-                           currentStatus === "PROCESSING" ? "33.33%" : 
+                           (currentStatus === "PROCESSING" || currentStatus === "CONFIRMED") ? "33.33%" : 
                            currentStatus === "SHIPPED" ? "66.66%" : 
                            currentStatus === "DELIVERED" ? "80%" : "0%"
                   }}
@@ -257,10 +260,11 @@ export default function OrderDetailPage({
                   { key: "DELIVERED", label: "Đã nhận", icon: CheckCircle },
                 ].map((step, idx, arr) => {
                   const statusOrder = ["PENDING", "PROCESSING", "SHIPPED", "DELIVERED"];
-                  const currentIndex = statusOrder.indexOf(currentStatus);
+                  const effectiveStatus = currentStatus === "CONFIRMED" ? "PROCESSING" : currentStatus;
+                  const currentIndex = statusOrder.indexOf(effectiveStatus);
                   const stepIndex = idx;
-                  const isCompleted = currentIndex > stepIndex || currentStatus === "DELIVERED";
-                  const isActive = currentIndex === stepIndex && currentStatus !== "DELIVERED";
+                  const isCompleted = currentIndex > stepIndex || effectiveStatus === "DELIVERED";
+                  const isActive = currentIndex === stepIndex && effectiveStatus !== "DELIVERED";
                   const isLast = idx === arr.length - 1;
 
                   return (
@@ -308,7 +312,7 @@ export default function OrderDetailPage({
               <CardTitle className="text-lg">Hành động</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {(currentStatus === "PENDING" || currentStatus === "PROCESSING") && (
+              {(currentStatus === "PENDING" || currentStatus === "PROCESSING" || currentStatus === "CONFIRMED") && (
                 <>
                   <Button 
                     className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"

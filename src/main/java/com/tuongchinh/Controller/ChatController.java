@@ -42,7 +42,7 @@ public class ChatController {
             return ResponseEntity.ok(new ChatResponse(hardcodedMsg));
         }
 
-        ChatResponse response = chatService.getResponse(user, chatRequest);
+        ChatResponse response = chatService.getResponse(user, chatRequest, token);
         return ResponseEntity.ok(response);
     }
 

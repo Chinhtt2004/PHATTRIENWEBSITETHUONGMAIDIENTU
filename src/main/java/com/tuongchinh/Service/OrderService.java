@@ -11,6 +11,9 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -84,7 +87,7 @@ public class OrderService {
 
         // 4. Áp voucher (nếu có)
         Voucher appliedVoucher = null;
-        if (req.getVoucherCode() != null && !req.getVoucherCode().isBlank()) {
+        if (req.getVoucherCode() != null && !req.getVoucherCode().trim().isEmpty()) {
 
             Voucher voucher = voucherRepository.findByCode(req.getVoucherCode())
                     .orElseThrow(() -> new RuntimeException("Voucher not found"));
@@ -184,7 +187,7 @@ public class OrderService {
 // 10. Trả về response
         OrderResponse response = mapToOrderResponse(order);
         if ("VNPAY".equals(req.getPaymentMethod())) {
-            response.setPaymentMethod(paymentResult);
+            response.setPaymentUrl(paymentResult);
         }
         return response;
     }
@@ -192,13 +195,13 @@ public class OrderService {
     public List<OrderResponse> getAllOrders() {
         return orderRepository.findAllByOrderByOrderDateDesc().stream()
                 .map(this::mapToOrderResponse)
-                .toList();
+                .collect(Collectors.toList());
     }
 
     public List<OrderResponse> getOrdersByUser(Long userId) {
         return orderRepository.findByUserIdOrderByOrderDateDesc(userId).stream()
                 .map(this::mapToOrderResponse)
-                .toList();
+                .collect(Collectors.toList());
     }
 
     @Transactional
@@ -208,21 +211,36 @@ public class OrderService {
         order.setOrderStatus(request.getStatus());
         if(request.getStatus().equals("DELIVERED")) {
             order.setStatus("PAID");
+            updateSoldCount(order);
+        }
+        return mapToOrderResponse(orderRepository.save(order));
+    }
+
+    @Transactional
+    public void updateSoldCount(Order order) {
+        if (order.getIsSoldCountUpdated() != null && order.getIsSoldCountUpdated()) {
+            return; // Already updated
+        }
+
+        if (order.getItems() != null) {
             for (OrderItem item : order.getItems()) {
                 ProductVariant variant = item.getVariant();
                 Product product = variant.getProduct();
                 int quantity = item.getQuantity();
-                // cập nhật variant
+
+                // update variant
                 int vSold = (variant.getTotalSold() == null) ? 0 : variant.getTotalSold();
                 variant.setTotalSold(vSold + quantity);
                 productVariantRepository.save(variant);
-                // cập nhật product
+
+                // update product
                 int pSold = (product.getTotalSold() == null) ? 0 : product.getTotalSold();
                 product.setTotalSold(pSold + quantity);
                 productRepository.save(product);
             }
         }
-        return mapToOrderResponse(orderRepository.save(order));
+        order.setIsSoldCountUpdated(true);
+        orderRepository.save(order);
     }
 
     public OrderResponse getOrderDetail(Long userId, Long id) {
@@ -283,6 +301,7 @@ public class OrderService {
                     dto.setVariantId(v.getId());
                     dto.setSku(v.getSku());
                     if (v.getProduct() != null) {
+                        dto.setProductId(v.getProduct().getId());
                         dto.setProductName(v.getProduct().getName());
                     }
                     // For variant name, we can use attribute values if available
@@ -291,15 +310,15 @@ public class OrderService {
                     dto.setImageUrl(v.getImageUrl());
                 }
                 return dto;
-            }).toList());
+            }).collect(Collectors.toList()));
         }
         return res;
     }
     private void validateCheckoutRequest(CheckoutRequest req) {
-        if (req.getPaymentMethod() == null || req.getPaymentMethod().isBlank()) {
+        if (req.getPaymentMethod() == null || req.getPaymentMethod().trim().isEmpty()) {
             throw new RuntimeException("Payment method is required");
         }
-        List<String> allowedMethods = List.of("COD", "VNPAY", "MOMO");
+        List<String> allowedMethods = Arrays.asList("COD", "VNPAY", "MOMO");
         if (!allowedMethods.contains(req.getPaymentMethod().toUpperCase())) {
             throw new RuntimeException("Invalid payment method: " + req.getPaymentMethod());
         }

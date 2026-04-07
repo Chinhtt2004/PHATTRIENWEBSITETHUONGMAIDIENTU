@@ -7,6 +7,8 @@ import os
 from dotenv import load_dotenv
 
 import requests
+from tools import search_products_by_keyword, get_best_selling_products, get_flash_sale_products, check_order_status, check_user_cart, get_product_reviews, get_store_policies, recommend_skincare_routine
+from context_var import request_token
 
 load_dotenv()
 
@@ -26,6 +28,7 @@ class QueryRequest(BaseModel):
     message: str
     user_id: Optional[int] = None
     user_name: Optional[str] = None
+    token: Optional[str] = None
 
 class QueryResponse(BaseModel):
     response: str
@@ -37,50 +40,32 @@ class ProductSyncRequest(BaseModel):
 
 SYSTEM_PROMPT = """
 Bạn là một trợ lý bán hàng chuyên nghiệp, thân thiện và am hiểu tại cửa hàng mỹ phẩm GlowSkin.
-Nhiệm vụ của bạn là hỗ trợ khách hàng tìm kiếm sản phẩm, tư vấn mỹ phẩm và giải đáp các thắc mắc.
+Nhiệm vụ của bạn là hỗ trợ khách hàng tìm kiếm sản phẩm, tư vấn mỹ phẩm và giải đáp các thắc mắc bằng cách sử dụng TẤT CẢ các công cụ (tools) được cung cấp.
 
-HƯỚNG DẪN TRẢ LỜI:
-1. Luôn chào khách hàng một cách lịch sự (Dùng tên khách nếu có: {user_name}).
-2. Sử dụng thông tin sản phẩm được cung cấp bên dưới (bao gồm tên, mô tả, giá, danh mục) để tư vấn chính xác và hấp dẫn, có thể thêm các câu dẫn dắt để tăng tính thân thiện và trải nghiệm.
-3. Nếu không tìm thấy sản phẩm phù hợp trong dữ liệu, hãy xin lỗi và đề xuất khách hàng liên hệ hotline 1900-xxxx hoặc nhắn tin trực tiếp cho nhân viên tư vấn.
-4. Trình bày ngắn gọn, dễ hiểu, sử dụng các icon phù hợp để tăng tính thân thiện.
-5. Luôn giữ thái độ tích cực, nhiệt tình và chuyên nghiệp.
-6. Nếu khách hàng hỏi về giá hoặc số lượng tồn kho, hãy trả lời theo thông tin được cung cấp trong dữ liệu
-7. Không trả lời các câu hỏi không liên quan đến sản phẩm hoặc dịch vụ của cửa hàng
-
-DƯỚI ĐÂY LÀ DANH SÁCH SẢN PHẨM KHỚP VỚI YÊU CẦU (LẤY TỪ HỆ THỐNG):
-{context}
-
-CÂU HỎI CỦA KHÁCH HÀNG:
-{query}
+HƯỚNG DẪN TRẢ LỜI CỰC KỲ QUAN TRỌNG:
+1. Luôn chào khách hàng một cách lịch sự. Tưng tửng, đáng yêu. Thái độ tích cực, nhiệt tình, chuyên nghiệp. Trình bày ngắn gọn, dễ hiểu, sử dụng icon phù hợp để tăng tính thân thiện
+2. NẾU KHÁCH HỎI TÌM SẢN PHẨM (Ví dụ: "Mình muốn tìm sữa rửa mặt", "Có son nào đẹp không"): 
+   -> Gọi hàm `search_products_by_keyword`.
+3. NẾU KHÁCH HỎI SẢN PHẨM BÁN CHẠY (Ví dụ: "Sản phẩm nào hot", "Shop có gì bán chạy"): 
+   -> Gọi hàm `get_best_selling_products`.
+4. NẾU KHÁCH HỎI KHUYẾN MÃI/FLASH SALE (Ví dụ: "Hôm nay có gì sale"): 
+   -> Gọi hàm `get_flash_sale_products`.
+5. NẾU KHÁCH HỎI TRẠNG THÁI ĐƠN HÀNG (Ví dụ: "Đơn hàng 12 của tôi thế nào rồi?"):
+   -> Gọi hàm `check_order_status` với order_id truyền vào (nếu khách không đưa ID, hãy hỏi ID trước).
+6. NẾU KHÁCH HỎI VỀ GIỎ HÀNG CỦA HỌ (Ví dụ: "Trong giỏ của tôi có gì?"):
+   -> Gọi hàm `check_user_cart`. Nếu trả về lỗi báo đăng nhập, hãy hướng dẫn khách vui lòng đăng nhập trên website.
+7. NẾU KHÁCH HỎI VỀ NHẬN XÉT/ĐÁNH GIÁ (Ví dụ: "Sản phẩm này mọi người review sao?"):
+   -> Gọi hàm `get_product_reviews` truyền id sản phẩm.
+8. NẾU KHÁCH HỎI VỀ CHÍNH SÁCH CỬA HÀNG (Ví dụ: "Shop có cho đổi trả không", "Phí ship thế nào"):
+   -> Gọi hàm `get_store_policies`.
+9. NẾU KHÁCH MUỐN TƯ VẤN QUY TRÌNH DƯỠNG DA MỚI (Ví dụ: "Tư vấn cho tôi da mụn", "skincare routine lỗ chân lông to"):
+   -> Gọi hàm `recommend_skincare_routine`.
+10. Đợi kết quả từ hàm, dùng để tổng hợp câu trả lời tự nhiên, thân thiện.
+11. NẾU GỌI HÀM KẾT QUẢ RỖNG, hãy xin lỗi và phản hồi thân thiện. BẠN TUYỆT ĐỐI KHÔNG ĐƯỢC BỊA THÔNG TIN SẢN PHẨM HAY GIÁ TRỊ GIẢ TƯỞNG CỦA CỬA HÀNG.
 """
 
-def fetch_product_details(product_ids: List[str]) -> str:
-    """
-    Calls Spring Boot API to get full details for each product ID.
-    """
-    context_parts = []
-    for pid in product_ids:
-        try:
-            response = requests.get(f"{BASE_API_URL}/product/{pid}", timeout=2)
-            if response.status_code == 200:
-                p = response.json()
-                details = (
-                    f"- Tên: {p.get('name')}\n"
-                    f"  Mô tả: {p.get('description')}\n"
-                    f"  Giá: {p.get('price'):,.0f} VND\n"
-                    f"  Tồn kho: {p.get('stockQuantity')}\n"
-                    f"  Danh mục: {p.get('category', {}).get('name') if isinstance(p.get('category'), dict) else 'Chưa phân loại'}"
-                )
-                context_parts.append(details)
-            else:
-                print(f"Error fetching product {pid}: {response.status_code}; Continue...")
-                continue
-        except Exception as e:
-            print(f"Error fetching product {pid}: {e}")
-            continue
-    
-    return "\n\n".join(context_parts) if context_parts else "Không tìm thấy thông tin chi tiết sản phẩm."
+# Các tools được định nghĩa và quản lý trong file tools.py
+# =================================================
 
 @app.get("/")
 async def root():
@@ -89,29 +74,35 @@ async def root():
 @app.post("/query", response_model=QueryResponse)
 async def query(request: QueryRequest):
     try:
-        # 1. Vector Search for products (Get IDs)
-        search_results = search_products(request.message, n_results=5)
-        
-        # 2. Fetch Full Details from Spring Boot
-        product_ids = []
-        if search_results and "ids" in search_results:
-            product_ids = search_results["ids"][0]
-        
-        context = fetch_product_details(product_ids)
-        
-        # 3. Create Prompt
-        prompt = SYSTEM_PROMPT.format(
-            user_name=request.user_name or "bạn",
-            context=context,
-            query=request.message
+        if request.token:
+            request_token.set(request.token)
+        else:
+            request_token.set(None)
+            
+        if not GEMINI_API_KEY:
+            return QueryResponse(response="Dịch vụ AI chưa được cấu hình. Vui lòng thử lại sau.")
+            
+        # Khởi tạo mô hình với các custom tools
+        model = genai.GenerativeModel(
+            model_name='gemini-2.5-flash-lite',
+            tools=[search_products_by_keyword, get_best_selling_products, get_flash_sale_products, check_order_status, check_user_cart, get_product_reviews, get_store_policies, recommend_skincare_routine]
         )
         
-        # 4. Call Gemini
-        if not GEMINI_API_KEY:
-            return QueryResponse(response="Dịch vụ AI chưa được cấu hình (Thiếu GEMINI_API_KEY). Vui lòng liên hệ kỹ thuật.")
-            
-        model = genai.GenerativeModel('gemini-2.5-flash')
-        response = model.generate_content(prompt)
+        # Thiết lập System Prompt thông qua tin nhắn mồi (nhằm tương thích với các phiên bản SDK)
+        # Bắt đầu session chat tự động gọi tool
+        chat = model.start_chat(
+            history=[
+                {"role": "user", "parts": [SYSTEM_PROMPT]},
+                {"role": "model", "parts": ["Ok! Tôi đã hiểu hướng dẫn và công cụ. Tôi sẽ làm theo."]}
+            ],
+            enable_automatic_function_calling=True
+        )
+        
+        # Gửi lời nhắn của khách hàng và nhận phản hồi
+        greeting = f"Tên của tôi là {request.user_name}. " if request.user_name else ""
+        user_msg = greeting + request.message
+        
+        response = chat.send_message(user_msg)
         
         return QueryResponse(response=response.text)
         

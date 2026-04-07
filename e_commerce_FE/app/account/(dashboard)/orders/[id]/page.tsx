@@ -3,14 +3,14 @@
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { 
-  Package, 
-  ChevronLeft, 
-  Loader2, 
-  Clock, 
-  CheckCircle2, 
-  Truck, 
-  XCircle, 
+import {
+  Package,
+  ChevronLeft,
+  Loader2,
+  Clock,
+  CheckCircle2,
+  Truck,
+  XCircle,
   AlertCircle,
   MapPin,
   CreditCard,
@@ -24,7 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { formatPrice } from "@/lib/data";
-import { fetchMyOrderDetail, cancelMyOrder, type OrderResponse } from "@/lib/api";
+import { fetchMyOrderDetail, cancelMyOrder, type OrderResponse, slugify } from "@/lib/api";
 import { toast } from "sonner";
 import Image from "next/image";
 import { ReviewModal } from "@/components/reviews/review-modal";
@@ -39,11 +39,11 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
   const resolvedParams = use(params);
   const router = useRouter();
   const orderId = Number(resolvedParams.id);
-  
+
   const [order, setOrder] = useState<OrderResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCancelling, setIsCancelling] = useState(false);
-  
+
   // Review Modal State
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<{
@@ -72,7 +72,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
 
   const handleCancelOrder = async () => {
     if (!confirm("Bạn có chắc chắn muốn hủy đơn hàng này không?")) return;
-    
+
     setIsCancelling(true);
     try {
       await cancelMyOrder(orderId);
@@ -112,6 +112,8 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
         return { label: "Chờ xử lý", color: "bg-warning/10 text-warning border-warning/20", icon: <Clock className="h-4 w-4" /> };
       case "CONFIRMED":
         return { label: "Đã xác nhận", color: "bg-info/10 text-info border-info/20", icon: <CheckCircle2 className="h-4 w-4" /> };
+      case "SHIPPED":
+        return { label: "Đã giao hàng", color: "bg-info/10 text-info border-info/20", icon: <CheckCircle2 className="h-4 w-4" /> };
       case "SHIPPING":
         return { label: "Đang giao hàng", color: "bg-primary/10 text-primary border-primary/20", icon: <Truck className="h-4 w-4" /> };
       case "DELIVERED":
@@ -149,11 +151,11 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
             </p>
           </div>
         </div>
-        
+
         {order.orderStatus.toUpperCase() === "PENDING" && (
-          <Button 
-            variant="destructive" 
-            size="sm" 
+          <Button
+            variant="destructive"
+            size="sm"
             className="rounded-full px-6 shadow-lg shadow-destructive/10"
             onClick={handleCancelOrder}
             disabled={isCancelling}
@@ -177,7 +179,11 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
             <CardContent className="p-0">
               <div className="divide-y divide-border/50">
                 {order.items?.map((item) => (
-                  <div key={item.id} className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 hover:bg-muted/10 transition-colors group">
+                  <Link 
+                    key={item.id} 
+                    href={`/product/${slugify(item.productName)}-${item.productId}`}
+                    className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4 hover:bg-muted/10 transition-colors group"
+                  >
                     <div className="relative h-24 w-24 rounded-2xl overflow-hidden bg-muted flex-shrink-0 border border-border/50 shadow-sm group-hover:scale-105 transition-transform">
                       <Image
                         src={item.imageUrl || "/placeholder.svg"}
@@ -186,30 +192,30 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
                         className="object-cover"
                       />
                     </div>
-                    
+
                     <div className="flex-1 min-w-0">
                       <h4 className="font-bold text-base line-clamp-1 mb-1 group-hover:text-primary transition-colors">
                         {item.productName}
                       </h4>
                       {item.variantName && (
                         <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1.5">
-                           <span className="inline-block w-2 h-2 rounded-full bg-primary-light"></span>
-                           Phân loại: {item.variantName}
+                          <span className="inline-block w-2 h-2 rounded-full bg-primary-light"></span>
+                          Phân loại: {item.variantName}
                         </p>
                       )}
                       <div className="flex items-center justify-between mt-2">
                         <div className="space-y-0.5">
-                           <p className="text-sm font-bold text-primary">{formatPrice(item.price)}</p>
-                           <p className="text-xs text-muted-foreground">Số lượng: x{item.quantity}</p>
+                          <p className="text-sm font-bold text-primary">{formatPrice(item.price)}</p>
+                          <p className="text-xs text-muted-foreground">Số lượng: x{item.quantity}</p>
                         </div>
                         <p className="font-bold text-base">{formatPrice(item.price * item.quantity)}</p>
                       </div>
                     </div>
-                    
+
                     {order.orderStatus.toUpperCase() === "DELIVERED" && (
-                      <Button 
-                        size="sm" 
-                        variant="secondary" 
+                      <Button
+                        size="sm"
+                        variant="secondary"
                         className="rounded-full gap-2 px-4 border border-primary/20 hover:bg-primary hover:text-white transition-all sm:self-center"
                         onClick={() => openReviewModal(item)}
                       >
@@ -217,7 +223,7 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
                         Đánh giá
                       </Button>
                     )}
-                  </div>
+                  </Link>
                 ))}
               </div>
             </CardContent>
@@ -227,38 +233,38 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
           <Card className="border-border/50 shadow-sm overflow-hidden">
             <CardHeader className="bg-muted/30 border-b border-border/50 py-4">
               <CardTitle className="text-lg flex items-center gap-2 text-info">
-                 <History className="h-5 w-5" />
-                 Lịch sử đơn hàng
+                <History className="h-5 w-5" />
+                Lịch sử đơn hàng
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
               <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-muted">
-                 <div className="relative">
-                    <div className={`absolute -left-6 top-1 h-3 w-3 rounded-full border-2 border-white ring-4 ring-primary-light ${order.orderStatus.toUpperCase() !== 'CANCELLED' ? 'bg-primary' : 'bg-muted'}`}></div>
-                    <p className="text-sm font-bold">Đặt hàng thành công</p>
-                    <p className="text-xs text-muted-foreground">{new Date(order.orderDate).toLocaleString("vi-VN")}</p>
-                 </div>
-                 {order.orderStatus.toUpperCase() === "CANCELLED" ? (
+                <div className="relative">
+                  <div className={`absolute -left-6 top-1 h-3 w-3 rounded-full border-2 border-white ring-4 ring-primary-light ${order.orderStatus.toUpperCase() !== 'CANCELLED' ? 'bg-primary' : 'bg-muted'}`}></div>
+                  <p className="text-sm font-bold">Đặt hàng thành công</p>
+                  <p className="text-xs text-muted-foreground">{new Date(order.orderDate).toLocaleString("vi-VN")}</p>
+                </div>
+                {order.orderStatus.toUpperCase() === "CANCELLED" ? (
+                  <div className="relative">
+                    <div className="absolute -left-6 top-1 h-3 w-3 rounded-full border-2 border-white ring-4 ring-destructive/20 bg-destructive"></div>
+                    <p className="text-sm font-bold text-destructive">Đơn hàng đã hủy</p>
+                  </div>
+                ) : (
+                  <>
                     <div className="relative">
-                       <div className="absolute -left-6 top-1 h-3 w-3 rounded-full border-2 border-white ring-4 ring-destructive/20 bg-destructive"></div>
-                       <p className="text-sm font-bold text-destructive">Đơn hàng đã hủy</p>
+                      <div className={`absolute -left-6 top-1 h-3 w-3 rounded-full border-2 border-white ring-4 ${['DELIVERED', 'SHIPPING', 'SHIPPED', 'CONFIRMED', 'PROCESSING'].includes(order.orderStatus.toUpperCase()) ? 'ring-primary-light bg-primary' : 'ring-muted bg-muted/50'}`}></div>
+                      <p className={`text-sm font-bold ${['DELIVERED', 'SHIPPING', 'SHIPPED', 'CONFIRMED', 'PROCESSING'].includes(order.orderStatus.toUpperCase()) ? '' : 'text-muted-foreground'}`}>Người bán đã xác nhận đơn hàng</p>
                     </div>
-                 ) : (
-                    <>
-                       <div className="relative">
-                          <div className={`absolute -left-6 top-1 h-3 w-3 rounded-full border-2 border-white ring-4 ${['DELIVERED', 'SHIPPING', 'CONFIRMED'].includes(order.orderStatus.toUpperCase()) ? 'ring-primary-light bg-primary' : 'ring-muted bg-muted/50'}`}></div>
-                          <p className={`text-sm font-bold ${['DELIVERED', 'SHIPPING', 'CONFIRMED'].includes(order.orderStatus.toUpperCase()) ? '' : 'text-muted-foreground'}`}>Người bán đã xác nhận đơn hàng</p>
-                       </div>
-                       <div className="relative">
-                          <div className={`absolute -left-6 top-1 h-3 w-3 rounded-full border-2 border-white ring-4 ${['DELIVERED', 'SHIPPING'].includes(order.orderStatus.toUpperCase()) ? 'ring-primary-light bg-primary' : 'ring-muted bg-muted/50'}`}></div>
-                          <p className={`text-sm font-bold ${['DELIVERED', 'SHIPPING'].includes(order.orderStatus.toUpperCase()) ? '' : 'text-muted-foreground'}`}>Đơn hàng đang trên đường vận chuyển</p>
-                       </div>
-                       <div className="relative">
-                          <div className={`absolute -left-6 top-1 h-3 w-3 rounded-full border-2 border-white ring-4 ${order.orderStatus.toUpperCase() === 'DELIVERED' ? 'ring-success-light bg-success' : 'ring-muted bg-muted/50'}`}></div>
-                          <p className={`text-sm font-bold ${order.orderStatus.toUpperCase() === 'DELIVERED' ? 'text-success' : 'text-muted-foreground'}`}>Giao hàng thành công</p>
-                       </div>
-                    </>
-                 )}
+                    <div className="relative">
+                      <div className={`absolute -left-6 top-1 h-3 w-3 rounded-full border-2 border-white ring-4 ${['DELIVERED', 'SHIPPING', 'SHIPPED'].includes(order.orderStatus.toUpperCase()) ? 'ring-primary-light bg-primary' : 'ring-muted bg-muted/50'}`}></div>
+                      <p className={`text-sm font-bold ${['DELIVERED', 'SHIPPING', 'SHIPPED'].includes(order.orderStatus.toUpperCase()) ? '' : 'text-muted-foreground'}`}>Đơn hàng đang trên đường vận chuyển</p>
+                    </div>
+                    <div className="relative">
+                      <div className={`absolute -left-6 top-1 h-3 w-3 rounded-full border-2 border-white ring-4 ${order.orderStatus.toUpperCase() === 'DELIVERED' ? 'ring-success-light bg-success' : 'ring-muted bg-muted/50'}`}></div>
+                      <p className={`text-sm font-bold ${order.orderStatus.toUpperCase() === 'DELIVERED' ? 'text-success' : 'text-muted-foreground'}`}>Giao hàng thành công</p>
+                    </div>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -337,11 +343,11 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
               </div>
             </CardContent>
             {order.paymentUrl && order.paymentStatus.toUpperCase() !== 'PAID' && order.orderStatus.toUpperCase() !== 'CANCELLED' && (
-               <CardFooter className="p-4 pt-0">
-                  <Button className="w-full bg-info hover:bg-info-hover rounded-full shadow-lg shadow-info/20 font-bold" asChild>
-                     <a href={order.paymentUrl}>Thanh toán ngay</a>
-                  </Button>
-               </CardFooter>
+              <CardFooter className="p-4 pt-0">
+                <Button className="w-full bg-info hover:bg-info-hover rounded-full shadow-lg shadow-info/20 font-bold" asChild>
+                  <a href={order.paymentUrl}>Thanh toán ngay</a>
+                </Button>
+              </CardFooter>
             )}
           </Card>
         </div>

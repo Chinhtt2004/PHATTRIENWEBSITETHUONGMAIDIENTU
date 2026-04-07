@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useTransition } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { Filter, SlidersHorizontal, Grid3X3, LayoutGrid, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Filter, SlidersHorizontal, Grid3X3, LayoutGrid, X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -70,6 +70,7 @@ export function ProductsContent({ initialCategoryId, showBreadcrumb = true }: Pr
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
 
   // URL state
   const page = parseInt(searchParams.get("page") || "1") - 1;
@@ -119,7 +120,10 @@ export function ProductsContent({ initialCategoryId, showBreadcrumb = true }: Pr
       current.delete("page");
     }
 
-    router.push(`${pathname}?${current.toString()}`);
+    startTransition(() => {
+      // Always use scroll: false and handle scrolling manually if needed to avoid jumps
+      router.push(`${pathname}?${current.toString()}`, { scroll: false });
+    });
   }, [searchParams, pathname, router]);
 
   useEffect(() => {
@@ -563,16 +567,25 @@ export function ProductsContent({ initialCategoryId, showBreadcrumb = true }: Pr
           </div>
         )}
 
-        {isLoading ? (
+        {isLoading && products.length === 0 ? (
               <div className="grid grid-cols-2 gap-4 md:gap-6 lg:grid-cols-4 animate-pulse">
                 {[...Array(8)].map((_, i) => (
                   <div key={i} className="aspect-[4/5] bg-muted/40 rounded-2xl" />
                 ))}
               </div>
             ) : products.length > 0 ? (
-              <>
+              <div className="relative group/grid">
+                {/* Visual loading indicator for filtering */}
+                {(isLoading || isPending) && (
+                   <div className="absolute inset-0 z-10 bg-background/30 backdrop-blur-[1px] flex flex-col items-center justify-start pt-20 transition-all duration-300 rounded-3xl">
+                      <div className="bg-white/80 p-4 rounded-full shadow-lg flex items-center gap-3 border border-border/50 animate-in fade-in zoom-in duration-300">
+                         <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                         <span className="text-sm font-medium">Đang cập nhật...</span>
+                      </div>
+                   </div>
+                )}
                 <div
-                  className={`grid grid-cols-2 gap-4 md:gap-6 ${
+                  className={`grid grid-cols-2 gap-4 md:gap-6 transition-opacity duration-300 ${(isLoading || isPending) ? "opacity-60 grayscale-[20%]" : "opacity-100"} ${
                     gridCols === 3 ? "lg:grid-cols-3" : "lg:grid-cols-4"
                   }`}
                 >
@@ -655,7 +668,7 @@ export function ProductsContent({ initialCategoryId, showBreadcrumb = true }: Pr
                     </p>
                   </div>
                 )}
-              </>
+              </div>
             ) : (
               <div className="text-center py-20 bg-white/40 backdrop-blur-sm rounded-3xl border border-dashed border-border mt-8">
                 <div className="bg-muted/50 h-20 w-20 rounded-full flex items-center justify-center mx-auto mb-6">

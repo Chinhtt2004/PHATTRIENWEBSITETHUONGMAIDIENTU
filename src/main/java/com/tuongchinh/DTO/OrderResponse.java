@@ -20,5 +20,6 @@ public class OrderResponse {
     private LocalDateTime orderDate;
     private String voucherCode;
     private BigDecimal discountAmount;
+    private String paymentUrl;
     private List<OrderItemDTO> items;
 }

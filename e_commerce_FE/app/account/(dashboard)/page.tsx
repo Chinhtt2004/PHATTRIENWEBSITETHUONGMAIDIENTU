@@ -58,7 +58,7 @@ export default function AccountPage() {
   const displayName = user?.name || "bạn";
   const recentOrders = orders.slice(0, 3);
   const activeVouchersCount = vouchers.filter(v => v.isActive && new Date(v.expiryDate) > new Date()).length;
-  const shippingOrdersCount = orders.filter(o => o.orderStatus === "SHIPPING" || o.orderStatus === "CONFIRMED").length;
+  const shippingOrdersCount = orders.filter(o => o.orderStatus === "SHIPPING" || o.orderStatus === "SHIPPED" || o.orderStatus === "CONFIRMED").length;
 
   const defaultAvatar = user?.gender === "male"
     ? "https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=200&h=200&fit=crop"
@@ -75,7 +75,8 @@ export default function AccountPage() {
     switch (status.toUpperCase()) {
       case "PENDING": return <Clock className="h-4 w-4" />;
       case "CONFIRMED": return <CheckCircle2 className="h-4 w-4" />;
-      case "SHIPPING": return <Truck className="h-4 w-4" />;
+      case "SHIPPING":
+      case "SHIPPED": return <Truck className="h-4 w-4" />;
       case "DELIVERED": return <CheckCircle2 className="h-4 w-4" />;
       case "CANCELLED": return <XCircle className="h-4 w-4" />;
       default: return <AlertCircle className="h-4 w-4" />;
@@ -86,7 +87,8 @@ export default function AccountPage() {
     switch (status.toUpperCase()) {
       case "PENDING": return "bg-warning/10 text-warning border-warning/20";
       case "CONFIRMED": return "bg-info/10 text-info border-info/20";
-      case "SHIPPING": return "bg-primary/10 text-primary border-primary/20";
+      case "SHIPPING":
+      case "SHIPPED": return "bg-primary/10 text-primary border-primary/20";
       case "DELIVERED": return "bg-success/10 text-success border-success/20";
       case "CANCELLED": return "bg-destructive/10 text-destructive border-destructive/20";
       default: return "bg-muted text-muted-foreground";
@@ -97,7 +99,8 @@ export default function AccountPage() {
     switch (status.toUpperCase()) {
       case "PENDING": return "Chờ xử lý";
       case "CONFIRMED": return "Đã xác nhận";
-      case "SHIPPING": return "Đang giao";
+      case "SHIPPING":
+      case "SHIPPED": return "Đang giao";
       case "DELIVERED": return "Đã giao";
       case "CANCELLED": return "Đã hủy";
       default: return status;

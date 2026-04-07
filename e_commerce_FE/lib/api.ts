@@ -988,6 +988,7 @@ export interface OrderItemDTO {
   quantity: number;
   price: number;
   variantId: number;
+  productId: number;
   sku: string;
   productName: string;
   variantName: string;

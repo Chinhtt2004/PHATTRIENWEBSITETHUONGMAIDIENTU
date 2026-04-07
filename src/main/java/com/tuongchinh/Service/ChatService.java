@@ -29,12 +29,13 @@ public class ChatService {
     @Value("${rag.delete.url:http://localhost:8000/delete-product/}")
     private String deleteUrl;
 
-    public ChatResponse getResponse(User user, ChatRequest request) {
+    public ChatResponse getResponse(User user, ChatRequest request, String token) {
         // ... payload preparation ...
         Map<String, Object> payload = new HashMap<>();
         payload.put("message", request.getMessage());
         payload.put("user_id", user != null ? user.getId() : null);
         payload.put("user_name", user != null ? user.getName() : "Khách");
+        payload.put("token", token);
         
         String botResponse;
         try {

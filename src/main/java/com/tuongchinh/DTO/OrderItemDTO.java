@@ -10,6 +10,7 @@ public class OrderItemDTO {
     private Integer quantity;
     private BigDecimal price;
     private Long variantId;
+    private Long productId;
     private String sku;
     private String productName;
     private String variantName;

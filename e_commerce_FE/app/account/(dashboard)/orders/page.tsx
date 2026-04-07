@@ -40,6 +40,7 @@ export default function OrdersPage() {
       case "CONFIRMED":
         return { label: "Đã xác nhận", color: "bg-info/10 text-info" };
       case "SHIPPING":
+      case "SHIPPED":
         return { label: "Đang giao", color: "bg-primary/10 text-primary" };
       case "DELIVERED":
         return { label: "Đã giao", color: "bg-success/10 text-success" };
@@ -52,6 +53,12 @@ export default function OrdersPage() {
 
   const filterOrders = (status?: string) => {
     if (!status || status === "all") return orders;
+    if (status === "shipping") {
+        return orders.filter((order) => 
+            order.orderStatus.toUpperCase() === "SHIPPING" || 
+            order.orderStatus.toUpperCase() === "SHIPPED"
+        );
+    }
     return orders.filter((order) => order.orderStatus.toUpperCase() === status.toUpperCase());
   };
 
