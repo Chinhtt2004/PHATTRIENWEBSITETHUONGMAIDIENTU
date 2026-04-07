@@ -26,6 +26,7 @@ public class ProductService {
     private final ProductImageRepository productImageRepository;
     private final CloudinaryService cloudinaryService;
     private final AttributeValueRepository attributeValueRepository;
+    private final CategoryService categoryService;
 
     public Page<ProductResponse> searchProducts(
             String keyword, Double minPrice, Double maxPrice,
@@ -33,12 +34,17 @@ public class ProductService {
             List<Long> attributeValueIds,
             int page, int size, String sortBy, String sortDir) {
 
+        // Mở rộng categoryIds để bao gồm cả các danh mục con
+        List<Long> allCategoryIds = (categoryIds != null && !categoryIds.isEmpty())
+                ? categoryService.getCategoryIdsWithChildren(categoryIds)
+                : null;
+
         Sort sort = sortDir.equalsIgnoreCase("desc")
                 ? Sort.by(sortBy).descending()
                 : Sort.by(sortBy).ascending();
 
         Page<Product> products = productRepository.findAll(
-                ProductSpecification.filter(keyword, minPrice, maxPrice, categoryIds, brandIds, inStock,
+                ProductSpecification.filter(keyword, minPrice, maxPrice, allCategoryIds, brandIds, inStock,
                         attributeValueIds),
                 PageRequest.of(page, size, sort));
 

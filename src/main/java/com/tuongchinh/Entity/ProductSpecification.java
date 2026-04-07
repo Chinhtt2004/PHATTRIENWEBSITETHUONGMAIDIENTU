@@ -21,7 +21,7 @@ public class ProductSpecification {
             Predicate predicate = cb.conjunction();
 
             // Tìm theo tên
-            if (keyword != null && !keyword.isBlank()) {
+            if (keyword != null && !keyword.trim().isEmpty()) {
                 predicate = cb.and(predicate,
                         cb.like(
                                 cb.lower(root.get("name")),
@@ -59,34 +59,33 @@ public class ProductSpecification {
                 predicate = cb.and(predicate, root.get("id").in(attrQuery));
             }
 
-            // Lọc theo giá min — dùng subquery MIN(price) từ ProductVariant
-            if (minPrice != null) {
-                Subquery<BigDecimal> minPriceQuery = query.subquery(BigDecimal.class);
-                Root<ProductVariant> variantRoot = minPriceQuery.from(ProductVariant.class);
-                minPriceQuery
-                        .select(cb.min(variantRoot.get("price")))
-                        .where(
-                                cb.equal(variantRoot.get("product"), root),
-                                cb.isTrue(variantRoot.get("isActive"))
-                        );
-                predicate = cb.and(predicate,
-                        cb.greaterThanOrEqualTo(minPriceQuery, BigDecimal.valueOf(minPrice))
+            // Lọc theo giá (min và max) — kiểm tra nếu có ANY variant nào có giá nằm trong khoảng
+            if (minPrice != null || maxPrice != null) {
+                Subquery<Long> priceQuery = query.subquery(Long.class);
+                Root<ProductVariant> priceRoot = priceQuery.from(ProductVariant.class);
+                
+                // Effective Price = coalesce(discountPrice, price)
+                Expression<BigDecimal> effectivePrice = cb.coalesce(
+                    priceRoot.get("discountPrice"), 
+                    priceRoot.get("price")
                 );
-            }
 
-            // Lọc theo giá max
-            if (maxPrice != null) {
-                Subquery<BigDecimal> maxPriceQuery = query.subquery(BigDecimal.class);
-                Root<ProductVariant> variantRoot = maxPriceQuery.from(ProductVariant.class);
-                maxPriceQuery
-                        .select(cb.min(variantRoot.get("price")))
-                        .where(
-                                cb.equal(variantRoot.get("product"), root),
-                                cb.isTrue(variantRoot.get("isActive"))
-                        );
-                predicate = cb.and(predicate,
-                        cb.lessThanOrEqualTo(maxPriceQuery, BigDecimal.valueOf(maxPrice))
+                Predicate pricePredicate = cb.and(
+                    cb.equal(priceRoot.get("product"), root),
+                    cb.isTrue(priceRoot.get("isActive"))
                 );
+
+                if (minPrice != null) {
+                    pricePredicate = cb.and(pricePredicate, 
+                        cb.greaterThanOrEqualTo(effectivePrice, BigDecimal.valueOf(minPrice)));
+                }
+                if (maxPrice != null) {
+                    pricePredicate = cb.and(pricePredicate, 
+                        cb.lessThanOrEqualTo(effectivePrice, BigDecimal.valueOf(maxPrice)));
+                }
+
+                priceQuery.select(priceRoot.get("id")).where(pricePredicate);
+                predicate = cb.and(predicate, cb.exists(priceQuery));
             }
 
             // Lọc chỉ còn hàng

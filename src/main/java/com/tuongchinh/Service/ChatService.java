@@ -11,7 +11,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -30,31 +32,40 @@ public class ChatService {
     private String deleteUrl;
 
     public ChatResponse getResponse(User user, ChatRequest request, String token) {
-        // ... payload preparation ...
         Map<String, Object> payload = new HashMap<>();
         payload.put("message", request.getMessage());
         payload.put("user_id", user != null ? user.getId() : null);
         payload.put("user_name", user != null ? user.getName() : "Khách");
         payload.put("token", token);
+        payload.put("history", request.getHistory());
         
-        String botResponse;
+        ChatResponse pythonResponse;
         try {
-            ChatResponse pythonResponse = restTemplate.postForObject(queryUrl, payload, ChatResponse.class);
-            botResponse = (pythonResponse != null) ? pythonResponse.getResponse() : "Xin lỗi, chatbot đang gặp sự cố.";
+            pythonResponse = restTemplate.postForObject(queryUrl, payload, ChatResponse.class);
+            if (pythonResponse == null) {
+                pythonResponse = new ChatResponse("Xin lỗi, chatbot đang gặp sự cố.");
+            }
         } catch (Exception e) {
-            botResponse = "Xin lỗi, tôi không thể kết nối với dịch vụ AI lúc này. Vui lòng thử lại sau.";
+            pythonResponse = new ChatResponse("Xin lỗi, tôi không thể kết nối với dịch vụ AI lúc này. Vui lòng thử lại sau.");
         }
         
-        // ... database save (only if user is logged in) ...
         if (user != null) {
             ChatMessage chatMessage = new ChatMessage();
             chatMessage.setUser(user);
             chatMessage.setMessage(request.getMessage());
-            chatMessage.setResponse(botResponse);
+            chatMessage.setResponse(pythonResponse.getResponse());
+            
+            if (pythonResponse.getProductIds() != null && !pythonResponse.getProductIds().isEmpty()) {
+                String idsString = pythonResponse.getProductIds().stream()
+                        .map(String::valueOf)
+                        .collect(Collectors.joining(","));
+                chatMessage.setProductIds(idsString);
+            }
+            
             chatMessageRepository.save(chatMessage);
         }
 
-        return new ChatResponse(botResponse);
+        return pythonResponse;
     }
 
     public void syncProduct(Long id, String name, String description) {

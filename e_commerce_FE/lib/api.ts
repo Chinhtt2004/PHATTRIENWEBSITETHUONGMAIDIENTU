@@ -436,8 +436,30 @@ export function mapBackendProduct(product: BackendProduct): Product {
   }
 
   const compareAtPrice = displayVariant.compareAtPrice ? Number(displayVariant.compareAtPrice) : null;
-  const badge =
-    totalStock > 20 ? "bestseller" : totalStock <= 5 ? "sale" : "new";
+  
+  // Refined badge logic
+  const badges: string[] = [];
+  
+  // 1. Sale badge (if there is a real discount)
+  if (compareAtPrice && compareAtPrice > displayPrice) {
+    badges.push("sale");
+  }
+  
+  // 2. Bestseller badge (based on totalSold)
+  if (product.totalSold && product.totalSold >= 50) {
+    badges.push("bestseller");
+  }
+  
+  // 3. New badge (created within the last 14 days)
+  const isNew = product.createdAt ? (new Date().getTime() - new Date(product.createdAt).getTime()) < 14 * 24 * 60 * 60 * 1000 : false;
+  if (isNew) {
+    badges.push("new");
+  }
+
+  // Fallback: If no badges and totalStock is low, highlight as last items
+  if (badges.length === 0 && totalStock > 0 && totalStock <= 5) {
+    badges.push("sale"); // or a different category if we want
+  }
 
   return {
     id: String(product.id),
@@ -459,7 +481,7 @@ export function mapBackendProduct(product: BackendProduct): Product {
       count: product.totalReviews ?? 0
     },
     totalSold: product.totalSold ?? 0,
-    badges: [badge],
+    badges: badges,
     inventory: { available: totalStock > 0, quantity: totalStock },
     ingredients: [],
     reviews: [],
@@ -1140,14 +1162,15 @@ export interface ChatMessageResponse {
   message: string;
   response: string;
   createdAt: string;
+  productIds?: string;
 }
 
-export async function sendChatMessage(message: string): Promise<{ response: string }> {
+export async function sendChatMessage(message: string, history?: {role: string, content: string}[]): Promise<{ response: string, product_ids?: number[] }> {
   const res = await fetch(`${API_BASE_URL}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ message }),
+    body: JSON.stringify({ message, history }),
   });
   return ensureOk(res);
 }

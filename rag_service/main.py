@@ -4,6 +4,7 @@ from typing import Optional, List
 from vector_store import search_products, update_single_product, delete_single_product
 import google.generativeai as genai
 import os
+import re
 from dotenv import load_dotenv
 
 import requests
@@ -24,14 +25,20 @@ BASE_API_URL = os.getenv("BASE_API_URL", "http://localhost:8081/api/public")
 
 app = FastAPI(title="GlowSkin RAG Service")
 
+class Message(BaseModel):
+    role: str
+    content: str
+
 class QueryRequest(BaseModel):
     message: str
+    history: Optional[List[Message]] = None
     user_id: Optional[int] = None
     user_name: Optional[str] = None
     token: Optional[str] = None
 
 class QueryResponse(BaseModel):
     response: str
+    product_ids: Optional[List[int]] = None
 
 class ProductSyncRequest(BaseModel):
     id: int
@@ -62,6 +69,8 @@ HƯỚNG DẪN TRẢ LỜI CỰC KỲ QUAN TRỌNG:
    -> Gọi hàm `recommend_skincare_routine`.
 10. Đợi kết quả từ hàm, dùng để tổng hợp câu trả lời tự nhiên, thân thiện.
 11. NẾU GỌI HÀM KẾT QUẢ RỖNG, hãy xin lỗi và phản hồi thân thiện. BẠN TUYỆT ĐỐI KHÔNG ĐƯỢC BỊA THÔNG TIN SẢN PHẨM HAY GIÁ TRỊ GIẢ TƯỞNG CỦA CỬA HÀNG.
+12. NẾU BẠN GỢI Ý HOẶC GIỚI THIỆU SẢN PHẨM CỤ THỂ, ở CUỐI CÙNG của câu trả lời, hãy ĐÍNH KÈM THẺ: [PRODUCTS: id1, id2, ...] với id là mã số ID của sản phẩm đó. Ví dụ: [PRODUCTS: 1, 45, 12]. Nếu không có sản phẩm cụ thể thì không cần đính kèm thẻ này. Thẻ này phải nằm ở cuối cùng và tách biệt.
+13. Bạn là người Việt Nam, hãy trả lời bằng tiếng Việt tự nhiên, trẻ trung.
 """
 
 # Các tools được định nghĩa và quản lý trong file tools.py
@@ -88,13 +97,22 @@ async def query(request: QueryRequest):
             tools=[search_products_by_keyword, get_best_selling_products, get_flash_sale_products, check_order_status, check_user_cart, get_product_reviews, get_store_policies, recommend_skincare_routine]
         )
         
-        # Thiết lập System Prompt thông qua tin nhắn mồi (nhằm tương thích với các phiên bản SDK)
+        # Thiết lập lịch sử chat (Trimming to last 10 messages for efficiency)
+        gemini_history = [
+            {"role": "user", "parts": [SYSTEM_PROMPT]},
+            {"role": "model", "parts": ["Ok! Tôi đã hiểu hướng dẫn và công cụ. Tôi sẽ làm theo."]}
+        ]
+        
+        if request.history:
+            # Chỉ lấy tối đa 10 tin nhắn gần nhất
+            short_history = request.history[-10:]
+            for h in short_history:
+                role = "user" if h.role == "user" else "model"
+                gemini_history.append({"role": role, "parts": [h.content]})
+        
         # Bắt đầu session chat tự động gọi tool
         chat = model.start_chat(
-            history=[
-                {"role": "user", "parts": [SYSTEM_PROMPT]},
-                {"role": "model", "parts": ["Ok! Tôi đã hiểu hướng dẫn và công cụ. Tôi sẽ làm theo."]}
-            ],
+            history=gemini_history,
             enable_automatic_function_calling=True
         )
         
@@ -103,8 +121,21 @@ async def query(request: QueryRequest):
         user_msg = greeting + request.message
         
         response = chat.send_message(user_msg)
+        raw_response = response.text
         
-        return QueryResponse(response=response.text)
+        # Trích xuất mã sản phẩm từ response tags
+        product_ids = []
+        product_tag_match = re.search(r"\[PRODUCTS:\s*([\d,\s]+)\]", raw_response)
+        if product_tag_match:
+            ids_str = product_tag_match.group(1)
+            try:
+                product_ids = [int(i.strip()) for i in ids_str.split(",") if i.strip().isdigit()]
+                # Làm sạch response text (xóa tag)
+                raw_response = re.sub(r"\[PRODUCTS:\s*([\d,\s]+)\]", "", raw_response).strip()
+            except:
+                pass
+            
+        return QueryResponse(response=raw_response, product_ids=product_ids)
         
     except Exception as e:
         print(f"Error in RAG query: {str(e)}")

@@ -542,7 +542,11 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
               )}
             </TabsContent>
             <TabsContent value="reviews" className="mt-6">
-              <ProductReviews productId={Number(product.id)} />
+              <ProductReviews 
+                productId={Number(product.id)} 
+                averageRating={product.rating.average}
+                totalReviews={product.rating.count}
+              />
             </TabsContent>
           </Tabs>
         </div>

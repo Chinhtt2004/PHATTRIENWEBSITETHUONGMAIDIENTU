@@ -7,6 +7,8 @@ import com.tuongchinh.Repository.CategoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,16 +30,9 @@ public class CategoryServiceImpl implements CategoryService {
         return all.stream()
                 .filter(c -> c.getParent() == null)
                 .map(c -> mapToResponse(c, groupByParent))
-                .toList();
+                .collect(Collectors.toList());
     }
 
-    // @Override
-    // public CategoryResponse getById(Long id) {
-    // Category category = categoryRepository.findById(id)
-    // .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục: " + id));
-    // return mapToResponse(category);
-    // }
-    //
     @Override
     public String create(CategoryRequest request) {
         try {
@@ -63,32 +58,6 @@ public class CategoryServiceImpl implements CategoryService {
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục: " + id));
         categoryRepository.delete(category);
     }
-    // @Override
-    // public CategoryResponse update(Long id, CategoryRequest request) {
-    // Category category = categoryRepository.findById(id)
-    // .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục: " + id));
-    //
-    // category.setName(request.getName());
-    // category.setDescription(request.getDescription());
-    //
-    // if (request.getParentId() != null) {
-    // Category parent = categoryRepository.findById(request.getParentId())
-    // .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục cha: " +
-    // request.getParentId()));
-    // category.setParent(parent);
-    // } else {
-    // category.setParent(null); // đổi thành danh mục cha
-    // }
-    //
-    // return mapToResponse(categoryRepository.save(category));
-    // }
-    //
-    // @Override
-    // public void delete(Long id) {
-    // Category category = categoryRepository.findById(id)
-    // .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục: " + id));
-    // categoryRepository.delete(category);
-    // }
 
     // Map entity sang response
     public CategoryResponse mapToResponse(Category category, Map<Long, List<Category>> groupByParent) {
@@ -98,14 +67,13 @@ public class CategoryServiceImpl implements CategoryService {
         response.setDescription(category.getDescription());
         response.setParentId(category.getParent() != null ? category.getParent().getId() : null);
 
-        // Dùng groupByParent đã build sẵn thay vì gọi getChildren() (tránh N+1 lazy
-        // load)
-        List<Category> children = groupByParent.getOrDefault(category.getId(), List.of());
+        // Dùng groupByParent đã build sẵn thay vì gọi getChildren() (tránh N+1 lazy load)
+        List<Category> children = groupByParent.getOrDefault(category.getId(), Collections.emptyList());
 
         // Map con trước để tính productCount của con
         List<CategoryResponse> mappedChildren = children.stream()
                 .map(c -> mapToResponse(c, groupByParent))
-                .toList();
+                .collect(Collectors.toList());
         response.setChildren(mappedChildren);
 
         // Tính productCount = của bản thân + tổng của con
@@ -137,4 +105,34 @@ public class CategoryServiceImpl implements CategoryService {
         return mapToResponse(categoryRepository.save(category), new HashMap<>());
     }
 
+    @Override
+    public List<Long> getCategoryIdsWithChildren(List<Long> categoryIds) {
+        if (categoryIds == null || categoryIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<Category> allCategories = categoryRepository.findAll();
+        Map<Long, List<Long>> parentToChildrenIds = allCategories.stream()
+                .filter(c -> c.getParent() != null)
+                .collect(Collectors.groupingBy(
+                        c -> c.getParent().getId(),
+                        Collectors.mapping(Category::getId, Collectors.toList())
+                ));
+
+        java.util.Set<Long> resultIds = new java.util.HashSet<>();
+        for (Long id : categoryIds) {
+            addChildrenRecursive(id, parentToChildrenIds, resultIds);
+        }
+        return new ArrayList<>(resultIds);
+    }
+
+    private void addChildrenRecursive(Long parentId, Map<Long, List<Long>> parentToChildrenIds, java.util.Set<Long> resultIds) {
+        resultIds.add(parentId);
+        List<Long> children = parentToChildrenIds.get(parentId);
+        if (children != null) {
+            for (Long childId : children) {
+                addChildrenRecursive(childId, parentToChildrenIds, resultIds);
+            }
+        }
+    }
 }

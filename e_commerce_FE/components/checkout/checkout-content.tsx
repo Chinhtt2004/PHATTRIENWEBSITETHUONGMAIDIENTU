@@ -21,6 +21,9 @@ import {
   Wallet,
   Banknote,
   Tag,
+  Plus,
+  Home,
+  CheckCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,7 +48,21 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { formatPrice, type Product } from "@/lib/data";
-import { fetchCartItems, fetchProducts, fetchUserProfile, fetchPublicVouchers, checkout, createVNPayPayment, applyVoucher, fetchAddresses, type Voucher, type VoucherApplyResponse, type AddressResponse } from "@/lib/api";
+import { 
+  fetchCartItems, 
+  fetchProducts, 
+  fetchUserProfile, 
+  fetchPublicVouchers, 
+  checkout, 
+  createVNPayPayment, 
+  applyVoucher, 
+  fetchAddresses, 
+  addAddress,
+  type Voucher, 
+  type VoucherApplyResponse, 
+  type AddressResponse,
+  type AddressRequest
+} from "@/lib/api";
 import { useEffect } from "react";
 
 const steps = [
@@ -128,6 +145,27 @@ export function CheckoutContent() {
   const [userAddresses, setUserAddresses] = useState<AddressResponse[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
 
+  // Add Address State
+  const [isAddAddressDialogOpen, setIsAddAddressDialogOpen] = useState(false);
+  const [newAddressData, setNewAddressData] = useState<AddressRequest>({
+    receiverName: "",
+    phone: "",
+    address: "",
+    isDefault: false
+  });
+  const [isAddingAddress, setIsAddingAddress] = useState(false);
+
+  const loadAddresses = async () => {
+    try {
+      const addrs = await fetchAddresses();
+      setUserAddresses(addrs);
+      return addrs;
+    } catch (error) {
+      console.error("Failed to fetch addresses:", error);
+      return [];
+    }
+  };
+
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -136,7 +174,7 @@ export function CheckoutContent() {
           fetchProducts(),
           fetchUserProfile(),
           fetchPublicVouchers(),
-          fetchAddresses()
+          loadAddresses()
         ]);
 
         if (itemsResult.status === 'fulfilled' && productsResult.status === 'fulfilled') {
@@ -250,6 +288,39 @@ export function CheckoutContent() {
         district: "",
         city: ""
       }));
+    }
+  };
+
+  const handleAddAddress = async () => {
+    if (!newAddressData.receiverName || !newAddressData.phone || !newAddressData.address) {
+      toast.error("Vui lòng điền đầy đủ thông tin địa chỉ");
+      return;
+    }
+
+    setIsAddingAddress(true);
+    try {
+      await addAddress(newAddressData);
+      toast.success("Đã thêm địa chỉ mới");
+      const addrs = await loadAddresses();
+      
+      // Auto select the new address
+      const newAddr = addrs[addrs.length - 1]; 
+      if (newAddr) {
+        handleAddressSelect(newAddr.id.toString());
+      }
+      
+      setIsAddAddressDialogOpen(false);
+      setNewAddressData({
+        receiverName: "",
+        phone: "",
+        address: "",
+        isDefault: false
+      });
+    } catch (error) {
+      toast.error("Không thể thêm địa chỉ mới");
+      console.error(error);
+    } finally {
+      setIsAddingAddress(false);
     }
   };
 
@@ -387,26 +458,6 @@ export function CheckoutContent() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-5 pt-6">
-                {userAddresses.length > 0 && (
-                  <div className="space-y-2 pb-2 border-b border-dashed border-primary/20">
-                    <Label className="text-sm font-medium text-primary">Chọn từ địa chỉ đã lưu</Label>
-                    <Select
-                      value={selectedAddressId?.toString()}
-                      onValueChange={handleAddressSelect}
-                    >
-                      <SelectTrigger className="rounded-lg border-primary/20">
-                        <SelectValue placeholder="Chọn một địa chỉ" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {userAddresses.map((addr) => (
-                          <SelectItem key={addr.id} value={addr.id.toString()}>
-                            {addr.receiverName} - {addr.address} {addr.isDefault ? "(Mặc định)" : ""}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="firstName" className="text-sm font-medium">
@@ -474,15 +525,64 @@ export function CheckoutContent() {
                   <Label htmlFor="address" className="text-sm font-medium">
                     Địa chỉ <span className="text-rose-500">*</span>
                   </Label>
-                  <Input
-                    id="address"
-                    name="address"
-                    placeholder="Số nhà, tên đường"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    className="rounded-lg border-primary/15 focus:border-primary focus:ring-primary/20"
-                    required
-                  />
+                  <div className="relative">
+                    <Input
+                      id="address"
+                      name="address"
+                      placeholder="Số nhà, tên đường"
+                      value={formData.address}
+                      onChange={handleInputChange}
+                      className="rounded-lg border-primary/15 focus:border-primary focus:ring-primary/20 pr-10"
+                      required
+                    />
+                    <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
+                  </div>
+                  
+                  {userAddresses.length > 0 && (
+                    <div className="mt-3 p-3 rounded-xl bg-gradient-to-br from-primary-light/10 to-transparent border border-primary/5 space-y-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <Label className="text-[10px] font-bold text-primary flex items-center gap-1.5 uppercase tracking-widest opacity-80">
+                          <Sparkles className="h-3 w-3" />
+                          Chọn từ địa chỉ đã lưu
+                        </Label>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-[10px] text-primary h-auto p-0 hover:bg-transparent font-bold flex items-center gap-1"
+                          onClick={() => setIsAddAddressDialogOpen(true)}
+                        >
+                          <Plus className="h-3 w-3" />
+                          Thêm mới
+                        </Button>
+                      </div>
+                      <Select
+                        value={selectedAddressId?.toString()}
+                        onValueChange={handleAddressSelect}
+                      >
+                        <SelectTrigger className="rounded-lg border-primary/10 bg-white/50 backdrop-blur-sm text-xs h-9 shadow-sm hover:border-primary/30 transition-all">
+                          <SelectValue placeholder="Chọn địa chỉ để tự động điền" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[300px]">
+                          {userAddresses.map((addr) => (
+                            <SelectItem key={addr.id} value={addr.id.toString()} className="text-xs focus:bg-primary-light/20">
+                              <div className="flex items-start gap-2 py-1.5">
+                                <div className={`mt-0.5 p-1 rounded-md ${addr.isDefault ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                                  {addr.isDefault ? <Home className="h-3 w-3" /> : <MapPin className="h-3 w-3" />}
+                                </div>
+                                <div className="flex flex-col min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold truncate">{addr.receiverName}</span>
+                                    {addr.isDefault && <Badge className="text-[8px] h-3.5 px-1 bg-primary/20 text-primary border-none">Mặc định</Badge>}
+                                  </div>
+                                  <span className="text-muted-foreground truncate opacity-80">{addr.address}</span>
+                                </div>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
 
                 {/* Tạm ẩn Phường, Quận, Thành phố */}
@@ -541,6 +641,7 @@ export function CheckoutContent() {
                     className="rounded-lg border-primary/15 focus:border-primary focus:ring-primary/20"
                   />
                 </div>
+
               </CardContent>
             </Card>
           )}
@@ -986,6 +1087,91 @@ export function CheckoutContent() {
                       );
                     })
                   )}
+                </div>
+              </DialogContent>
+            </Dialog>
+
+            {/* Add Address Dialog */}
+            <Dialog open={isAddAddressDialogOpen} onOpenChange={setIsAddAddressDialogOpen}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="font-serif">Thêm địa chỉ giao hàng mới</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="new-receiverName" className="text-sm font-medium">
+                      Họ và tên người nhận <span className="text-rose-500">*</span>
+                    </Label>
+                    <Input
+                      id="new-receiverName"
+                      placeholder="Nguyễn Văn A"
+                      value={newAddressData.receiverName}
+                      onChange={(e) => setNewAddressData(prev => ({ ...prev, receiverName: e.target.value }))}
+                      className="rounded-lg border-primary/15 focus:border-primary"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new-phone" className="text-sm font-medium">
+                      Số điện thoại <span className="text-rose-500">*</span>
+                    </Label>
+                    <Input
+                      id="new-phone"
+                      type="tel"
+                      placeholder="0901234567"
+                      value={newAddressData.phone}
+                      onChange={(e) => setNewAddressData(prev => ({ ...prev, phone: e.target.value }))}
+                      className="rounded-lg border-primary/15 focus:border-primary"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new-address" className="text-sm font-medium">
+                      Địa chỉ chi tiết <span className="text-rose-500">*</span>
+                    </Label>
+                    <Input
+                      id="new-address"
+                      placeholder="Số nhà, tên đường, phường/xã..."
+                      value={newAddressData.address}
+                      onChange={(e) => setNewAddressData(prev => ({ ...prev, address: e.target.value }))}
+                      className="rounded-lg border-primary/15 focus:border-primary"
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2 pt-2">
+                    <input
+                      type="checkbox"
+                      id="new-isDefault"
+                      checked={newAddressData.isDefault}
+                      onChange={(e) => setNewAddressData(prev => ({ ...prev, isDefault: e.target.checked }))}
+                      className="h-4 w-4 rounded border-primary/20 text-primary focus:ring-primary/20"
+                    />
+                    <label htmlFor="new-isDefault" className="text-sm text-muted-foreground cursor-pointer">
+                      Đặt làm địa chỉ mặc định
+                    </label>
+                  </div>
+                  
+                  <div className="flex gap-3 pt-4">
+                    <Button 
+                      variant="outline" 
+                      className="flex-1 rounded-full"
+                      onClick={() => setIsAddAddressDialogOpen(false)}
+                      disabled={isAddingAddress}
+                    >
+                      Hủy
+                    </Button>
+                    <Button 
+                      className="flex-1 rounded-full bg-primary hover:bg-primary-hover shadow-md shadow-primary/20"
+                      onClick={handleAddAddress}
+                      disabled={isAddingAddress}
+                    >
+                      {isAddingAddress ? (
+                        <>
+                          <span className="animate-spin mr-2">✿</span>
+                          Đang lưu...
+                        </>
+                      ) : (
+                        "Lưu địa chỉ"
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </DialogContent>
             </Dialog>

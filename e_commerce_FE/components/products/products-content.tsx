@@ -81,8 +81,8 @@ export function ProductsContent({ initialCategoryId, showBreadcrumb = true }: Pr
   const brandIds = (searchParams.get("brand") || "").split(",").filter(Boolean).map(Number);
   const attributeValueIds = (searchParams.get("skinType") || "").split(",").filter(Boolean).map(Number);
   
-  const minPrice = searchParams.get("minPrice") ? Number(searchParams.get("minPrice")) : undefined;
-  const maxPrice = searchParams.get("maxPrice") ? Number(searchParams.get("maxPrice")) : undefined;
+  const minPrice = searchParams.has("minPrice") ? Number(searchParams.get("minPrice")) : undefined;
+  const maxPrice = searchParams.has("maxPrice") ? Number(searchParams.get("maxPrice")) : undefined;
   const keyword = searchParams.get("q") || undefined;
 
   // Local state
@@ -95,12 +95,22 @@ export function ProductsContent({ initialCategoryId, showBreadcrumb = true }: Pr
   const [totalElements, setTotalElements] = useState(0);
   const [gridCols, setGridCols] = useState<3 | 4>(4);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [localPriceRange, setLocalPriceRange] = useState<[number, number]>([0, 1000000]);
+  const [localPriceRange, setLocalPriceRange] = useState<[number, number]>([0, 5000000]);
+  const [openCategories, setOpenCategories] = useState<string[]>([]);
 
-  // Sync price slider with URL periodically or on commitment
+  // Sync open categories with initial selection
+  useEffect(() => {
+    if (categoryIds.length > 0) {
+      setOpenCategories(prev => {
+        const newIds = categoryIds.map(String);
+        const combined = new Set([...prev, ...newIds]);
+        return Array.from(combined);
+      });
+    }
+  }, []); // Only on first load
   useEffect(() => {
     if (minPrice !== undefined || maxPrice !== undefined) {
-      setLocalPriceRange([minPrice || 0, maxPrice || 1000000]);
+      setLocalPriceRange([minPrice || 0, maxPrice || 5000000]);
     }
   }, [minPrice, maxPrice]);
 
@@ -133,7 +143,7 @@ export function ProductsContent({ initialCategoryId, showBreadcrumb = true }: Pr
         const [pageData, categoriesData, brandsData, attributesData] = await Promise.all([
           fetchProductsPage({
             page,
-            size: 12,
+            size: 24,
             sortBy: sortBy.split("-")[0],
             sortDir: sortBy.split("-")[1],
             categoryIds: categoryIds.length > 0 ? categoryIds : undefined,
@@ -190,6 +200,41 @@ export function ProductsContent({ initialCategoryId, showBreadcrumb = true }: Pr
     updateFilters({ [key]: newIds.length > 0 ? newIds.join(",") : undefined });
   };
 
+  const handleCategoryToggle = (category: Category, checked: boolean | string) => {
+    const currentIds = new Set((searchParams.get("category") || "").split(",").filter(Boolean).map(Number));
+    const isChecked = checked === true;
+    
+    // Recursive function to find all child IDs in the flat categories list
+    const getDescendantIds = (parentId: string, allCats: Category[]): number[] => {
+      let ids: number[] = [Number(parentId)];
+      const children = allCats.filter(c => String(c.parentId) === parentId);
+      children.forEach(child => {
+        ids = [...ids, ...getDescendantIds(child.id, allCats)];
+      });
+      return ids;
+    };
+
+    const descendantIds = getDescendantIds(category.id, categories);
+
+    if (isChecked) {
+      descendantIds.forEach(id => currentIds.add(id));
+    } else {
+      // Unchecking: Remove the category and all its descendants
+      descendantIds.forEach(id => currentIds.delete(id));
+      
+      // Also recursively remove all parent IDs since the full branch is no longer selected
+      let currentParentId = category.parentId;
+      while (currentParentId) {
+        currentIds.delete(Number(currentParentId));
+        const parentCat = categories.find(c => String(c.id) === String(currentParentId));
+        currentParentId = parentCat?.parentId;
+      }
+    }
+
+    const newIdsArray = Array.from(currentIds);
+    updateFilters({ category: newIdsArray.length > 0 ? newIdsArray.join(",") : undefined });
+  };
+
   const handlePageChange = (newPage: number) => {
     updateFilters({ page: newPage + 1 });
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -203,14 +248,19 @@ export function ProductsContent({ initialCategoryId, showBreadcrumb = true }: Pr
       {!initialCategoryId && (
         <div className="space-y-3">
           <h3 className="font-semibold px-1 text-base">Danh mục</h3>
-          <Accordion type="multiple" defaultValue={categoryIds.map(String)} className="w-full">
+          <Accordion 
+            type="multiple" 
+            value={openCategories} 
+            onValueChange={setOpenCategories} 
+            className="w-full"
+          >
             {categoryTree.map((category) => (
               <AccordionItem key={category.id} value={String(category.id)} className="border-none">
                 <div className="flex items-center gap-2 group py-1">
-                  <Checkbox
+                    <Checkbox
                     id={`cat-${category.id}`}
                     checked={categoryIds.includes(Number(category.id))}
-                    onCheckedChange={() => toggleFilter("category", Number(category.id))}
+                    onCheckedChange={(checked) => handleCategoryToggle(category, checked)}
                     className="rounded-sm border-muted-foreground/30 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                   />
                   {category.children && category.children.length > 0 ? (
@@ -240,7 +290,7 @@ export function ProductsContent({ initialCategoryId, showBreadcrumb = true }: Pr
                           <Checkbox
                             id={`cat-${child.id}`}
                             checked={categoryIds.includes(Number(child.id))}
-                            onCheckedChange={() => toggleFilter("category", Number(child.id))}
+                            onCheckedChange={(checked) => handleCategoryToggle(child, checked)}
                             className="rounded-sm border-muted-foreground/20 data-[state=checked]:bg-primary/80 data-[state=checked]:border-primary/80 scale-90"
                           />
                           <Label 
@@ -273,11 +323,11 @@ export function ProductsContent({ initialCategoryId, showBreadcrumb = true }: Pr
             onValueCommit={(value) => {
               updateFilters({ 
                 minPrice: value[0] === 0 ? undefined : value[0], 
-                maxPrice: value[1] === 1000000 ? undefined : value[1] 
+                maxPrice: value[1] === 5000000 ? undefined : value[1] 
               });
             }}
-            max={1000000}
-            step={10000}
+            max={5000000}
+            step={50000}
             className="mb-6"
           />
           <div className="flex items-center gap-3">
@@ -310,7 +360,7 @@ export function ProductsContent({ initialCategoryId, showBreadcrumb = true }: Pr
                     setLocalPriceRange([localPriceRange[0], val]);
                   }}
                   onBlur={() => {
-                    updateFilters({ maxPrice: localPriceRange[1] === 1000000 ? undefined : localPriceRange[1] });
+                    updateFilters({ maxPrice: localPriceRange[1] === 5000000 ? undefined : localPriceRange[1] });
                   }}
                   className="h-9 px-2 text-xs font-semibold bg-muted/40 rounded-lg border-border/50 focus:bg-background transition-all"
                 />
@@ -552,7 +602,7 @@ export function ProductsContent({ initialCategoryId, showBreadcrumb = true }: Pr
             })}
             {(minPrice !== undefined || maxPrice !== undefined) && (
               <Badge variant="outline" className="pl-2 pr-1 py-1 gap-1 bg-orange-500/5 border-orange-500/20 text-orange-600 rounded-lg text-xs font-medium">
-                {formatPrice(minPrice || 0)} - {formatPrice(maxPrice || 1000000)}
+                {formatPrice(minPrice || 0)} - {formatPrice(maxPrice || 5000000)}
                 <button onClick={() => updateFilters({ minPrice: undefined, maxPrice: undefined })} className="hover:bg-orange-500/20 rounded-full p-0.5 transition-colors">
                   <X className="w-3 h-3" />
                 </button>

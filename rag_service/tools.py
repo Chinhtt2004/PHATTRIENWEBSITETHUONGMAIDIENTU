@@ -31,7 +31,8 @@ def fetch_product_details(product_ids: List[str]) -> str:
                 brand_name = p.get('brandName') or 'Không có'
                 
                 details = (
-                    f"- Tên: {p.get('name')}\n"
+                    f"- ID: {p.get('id')}\n"
+                    f"  Tên: {p.get('name')}\n"
                     f"  Mô tả: {p.get('description')}\n"
                     f"  Giá (từ): {price:,.0f} VND\n"
                     f"  Thương hiệu: {brand_name}\n"

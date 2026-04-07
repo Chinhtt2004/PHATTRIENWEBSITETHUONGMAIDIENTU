@@ -3,11 +3,18 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, Tag } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, Tag, Sparkles, Gift, Check, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -19,30 +26,56 @@ import {
 import { toast } from "sonner";
 import { formatPrice } from "@/lib/data";
 import { useCart } from "@/contexts/cart-context";
+import { fetchPublicVouchers, applyVoucher as apiApplyVoucher, type Voucher, type VoucherApplyResponse } from "@/lib/api";
+import { useEffect } from "react";
 
 export function CartContent() {
   const { cartItems, isLoading, removeItem, updateQuantity } = useCart();
   const [authRequired, setAuthRequired] = useState(false);
   const [voucherCode, setVoucherCode] = useState("");
-  const [appliedVoucher, setAppliedVoucher] = useState<{
-    code: string;
-    discount: number;
-  } | null>(null);
+  const [vouchers, setVouchers] = useState<Voucher[]>([]);
+  const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
+  const [isVoucherDialogOpen, setIsVoucherDialogOpen] = useState(false);
+  const [appliedVoucherResult, setAppliedVoucherResult] = useState<VoucherApplyResponse | null>(null);
 
-  const applyVoucher = () => {
-    if (!voucherCode) return;
-    // Mock voucher validation
-    if (voucherCode.toUpperCase() === "SUMMER20") {
-      setAppliedVoucher({ code: "SUMMER20", discount: 0.1 });
-      toast.success("Đã áp dụng mã giảm giá SUMMER20");
-    } else {
-      toast.error("Mã giảm giá không hợp lệ");
+  useEffect(() => {
+    const loadVouchers = async () => {
+      try {
+        const data = await fetchPublicVouchers();
+        setVouchers(data.filter((v: Voucher) => v.isActive));
+      } catch (error) {
+        console.error("Failed to fetch vouchers:", error);
+      }
+    };
+    loadVouchers();
+  }, []);
+
+  const handleApplyCoupon = async (code: string) => {
+    const targetCode = code || voucherCode;
+    if (!targetCode) {
+      toast.error("Vui lòng nhập mã giảm giá");
+      return;
     }
-    setVoucherCode("");
+
+    try {
+      const result = await apiApplyVoucher({
+        code: targetCode,
+        orderAmount: subtotal
+      });
+      setAppliedVoucherResult(result);
+      const voucher = vouchers.find(v => v.code === result.code);
+      if (voucher) setSelectedVoucher(voucher);
+      toast.success(result.message);
+      setVoucherCode("");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Mã giảm giá không hợp lệ";
+      toast.error(message);
+    }
   };
 
-  const removeVoucher = () => {
-    setAppliedVoucher(null);
+  const handleRemoveVoucher = () => {
+    setAppliedVoucherResult(null);
+    setSelectedVoucher(null);
     toast.success("Đã xóa mã giảm giá");
   };
 
@@ -50,8 +83,9 @@ export function CartContent() {
     (sum, item) => sum + item.price * item.quantity,
     0
   );
-  const discount = appliedVoucher ? subtotal * appliedVoucher.discount : 0;
-  const shipping = subtotal >= 500000 ? 0 : 30000;
+  const discount = appliedVoucherResult?.discountAmount || 0;
+  const isFreeShippingPromo = appliedVoucherResult?.type === "SHIPPING";
+  const shipping = (subtotal >= 500000 || isFreeShippingPromo) ? 0 : 30000;
   const total = subtotal - discount + shipping;
 
   if (isLoading) {
@@ -215,22 +249,20 @@ export function CartContent() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Voucher */}
-                <div>
-                  <label className="text-sm font-medium mb-2 block">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium mb-1 block">
                     Mã giảm giá
                   </label>
-                  {appliedVoucher ? (
-                    <div className="flex items-center justify-between bg-success-light p-3 rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <Tag className="h-4 w-4 text-success" />
-                        <span className="text-sm font-medium">
-                          {appliedVoucher.code}
-                        </span>
+                  {appliedVoucherResult ? (
+                    <div className="flex items-center justify-between bg-primary-light/20 p-3 rounded-lg border border-primary/20">
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <Badge className="bg-primary text-[10px] h-5">{appliedVoucherResult.code}</Badge>
+                        <span className="text-[10px] text-muted-foreground truncate">Tiết kiệm {formatPrice(appliedVoucherResult.discountAmount)}</span>
                       </div>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={removeVoucher}
+                        onClick={handleRemoveVoucher}
                         className="h-auto p-0 text-muted-foreground hover:text-destructive"
                       >
                         Xóa
@@ -238,16 +270,28 @@ export function CartContent() {
                     </div>
                   ) : (
                     <div className="flex gap-2">
-                      <Input
-                        placeholder="Nhập mã giảm giá"
-                        value={voucherCode}
-                        onChange={(e) => setVoucherCode(e.target.value)}
-                      />
-                      <Button variant="outline" onClick={applyVoucher}>
+                      <div className="relative flex-1">
+                        <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Nhập mã giảm giá"
+                          value={voucherCode}
+                          onChange={(e) => setVoucherCode(e.target.value)}
+                          className="pl-9"
+                        />
+                      </div>
+                      <Button variant="outline" onClick={() => handleApplyCoupon(voucherCode)}>
                         Áp dụng
                       </Button>
                     </div>
                   )}
+                  <Button
+                    variant="link"
+                    onClick={() => setIsVoucherDialogOpen(true)}
+                    className="text-xs text-primary h-auto p-0 flex items-center gap-1"
+                  >
+                    <Sparkles className="h-3 w-3" />
+                    Chọn từ danh sách voucher
+                  </Button>
                 </div>
 
                 <Separator />
@@ -258,9 +302,12 @@ export function CartContent() {
                     <span className="text-muted-foreground">Tạm tính</span>
                     <span>{formatPrice(subtotal)}</span>
                   </div>
-                  {appliedVoucher && (
+                  {discount > 0 && (
                     <div className="flex justify-between text-success">
-                      <span>Giảm giá ({appliedVoucher.code})</span>
+                      <span className="flex items-center gap-1">
+                        <Tag className="h-3 w-3" />
+                        Giảm giá
+                      </span>
                       <span>-{formatPrice(discount)}</span>
                     </div>
                   )}
@@ -307,6 +354,75 @@ export function CartContent() {
                 </p>
               </CardFooter>
             </Card>
+
+            {/* Voucher Selection Dialog */}
+            <Dialog open={isVoucherDialogOpen} onOpenChange={setIsVoucherDialogOpen}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="font-serif">Voucher dành cho bạn</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+                  {vouchers.length === 0 ? (
+                    <div className="py-10 text-center space-y-3">
+                      <Gift className="h-10 w-10 mx-auto text-muted-foreground opacity-20" />
+                      <p className="text-sm text-muted-foreground">Hiện chưa có voucher nào khả dụng.</p>
+                      <Button asChild variant="outline" size="sm">
+                        <Link href="/vouchers">Xem danh sách voucher</Link>
+                      </Button>
+                    </div>
+                  ) : (
+                    vouchers.map((voucher) => {
+                      const isEligible = subtotal >= (voucher.minOrderValue || 0);
+                      const isSelected = selectedVoucher?.id === voucher.id;
+                      return (
+                        <div
+                          key={voucher.id}
+                          onClick={() => {
+                            if (isEligible) {
+                              handleApplyCoupon(voucher.code);
+                              setIsVoucherDialogOpen(false);
+                            }
+                          }}
+                          className={`relative p-4 rounded-xl border-2 transition-all cursor-pointer group ${isSelected
+                            ? "border-primary bg-primary-light/10"
+                            : isEligible
+                              ? "border-muted hover:border-primary/50"
+                              : "opacity-50 grayscale cursor-not-allowed"
+                            }`}
+                        >
+                          <div className="flex items-start gap-4">
+                            <div className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${voucher.type === 'SHIPPING' ? 'bg-blue-100 text-blue-600' : 'bg-rose-100 text-rose-600'
+                              }`}>
+                              {voucher.type === 'SHIPPING' ? <Truck className="h-6 w-6" /> : <Gift className="h-6 w-6" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-sm">{voucher.code}</p>
+                              <p className="text-xs text-muted-foreground line-clamp-1">HSD: {new Date(voucher.expiryDate).toLocaleDateString("vi-VN")}</p>
+                              <div className="flex items-center gap-2 mt-2">
+                                <Badge variant="secondary" className="text-[10px] py-0">{
+                                  voucher.type === 'PERCENT' ? `Giảm ${voucher.value}%` :
+                                    voucher.type === 'FIXED' ? `Giảm ${formatPrice(voucher.value)}` : 'Free Ship'
+                                }</Badge>
+                                {!isEligible && (
+                                  <span className="text-[10px] text-rose-500 font-medium">
+                                    Thêm {formatPrice((voucher.minOrderValue || 0) - subtotal)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            {isSelected && (
+                              <div className="absolute top-2 right-2">
+                                <Check className="h-4 w-4 text-primary" />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </div>

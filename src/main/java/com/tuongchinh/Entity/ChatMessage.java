@@ -28,6 +28,9 @@ public class ChatMessage {
     @Column(columnDefinition = "TEXT")
     private String response;
 
+    @Column(columnDefinition = "TEXT")
+    private String productIds;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

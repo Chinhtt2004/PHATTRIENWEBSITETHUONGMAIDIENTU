@@ -4,12 +4,14 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { MessageCircle, X, Send, Bot, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { sendChatMessage, fetchChatHistory, ChatMessageResponse, fetchUserProfile } from "@/lib/api";
+import type { Product } from "@/lib/data";
 
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+  productIds?: number[];
 }
 
 const WELCOME_CONTENT =
@@ -21,6 +23,47 @@ const QUICK_REPLIES = [
   "Kiểm tra đơn hàng",
   "Chính sách bảo hành",
 ];
+
+function ChatProductCard({ id }: { id: number }) {
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    import("@/lib/api").then(api => {
+      api.fetchProductById(id)
+        .then(setProduct)
+        .catch(() => setProduct(null))
+        .finally(() => setLoading(false));
+    });
+  }, [id]);
+
+  if (loading) return <div className="w-32 h-44 bg-muted/20 animate-pulse rounded-xl flex-shrink-0" />;
+  if (!product) return null;
+
+  return (
+    <a
+      href={`/product/${product.slug}`}
+      className="flex-shrink-0 w-32 bg-white dark:bg-slate-800 rounded-xl border border-border overflow-hidden hover:shadow-md transition-all group"
+    >
+      <div className="aspect-[4/3] overflow-hidden relative">
+        <img
+          src={product.images[0]?.url}
+          alt={product.name}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+        />
+        {product.badges.includes("sale") && (
+          <span className="absolute top-1 left-1 bg-red-500 text-[8px] text-white px-1 rounded-sm font-bold">SALE</span>
+        )}
+      </div>
+      <div className="p-2 space-y-0.5">
+        <h4 className="text-[10px] font-bold line-clamp-1 group-hover:text-primary transition-colors">{product.name}</h4>
+        <p className="text-[9px] text-primary font-bold">
+          {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.price)}
+        </p>
+      </div>
+    </a>
+  );
+}
 
 export function ChatbotWidget() {
   const [isOpen, setIsOpen] = useState(false);
@@ -55,7 +98,7 @@ export function ChatbotWidget() {
     try {
       // Check latest profile
       await fetchUserProfile();
-      
+
       const prevLoggedIn = isLoggedIn;
       setIsLoggedIn(true);
 
@@ -63,7 +106,10 @@ export function ChatbotWidget() {
       if (isOpen && (!historyLoaded || !prevLoggedIn || forceHistoryLoad)) {
         setIsTyping(true);
         try {
-          const history = await fetchChatHistory();
+          const rawHistory = await fetchChatHistory();
+          // LIMIT: Only load the last 10 messages (5 pairs)
+          const history = rawHistory.slice(-3);
+
           if (history && history.length > 0) {
             const mappedMessages: Message[] = [];
             history.forEach((h: ChatMessageResponse) => {
@@ -78,6 +124,7 @@ export function ChatbotWidget() {
                 role: "assistant",
                 content: h.response,
                 timestamp: new Date(h.createdAt),
+                productIds: h.productIds ? h.productIds.split(',').map(Number) : undefined
               });
             });
             setMessages(mappedMessages);
@@ -122,7 +169,7 @@ export function ChatbotWidget() {
   // Handle Event for Real-time Auth Synchronization
   useEffect(() => {
     const handleAuthChange = () => {
-      refreshChatState(true); 
+      refreshChatState(true);
     };
 
     window.addEventListener("auth-change", handleAuthChange);
@@ -211,16 +258,25 @@ export function ChatbotWidget() {
             replyContent = "Vui lòng **Đăng nhập** để trò chuyện với AI của GlowSkin! 🛒\nHãy thử các gợi ý bên dưới nhé 👇";
           }
         } else {
-          const result = await sendChatMessage(trimmed);
-          replyContent = result.response;
-        }
+          // Send chat with truncated history for context
+          const chatHistory = messages
+            .filter(m => m.id !== "welcome")
+            .slice(-6) // Last 6 messages
+            .map(m => ({ role: m.role, content: m.content }));
 
-        setMessages(prev => [...prev, {
-          id: `bot-${Date.now()}`,
-          role: "assistant",
-          content: replyContent,
-          timestamp: new Date(),
-        }]);
+          const result = await sendChatMessage(trimmed, chatHistory);
+          replyContent = result.response;
+          const productIds = result.product_ids;
+
+          setMessages(prev => [...prev, {
+            id: `bot-${Date.now()}`,
+            role: "assistant",
+            content: replyContent,
+            timestamp: new Date(),
+            productIds: productIds && productIds.length > 0 ? productIds : undefined
+          }]);
+          return;
+        }
       } catch (error) {
         setMessages(prev => [...prev, {
           id: `err-${Date.now()}`,
@@ -313,6 +369,16 @@ export function ChatbotWidget() {
                     return <p key={i} dangerouslySetInnerHTML={{ __html: formattedLine }} className={cn(line.trim() === "" ? "h-2" : "mb-1")} />;
                   })}
                 </div>
+
+                {/* Product Cards Rendering */}
+                {msg.productIds && msg.productIds.length > 0 && (
+                  <div className="mt-4 flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                    {msg.productIds.map(id => (
+                      <ChatProductCard key={id} id={id} />
+                    ))}
+                  </div>
+                )}
+
                 <span className={cn("block text-[10px] mt-1.5 opacity-60", msg.role === "user" ? "text-right" : "text-left")}>
                   {formatTime(msg.timestamp)}
                 </span>
@@ -401,6 +467,8 @@ export function ChatbotWidget() {
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.1); border-radius: 10px; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
         .mask-gradient {
           mask-image: linear-gradient(to right, black 85%, transparent 100%);
           -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);

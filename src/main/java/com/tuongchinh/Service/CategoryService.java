@@ -14,6 +14,6 @@ public interface CategoryService {
       void delete(Long id);
       String create(CategoryRequest request);
       CategoryResponse update(Long id, CategoryRequest request);
-//    CategoryResponse upd  ate(Long id, CategoryRequest request);
+      List<Long> getCategoryIdsWithChildren(List<Long> categoryIds);
       CategoryResponse mapToResponse(Category category, Map<Long, List<Category>> groupByParent);
 }
