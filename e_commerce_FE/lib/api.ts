@@ -1239,4 +1239,13 @@ export async function deleteReview(reviewId: number): Promise<void> {
   return ensureOk(res);
 }
 
+// Webhook
+export async function triggerWebhook(orders: any[]): Promise<any> {
+  const res = await fetch(`${API_BASE_URL}/trigger-webhook`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(orders),
+  });
+  return ensureOk(res);
+}
 

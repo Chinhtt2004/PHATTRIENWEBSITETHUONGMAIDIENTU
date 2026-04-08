@@ -42,7 +42,7 @@ public class OrderService {
         }
         Address address;
         if (req.getAddressId() != null) {
-           address = addressRepository.findById(req.getAddressId())
+            address = addressRepository.findById(req.getAddressId())
                     .orElseThrow(() -> new RuntimeException("Address not found"));
 
             if (!address.getUser().getId().equals(userId)) {
@@ -73,8 +73,7 @@ public class OrderService {
             if (variant.getStock() < item.getQuantity()) {
                 throw new RuntimeException(
                         "Product " + variant.getProduct().getName()
-                                + " (SKU: " + variant.getSku() + ") out of stock"
-                );
+                                + " (SKU: " + variant.getSku() + ") out of stock");
             }
 
             variant.setStock(variant.getStock() - item.getQuantity());
@@ -105,8 +104,7 @@ public class OrderService {
             // Kiểm tra giá trị đơn tối thiểu
             if (total.compareTo(voucher.getMinOrderValue()) < 0) {
                 throw new RuntimeException(
-                        "Minimum order value is " + voucher.getMinOrderValue() + " to apply this voucher"
-                );
+                        "Minimum order value is " + voucher.getMinOrderValue() + " to apply this voucher");
             }
 
             BigDecimal discount;
@@ -178,13 +176,13 @@ public class OrderService {
             paymentResult = paymentService.processPayment(
                     order,
                     req.getPaymentMethod(),
-                    request   // ⚠️ cần truyền HttpServletRequest
+                    request // ⚠️ cần truyền HttpServletRequest
             );
         } catch (Exception e) {
             throw new RuntimeException("Payment error: " + e.getMessage());
         }
 
-// 10. Trả về response
+        // 10. Trả về response
         OrderResponse response = mapToOrderResponse(order);
         if ("VNPAY".equals(req.getPaymentMethod())) {
             response.setPaymentUrl(paymentResult);
@@ -209,7 +207,7 @@ public class OrderService {
         Order order = orderRepository.findById(request.getId())
                 .orElseThrow(() -> new RuntimeException("Order not found"));
         order.setOrderStatus(request.getStatus());
-        if(request.getStatus().equals("DELIVERED")) {
+        if (request.getStatus().equals("DELIVERED")) {
             order.setStatus("PAID");
             updateSoldCount(order);
         }
@@ -266,7 +264,7 @@ public class OrderService {
             throw new RuntimeException("Unauthorized access to order");
         }
         if (!"PENDING".equalsIgnoreCase(order.getOrderStatus())) {
-             throw new RuntimeException("Only pending orders can be cancelled");
+            throw new RuntimeException("Only pending orders can be cancelled");
         }
         order.setOrderStatus("CANCELLED");
         return mapToOrderResponse(orderRepository.save(order));
@@ -314,6 +312,7 @@ public class OrderService {
         }
         return res;
     }
+
     private void validateCheckoutRequest(CheckoutRequest req) {
         if (req.getPaymentMethod() == null || req.getPaymentMethod().trim().isEmpty()) {
             throw new RuntimeException("Payment method is required");

@@ -26,8 +26,7 @@ public class OrderController {
     @PostMapping("user/orders/checkout")
     public ResponseEntity<OrderResponse> checkout(
             @RequestBody CheckoutRequest req,
-            HttpServletRequest request
-    ) {
+            HttpServletRequest request) {
         String token = userService.extractToken(request);
         Long userId = jwtService.extractUserId(token);
         OrderResponse response = orderService.checkout(userId, req, request);
@@ -37,8 +36,7 @@ public class OrderController {
     // GET /api/user/orders
     @GetMapping("user/orders")
     public ResponseEntity<List<OrderResponse>> getMyOrders(
-            HttpServletRequest request
-    ) {
+            HttpServletRequest request) {
         String token = userService.extractToken(request);
         Long userId = jwtService.extractUserId(token);
         return ResponseEntity.ok(orderService.getOrdersByUser(userId));
@@ -48,8 +46,7 @@ public class OrderController {
     @GetMapping("user/orders/{id}")
     public ResponseEntity<OrderResponse> getOrderDetail(
             HttpServletRequest request,
-            @PathVariable Long id
-    ) {
+            @PathVariable Long id) {
         String token = userService.extractToken(request);
         Long userId = jwtService.extractUserId(token);
         return ResponseEntity.ok(orderService.getOrderDetail(userId, id));
@@ -59,8 +56,7 @@ public class OrderController {
     @PutMapping("/user/orders/cancel/{id}")
     public ResponseEntity<OrderResponse> cancelOrder(
             HttpServletRequest request,
-            @PathVariable Long id
-    ) {
+            @PathVariable Long id) {
         String token = userService.extractToken(request);
         Long userId = jwtService.extractUserId(token);
         return ResponseEntity.ok(orderService.cancelOrder(userId, id));
@@ -87,8 +83,7 @@ public class OrderController {
 
     @PutMapping("/admin/orders/status")
     public ResponseEntity<OrderResponse> updateStatus(
-            @RequestBody OrderUptateStatusRequest request
-            ) {
+            @RequestBody OrderUptateStatusRequest request) {
         return ResponseEntity.ok(orderService.updateOrderStatus(request));
     }
 }

@@ -58,6 +58,8 @@ import {
   applyVoucher, 
   fetchAddresses, 
   addAddress,
+  fetchMyOrders,
+  triggerWebhook,
   type Voucher, 
   type VoucherApplyResponse, 
   type AddressResponse,
@@ -348,6 +350,22 @@ export function CheckoutContent() {
       });
 
       toast.success("Đặt hàng thành công!");
+
+      try {
+        const myOrders = await fetchMyOrders();
+        const recentOrders = myOrders.slice(0, 10);
+        const webhookPayload = recentOrders.map((o: any) => ({
+          order_id: String(o.id),
+          user_id: formData.email || "unknown",
+          total: o.totalPrice,
+          payment_method: o.paymentMethod || paymentMethod.toUpperCase(),
+          created_at: o.orderDate || new Date().toISOString()
+        }));
+        await triggerWebhook(webhookPayload);
+        console.log("Đã gửi thông tin đơn hàng tới hệ thống thành công");
+      } catch (webhookError) {
+        console.error("Gửi webhook thất bại:", webhookError);
+      }
 
       if (paymentMethod === "vnpay") {
         if (order.paymentUrl) {
