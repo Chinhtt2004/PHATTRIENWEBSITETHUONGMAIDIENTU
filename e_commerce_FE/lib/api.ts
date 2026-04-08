@@ -436,20 +436,20 @@ export function mapBackendProduct(product: BackendProduct): Product {
   }
 
   const compareAtPrice = displayVariant.compareAtPrice ? Number(displayVariant.compareAtPrice) : null;
-  
+
   // Refined badge logic
   const badges: string[] = [];
-  
+
   // 1. Sale badge (if there is a real discount)
   if (compareAtPrice && compareAtPrice > displayPrice) {
     badges.push("sale");
   }
-  
+
   // 2. Bestseller badge (based on totalSold)
   if (product.totalSold && product.totalSold >= 50) {
     badges.push("bestseller");
   }
-  
+
   // 3. New badge (created within the last 14 days)
   const isNew = product.createdAt ? (new Date().getTime() - new Date(product.createdAt).getTime()) < 14 * 24 * 60 * 60 * 1000 : false;
   if (isNew) {
@@ -1165,7 +1165,7 @@ export interface ChatMessageResponse {
   productIds?: string;
 }
 
-export async function sendChatMessage(message: string, history?: {role: string, content: string}[]): Promise<{ response: string, product_ids?: number[] }> {
+export async function sendChatMessage(message: string, history?: { role: string, content: string }[]): Promise<{ response: string, product_ids?: number[] }> {
   const res = await fetch(`${API_BASE_URL}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
