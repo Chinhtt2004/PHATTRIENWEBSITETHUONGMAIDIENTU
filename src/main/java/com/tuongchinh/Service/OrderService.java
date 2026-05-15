@@ -229,6 +229,7 @@ public class OrderService {
                 // update variant
                 int vSold = (variant.getTotalSold() == null) ? 0 : variant.getTotalSold();
                 variant.setTotalSold(vSold + quantity);
+                variant.setStock(variant.getStock()-item.getQuantity());
                 productVariantRepository.save(variant);
 
                 // update product
