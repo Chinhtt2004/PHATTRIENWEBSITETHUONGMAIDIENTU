@@ -1,11 +1,12 @@
 package com.tuongchinh.Entity;
 
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.*;
+import lombok.Data;
 
 import java.math.BigDecimal;
-
+@Entity
+@Table(name = "flash_sale_product")
+@Data
 public class FlashSaleProduct {
     @Id
     @GeneratedValue
@@ -16,5 +17,6 @@ public class FlashSaleProduct {
     private ProductVariant variant;
     private BigDecimal salePrice;
     private Integer quantity;
+    private Integer MaxUser;
     private Integer soldQuantity = 0;
 }

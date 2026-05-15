@@ -11,4 +11,8 @@ public interface FlashSaleProductRepository extends JpaRepository<FlashSaleProdu
     List<FlashSaleProduct> findByFlashSaleId(Long flashSaleId);
     List<FlashSaleProduct> findByVariantId(Long variantId);
     List<FlashSaleProduct> findByFlashSaleIdAndSoldQuantityLessThan(Long flashSaleId, Integer quantity);
+    boolean existsByFlashSaleIdAndVariantId(
+            Long flashSaleId,
+            Long variantId
+    );
 }

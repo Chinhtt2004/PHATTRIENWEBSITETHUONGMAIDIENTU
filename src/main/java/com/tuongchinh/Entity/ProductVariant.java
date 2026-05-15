@@ -28,6 +28,7 @@ public class ProductVariant {
     private String imageUrl;
     private Boolean isActive = true;
     private Integer totalSold = 0;
+    private boolean IsFlashSale;
     @Column(name = "cost_price")
     private BigDecimal costPrice;
     @ManyToMany

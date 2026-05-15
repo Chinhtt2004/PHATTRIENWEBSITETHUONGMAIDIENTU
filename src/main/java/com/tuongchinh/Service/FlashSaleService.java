@@ -1,10 +1,14 @@
 package com.tuongchinh.Service;
 
+import com.tuongchinh.DTO.CreateFlashSaleRequest;
+import com.tuongchinh.DTO.AddFlashSaleVariantRequest;
 import com.tuongchinh.Entity.FlashSale;
 import com.tuongchinh.Entity.FlashSaleProduct;
+import com.tuongchinh.Entity.ProductVariant;
 import com.tuongchinh.Repository.FlashSaleProductRepository;
 import com.tuongchinh.Repository.FlashSaleRepository;
 import com.tuongchinh.Repository.ProductVariantRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,53 +18,134 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class FlashSaleService {
 
-    @Autowired
-    private FlashSaleRepository flashSaleRepository;
+    private final FlashSaleRepository flashSaleRepository;
 
-    @Autowired
-    private FlashSaleProductRepository flashSaleProductRepository;
+    private final FlashSaleProductRepository flashSaleProductRepository;
 
-    @Autowired
-    private ProductVariantRepository productVariantRepository;
+    private final ProductVariantRepository productVariantRepository;
 
-    // Lấy danh sách Flash Sale đang ACTIVE
-    public List<FlashSale> getActiveFlashSales() {
-        LocalDateTime now = LocalDateTime.now();
-        return flashSaleRepository.findByStartTimeBeforeAndEndTimeAfter(now, now);
+    // =========================
+    // create flash sale
+    // =========================
+    @Transactional
+    public FlashSale createFlashSale(
+            CreateFlashSaleRequest request
+    ) {
+
+        FlashSale flashSale = new FlashSale();
+
+        flashSale.setName(
+                request.getName()
+        );
+
+        flashSale.setStartTime(
+                request.getStartTime()
+        );
+
+        flashSale.setEndTime(
+                request.getEndTime()
+        );
+
+        flashSale.setIsActive(Boolean.TRUE
+        );
+
+        return flashSaleRepository.save(
+                flashSale
+        );
     }
 
-    // Thêm sản phẩm vào Flash Sale
+    // =========================
+    // add variant vào flash sale
+    // =========================
     @Transactional
-    public FlashSaleProduct addProductToFlashSale(Long flashSaleId, Long variantId, BigDecimal salePrice, int quantity) {
-        FlashSale flashSale = flashSaleRepository.findById(flashSaleId)
-                .orElseThrow(() -> new RuntimeException("FlashSale not found"));
-        var variant = productVariantRepository.findById(variantId)
-                .orElseThrow(() -> new RuntimeException("ProductVariant not found"));
+    public FlashSaleProduct addFlashSaleVariant(
+            Long flashSaleId,
+            AddFlashSaleVariantRequest request
+    ) {
 
-        FlashSaleProduct fsp = new FlashSaleProduct();
-        fsp.setFlashSale(flashSale);
-        fsp.setVariant(variant);
-        fsp.setSalePrice(salePrice);
-        fsp.setQuantity(quantity);
-        fsp.setSoldQuantity(0);
+        FlashSale flashSale =
+                flashSaleRepository.findById(
+                        flashSaleId
+                ).orElseThrow(() ->
+                        new RuntimeException(
+                                "Flash sale not found"
+                        ));
 
-        return flashSaleProductRepository.save(fsp);
-    }
+        ProductVariant variant =
+                productVariantRepository.findById(
+                        request.getVariantId()
+                ).orElseThrow(() ->
+                        new RuntimeException(
+                                "Variant not found"
+                        ));
 
-    // Đặt mua sản phẩm trong Flash Sale
-    @Transactional
-    public boolean purchaseFlashSaleProduct(Long flashSaleProductId, int buyQuantity) {
-        FlashSaleProduct fsp = flashSaleProductRepository.findById(flashSaleProductId)
-                .orElseThrow(() -> new RuntimeException("FlashSaleProduct not found"));
+        // validate
+        if (
+                request.getSalePrice()
+                        .compareTo(
+                                variant.getPrice()
+                        ) >= 0
+        ) {
 
-        if (fsp.getSoldQuantity() + buyQuantity > fsp.getQuantity()) {
-            return false; // không đủ số lượng
+            throw new RuntimeException(
+                    "Sale price must be smaller than original price"
+            );
         }
 
-        fsp.setSoldQuantity(fsp.getSoldQuantity() + buyQuantity);
-        flashSaleProductRepository.save(fsp);
-        return true;
+        boolean exists =
+                flashSaleProductRepository
+                        .existsByFlashSaleIdAndVariantId(
+                                flashSaleId,
+                                variant.getId()
+                        );
+
+        if (exists) {
+            throw new RuntimeException(
+                    "Variant already exists in flash sale"
+            );
+        }
+
+        // create flash sale product
+        FlashSaleProduct flashSaleProduct =
+                new FlashSaleProduct();
+
+        flashSaleProduct.setFlashSale(
+                flashSale
+        );
+        variant.setDiscountPrice(request.getSalePrice());
+        flashSaleProduct.setVariant(
+                variant
+        );
+
+        flashSaleProduct.setSalePrice(
+                request.getSalePrice()
+        );
+
+        flashSaleProduct.setQuantity(
+                request.getQuantity()
+        );
+
+        flashSaleProduct.setSoldQuantity(0);
+
+        flashSaleProduct.setMaxUser(
+                request.getMaxPerUser()
+        );
+
+        // update variant
+        variant.setDiscountPrice(
+                request.getSalePrice()
+        );
+
+        variant.setIsFlashSale(true);
+
+        productVariantRepository.save(
+                variant
+        );
+        return flashSaleProductRepository.save(
+                flashSaleProduct
+        );
     }
 }

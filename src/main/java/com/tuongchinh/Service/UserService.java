@@ -9,6 +9,7 @@ import com.tuongchinh.Repository.CartRepository;
 import com.tuongchinh.Repository.UserRepository;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import org.apache.coyote.BadRequestException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,64 @@ public class UserService {
             throw new RuntimeException("Sai mật khẩu");
         }
         return jwtService.generateToken(user.getId().toString());
+    }
+    private void checkTestCase(RegisterRequest request) {
+
+        if (request == null) {
+            throw new RuntimeException("Request không được null");
+        }
+
+        // name
+        if (request.getName() == null ||
+                request.getName().trim().isEmpty()) {
+
+            throw new RuntimeException("Tên không được để trống");
+        }
+
+        // chỉ cho phép chữ + khoảng trắng
+        if (!request.getName().matches("^[\\p{L}\\s]+$")) {
+
+            throw new RuntimeException(
+                    "Tên không được chứa số hoặc ký tự đặc biệt"
+            );
+        }
+
+        if (request.getName().trim().length() < 2) {
+            throw new RuntimeException("Tên phải >= 2 ký tự");
+        }
+
+        // email
+        if (request.getEmail() == null ||
+                request.getEmail().trim().isEmpty()) {
+
+            throw new RuntimeException("Email không được để trống");
+        }
+
+        if (!request.getEmail()
+                .matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
+
+            throw new RuntimeException("Email không hợp lệ");
+        }
+
+        // password
+        if (request.getPassword() == null ||
+                request.getPassword().length() < 6) {
+
+            throw new RuntimeException("Password phải >= 6 ký tự");
+        }
+
+        // role
+        if (request.getRole() == null ||
+                request.getRole().trim().isEmpty()) {
+
+            throw new RuntimeException("Role không được để trống");
+        }
+
+        if (!request.getRole().equalsIgnoreCase("USER") &&
+                !request.getRole().equalsIgnoreCase("ADMIN")) {
+
+            throw new RuntimeException("Role không hợp lệ");
+        }
     }
     public String register(RegisterRequest request) {
 
