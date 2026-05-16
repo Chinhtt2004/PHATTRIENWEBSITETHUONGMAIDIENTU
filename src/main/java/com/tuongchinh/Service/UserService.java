@@ -92,6 +92,8 @@ public class UserService {
         }
     }
     public String register(RegisterRequest request) {
+        // Thực hiện validation dữ liệu trước khi xử lý
+        checkTestCase(request);
 
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             return "Email đã tồn tại";
