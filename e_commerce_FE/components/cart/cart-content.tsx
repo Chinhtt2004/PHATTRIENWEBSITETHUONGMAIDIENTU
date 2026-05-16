@@ -52,16 +52,17 @@ export function CartContent() {
     loadVouchers();
   }, []);
 
-  const handleApplyCoupon = async (code: string) => {
-    const targetCode = code || voucherCode;
-    if (!targetCode) {
+  const handleApplyCoupon = async () => {
+    const code = voucherCode.trim().toUpperCase();
+    if (!code) {
       toast.error("Vui lòng nhập mã giảm giá");
       return;
     }
 
+    setIsApplyingVoucher(true);
     try {
       const result = await apiApplyVoucher({
-        code: targetCode,
+        code: code,
         orderAmount: subtotal
       });
       setAppliedVoucherResult(result);
@@ -306,11 +307,11 @@ export function CartContent() {
                         <Input
                           placeholder="Nhập mã giảm giá"
                           value={voucherCode}
-                          onChange={(e) => setVoucherCode(e.target.value)}
+                          onChange={(e) => setVoucherCode(e.target.value.toUpperCase().replace(/\s/g, ""))}
                           className="pl-9"
                         />
                       </div>
-                      <Button variant="outline" onClick={() => handleApplyCoupon(voucherCode)}>
+                      <Button variant="outline" onClick={() => handleApplyCoupon()}>
                         Áp dụng
                       </Button>
                     </div>

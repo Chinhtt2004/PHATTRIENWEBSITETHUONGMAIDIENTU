@@ -119,6 +119,12 @@ const paymentMethods = [
   },
 ];
 
+// Validation Helpers
+const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+const isValidPhone = (phone: string) => /^(0|84)(3|5|7|8|9)([0-9]{8})$/.test(phone.replace(/\s/g, ""));
+const isValidName = (name: string) => name.length >= 2 && name.length <= 50 && /^[\p{L}\s]+$/u.test(name);
+const sanitizeInput = (val: string) => val.replace(/<[^>]*>/g, "").trim();
+
 export function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -320,14 +326,33 @@ export function CheckoutContent() {
   };
 
   const handleAddAddress = async () => {
-    if (!newAddressData.receiverName || !newAddressData.phone || !newAddressData.address) {
+    const receiverName = sanitizeInput(newAddressData.receiverName);
+    const phone = sanitizeInput(newAddressData.phone);
+    const address = sanitizeInput(newAddressData.address);
+
+    if (!receiverName || !phone || !address) {
       toast.error("Vui lòng điền đầy đủ thông tin địa chỉ");
+      return;
+    }
+
+    if (!isValidName(receiverName)) {
+      toast.error("Họ tên không hợp lệ (2-50 ký tự, chỉ chứa chữ cái)");
+      return;
+    }
+
+    if (!isValidPhone(phone)) {
+      toast.error("Số điện thoại không đúng định dạng Việt Nam");
       return;
     }
 
     setIsAddingAddress(true);
     try {
-      await addAddress(newAddressData);
+      await addAddress({
+        ...newAddressData,
+        receiverName,
+        phone,
+        address
+      });
       toast.success("Đã thêm địa chỉ mới");
       const addrs = await loadAddresses();
 
@@ -365,6 +390,32 @@ export function CheckoutContent() {
   };
 
   const handleSubmit = async () => {
+    const email = sanitizeInput(formData.email);
+    const phone = sanitizeInput(formData.phone);
+    const firstName = sanitizeInput(formData.firstName);
+    const lastName = sanitizeInput(formData.lastName);
+    const address = sanitizeInput(formData.address);
+
+    if (!email || !phone || !firstName || !address) {
+      toast.error("Vui lòng điền đầy đủ các thông tin bắt buộc");
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      toast.error("Email không hợp lệ");
+      return;
+    }
+
+    if (!isValidPhone(phone)) {
+      toast.error("Số điện thoại không đúng định dạng");
+      return;
+    }
+
+    if (!isValidName(firstName)) {
+      toast.error("Họ tên không hợp lệ");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
