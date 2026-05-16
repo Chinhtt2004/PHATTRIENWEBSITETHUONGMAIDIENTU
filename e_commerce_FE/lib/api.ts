@@ -820,6 +820,17 @@ export async function addToCart(variantId: number, quantity: number) {
   return ensureOk(res);
 }
 
+export async function updateCartItemQuantity(variantId: number, quantity: number) {
+  const params = new URLSearchParams({
+    quantity: String(quantity),
+  });
+  const res = await fetch(`${API_BASE_URL}/api/user/cart/${variantId}?${params.toString()}`, {
+    method: "PUT",
+    credentials: "include",
+  });
+  return ensureOk(res);
+}
+
 export async function fetchCartItems(): Promise<BackendCartItem[]> {
   const res = await fetch(`${API_BASE_URL}/api/user/cart`, {
     credentials: "include",

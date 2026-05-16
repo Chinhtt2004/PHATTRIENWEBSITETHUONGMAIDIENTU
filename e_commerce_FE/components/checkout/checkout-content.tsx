@@ -5,7 +5,7 @@ import React from "react";
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Check,
   CreditCard,
@@ -48,20 +48,20 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { formatPrice, type Product } from "@/lib/data";
-import { 
-  fetchCartItems, 
-  fetchProducts, 
-  fetchUserProfile, 
-  fetchPublicVouchers, 
-  checkout, 
-  createVNPayPayment, 
-  applyVoucher, 
-  fetchAddresses, 
+import {
+  fetchCartItems,
+  fetchProducts,
+  fetchUserProfile,
+  fetchPublicVouchers,
+  checkout,
+  createVNPayPayment,
+  applyVoucher,
+  fetchAddresses,
   addAddress,
   fetchMyOrders,
   triggerWebhook,
-  type Voucher, 
-  type VoucherApplyResponse, 
+  type Voucher,
+  type VoucherApplyResponse,
   type AddressResponse,
   type AddressRequest
 } from "@/lib/api";
@@ -119,8 +119,17 @@ const paymentMethods = [
   },
 ];
 
+// Validation Helpers
+const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+const isValidPhone = (phone: string) => /^(0|84)(3|5|7|8|9)([0-9]{8})$/.test(phone.replace(/\s/g, ""));
+const isValidName = (name: string) => name.length >= 2 && name.length <= 50 && /^[\p{L}\s]+$/u.test(name);
+const sanitizeInput = (val: string) => val.replace(/<[^>]*>/g, "").trim();
+
 export function CheckoutContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectedItemIds = searchParams.get("items")?.split(",") || [];
+
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cartItems, setCartItems] = useState<any[]>([]);
@@ -184,20 +193,43 @@ export function CheckoutContent() {
             productsResult.value.map((p: any) => [Number(p.id), p])
           );
 
-          setCartItems(
-            itemsResult.value.map((item: any) => {
-              const product = productMap.get(item.productId);
+          const filteredItems = itemsResult.value
+            .filter((item: any) => selectedItemIds.includes(String(item.id)))
+            .map((item: any) => {
+              // Rebuild variant label from attributeValues if present
+              const attrs: Record<string, string> = {};
+              if (item.attributeValues) {
+                item.attributeValues.forEach((av: any) => {
+                  attrs[av.name] = av.value;
+                });
+              }
+              const variantLabel = Object.entries(attrs)
+                .map(([k, v]) => `${k}: ${v}`)
+                .join(" · ") || item.sku || "Mặc định";
+
+              // Normalize image URL
+              const rawImg = item.variantImageUrl || item.thumbnail || "/placeholder.svg";
+              const image = rawImg.startsWith("http") || rawImg.startsWith("/") 
+                ? rawImg : `/${rawImg}`;
+
               return {
                 id: String(item.id),
                 productId: String(item.productId),
                 name: item.productName,
-                variant: product?.variants[0]?.name || "Mặc định",
-                image: product?.images[0]?.url || "/placeholder.svg",
-                price: product?.price || 0,
+                variant: variantLabel,
+                image: image,
+                price: Number(item.effectivePrice ?? item.price ?? 0),
                 quantity: item.quantity,
               };
-            })
-          );
+            });
+
+          if (filteredItems.length === 0 && itemsResult.value.length > 0) {
+            toast.error("Vui lòng chọn sản phẩm từ giỏ hàng để thanh toán");
+            router.push("/cart");
+            return;
+          }
+
+          setCartItems(filteredItems);
         }
 
         if (profileResult.status === 'fulfilled') {
@@ -294,23 +326,42 @@ export function CheckoutContent() {
   };
 
   const handleAddAddress = async () => {
-    if (!newAddressData.receiverName || !newAddressData.phone || !newAddressData.address) {
+    const receiverName = sanitizeInput(newAddressData.receiverName);
+    const phone = sanitizeInput(newAddressData.phone);
+    const address = sanitizeInput(newAddressData.address);
+
+    if (!receiverName || !phone || !address) {
       toast.error("Vui lòng điền đầy đủ thông tin địa chỉ");
+      return;
+    }
+
+    if (!isValidName(receiverName)) {
+      toast.error("Họ tên không hợp lệ (2-50 ký tự, chỉ chứa chữ cái)");
+      return;
+    }
+
+    if (!isValidPhone(phone)) {
+      toast.error("Số điện thoại không đúng định dạng Việt Nam");
       return;
     }
 
     setIsAddingAddress(true);
     try {
-      await addAddress(newAddressData);
+      await addAddress({
+        ...newAddressData,
+        receiverName,
+        phone,
+        address
+      });
       toast.success("Đã thêm địa chỉ mới");
       const addrs = await loadAddresses();
-      
+
       // Auto select the new address
-      const newAddr = addrs[addrs.length - 1]; 
+      const newAddr = addrs[addrs.length - 1];
       if (newAddr) {
         handleAddressSelect(newAddr.id.toString());
       }
-      
+
       setIsAddAddressDialogOpen(false);
       setNewAddressData({
         receiverName: "",
@@ -339,6 +390,32 @@ export function CheckoutContent() {
   };
 
   const handleSubmit = async () => {
+    const email = sanitizeInput(formData.email);
+    const phone = sanitizeInput(formData.phone);
+    const firstName = sanitizeInput(formData.firstName);
+    const lastName = sanitizeInput(formData.lastName);
+    const address = sanitizeInput(formData.address);
+
+    if (!email || !phone || !firstName || !address) {
+      toast.error("Vui lòng điền đầy đủ các thông tin bắt buộc");
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      toast.error("Email không hợp lệ");
+      return;
+    }
+
+    if (!isValidPhone(phone)) {
+      toast.error("Số điện thoại không đúng định dạng");
+      return;
+    }
+
+    if (!isValidName(firstName)) {
+      toast.error("Họ tên không hợp lệ");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -351,21 +428,21 @@ export function CheckoutContent() {
 
       toast.success("Đặt hàng thành công!");
 
-      try {
-        const myOrders = await fetchMyOrders();
-        const recentOrders = myOrders.slice(0, 10);
-        const webhookPayload = recentOrders.map((o: any) => ({
-          order_id: String(o.id),
-          user_id: formData.email || "unknown",
-          total: o.totalPrice,
-          payment_method: o.paymentMethod || paymentMethod.toUpperCase(),
-          created_at: o.orderDate || new Date().toISOString()
-        }));
-        await triggerWebhook(webhookPayload);
-        console.log("Đã gửi thông tin đơn hàng tới hệ thống thành công");
-      } catch (webhookError) {
-        console.error("Gửi webhook thất bại:", webhookError);
-      }
+      // try {
+      //   const myOrders = await fetchMyOrders();
+      //   const recentOrders = myOrders.slice(0, 10);
+      //   const webhookPayload = recentOrders.map((o: any) => ({
+      //     order_id: String(o.id),
+      //     user_id: formData.email || "unknown",
+      //     total: o.totalPrice,
+      //     payment_method: o.paymentMethod || paymentMethod.toUpperCase(),
+      //     created_at: o.orderDate || new Date().toISOString()
+      //   }));
+      //   await triggerWebhook(webhookPayload);
+      //   console.log("Đã gửi thông tin đơn hàng tới hệ thống thành công");
+      // } catch (webhookError) {
+      //   console.error("Gửi webhook thất bại:", webhookError);
+      // }
 
       if (paymentMethod === "vnpay") {
         if (order.paymentUrl) {
@@ -555,7 +632,7 @@ export function CheckoutContent() {
                     />
                     <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
                   </div>
-                  
+
                   {userAddresses.length > 0 && (
                     <div className="mt-3 p-3 rounded-xl bg-gradient-to-br from-primary-light/10 to-transparent border border-primary/5 space-y-2">
                       <div className="flex items-center justify-between mb-1">
@@ -563,9 +640,9 @@ export function CheckoutContent() {
                           <Sparkles className="h-3 w-3" />
                           Chọn từ địa chỉ đã lưu
                         </Label>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           className="text-[10px] text-primary h-auto p-0 hover:bg-transparent font-bold flex items-center gap-1"
                           onClick={() => setIsAddAddressDialogOpen(true)}
                         >
@@ -1165,17 +1242,17 @@ export function CheckoutContent() {
                       Đặt làm địa chỉ mặc định
                     </label>
                   </div>
-                  
+
                   <div className="flex gap-3 pt-4">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="flex-1 rounded-full"
                       onClick={() => setIsAddAddressDialogOpen(false)}
                       disabled={isAddingAddress}
                     >
                       Hủy
                     </Button>
-                    <Button 
+                    <Button
                       className="flex-1 rounded-full bg-primary hover:bg-primary-hover shadow-md shadow-primary/20"
                       onClick={handleAddAddress}
                       disabled={isAddingAddress}

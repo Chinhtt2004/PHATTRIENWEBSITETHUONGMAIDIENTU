@@ -30,12 +30,12 @@ export function FeaturedProducts({ title, filter }: FeaturedProductsProps) {
 
   useEffect(() => {
     let isMounted = true;
-    
+
     const loadProducts = async () => {
       try {
         setIsLoading(true);
         let data: Product[] = [];
-        
+
         if (filter === "bestseller") {
           data = await fetchBestSellers(8);
         } else if (filter === "new") {
@@ -43,7 +43,7 @@ export function FeaturedProducts({ title, filter }: FeaturedProductsProps) {
         } else {
           data = await fetchProducts({ size: 8 });
         }
-        
+
         if (isMounted) {
           setProducts(data);
         }
@@ -84,20 +84,48 @@ export function FeaturedProducts({ title, filter }: FeaturedProductsProps) {
   }
 
   return (
-    <section className="relative py-10 lg:py-16 bg-gradient-to-b from-secondary/10 via-muted/20 to-background overflow-hidden">
+    <section className={cn(
+      "relative py-16 lg:py-24 overflow-hidden",
+      filter === "bestseller" 
+        ? "bg-gradient-to-br from-[#fdf6f7] via-[#fff5f5] to-[#fdf0f2]" 
+        : "bg-gradient-to-b from-secondary/10 via-muted/20 to-background"
+    )}>
       {/* Decorative elements */}
-      <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/15 to-transparent" />
-      <div className="absolute -top-12 right-1/3 w-36 h-36 bg-primary/5 rounded-full blur-3xl" />
-      <div className="absolute -bottom-12 left-1/3 w-28 h-28 bg-secondary/10 rounded-full blur-3xl" />
+      <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+      
+      {filter === "bestseller" && (
+        <>
+          <div className="absolute top-0 right-0 w-1/3 h-full bg-[url('/patterns/top-dots.svg')] opacity-[0.03] pointer-events-none" />
+          <div className="absolute -top-24 -right-24 w-96 h-96 bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
+          <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-secondary/10 rounded-full blur-[100px] pointer-events-none" />
+          
+          {/* Section Marker */}
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-32 bg-gradient-to-b from-transparent via-primary/40 to-transparent" />
+        </>
+      )}
+
+      {filter !== "bestseller" && (
+        <>
+          <div className="absolute -top-12 right-1/3 w-36 h-36 bg-primary/5 rounded-full blur-3xl" />
+          <div className="absolute -bottom-12 left-1/3 w-28 h-28 bg-secondary/10 rounded-full blur-3xl" />
+        </>
+      )}
       <div className="container mx-auto px-4">
         {/* Section Header */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
-          <div>
-            <h2 className="font-serif text-3xl md:text-4xl font-bold mb-2">
+          <div className="max-w-2xl">
+            <h2 className={cn(
+              "font-serif text-3xl md:text-5xl font-bold mb-4 tracking-tight capitalize",
+              filter === "bestseller" ? "text-primary-dark" : "text-foreground"
+            )}>
               {title}
             </h2>
-            <p className="text-muted-foreground">
-              Những sản phẩm được yêu thích nhất từ khách hàng của chúng tôi
+            <div className={cn(
+              "h-1 w-20 mb-4 rounded-full",
+              filter === "bestseller" ? "bg-primary" : "bg-muted-foreground/30"
+            )} />
+            <p className="text-muted-foreground text-lg leading-relaxed italic">
+              "Những sản phẩm được yêu thích nhất từ khách hàng của chúng tôi"
             </p>
           </div>
           <div className="flex items-center gap-3 self-start sm:self-auto">
@@ -145,9 +173,9 @@ export function FeaturedProducts({ title, filter }: FeaturedProductsProps) {
                 key={product.id}
                 className="pl-4 basis-1/2 md:basis-1/3 lg:basis-1/4"
               >
-                <ProductCard 
-                  product={product} 
-                  priority={index < 2} 
+                <ProductCard
+                  product={product}
+                  priority={index < 2}
                   rank={filter === "bestseller" ? index + 1 : undefined}
                 />
               </CarouselItem>

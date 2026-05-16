@@ -26,14 +26,34 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const email = formData.email.trim();
+    const password = formData.password;
+
+    if (!email || !password) {
+      toast.error("Vui lòng nhập đầy đủ email và mật khẩu");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error("Email không đúng định dạng");
+      return;
+    }
+
+    if (password.length < 6) {
+      toast.error("Mật khẩu phải có ít nhất 6 ký tự");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const response = await loginUser(formData.email, formData.password);
+      const response = await loginUser(email, password);
       toast.success("Đăng nhập thành công!");
       
       if (response.role === "ADMIN") {
-        router.push("/admin");
+        window.location.href = `http://${window.location.hostname}:3001/admin`;
       } else {
         router.push("/");
       }
