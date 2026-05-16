@@ -5,8 +5,9 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class CategoryRequest {
+public class CreatePageRequest {
+
     private String name;
-    private String description;
-    private Long parentId;
+
+    private String slug;
 }

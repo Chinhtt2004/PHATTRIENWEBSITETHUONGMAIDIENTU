@@ -13,6 +13,9 @@ import org.apache.coyote.BadRequestException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+
 @Service
 public class UserService {
     @Autowired
@@ -40,63 +43,63 @@ public class UserService {
         }
 
         // name
-        if (request.getName() == null ||
-                request.getName().trim().isEmpty()) {
+        if (request.getName() == null
+                || request.getName().trim().isEmpty()) {
 
             throw new RuntimeException("Tên không được để trống");
         }
 
-        // chỉ cho phép chữ + khoảng trắng
-        if (!request.getName().matches("^[\\p{L}\\s]+$")) {
-
-            throw new RuntimeException(
-                    "Tên không được chứa số hoặc ký tự đặc biệt"
-            );
-        }
-
-        if (request.getName().trim().length() < 2) {
-            throw new RuntimeException("Tên phải >= 2 ký tự");
+        if (request.getName().length() > 100) {
+            throw new RuntimeException("Tên quá dài");
         }
 
         // email
-        if (request.getEmail() == null ||
-                request.getEmail().trim().isEmpty()) {
+        if (request.getEmail() == null
+                || request.getEmail().trim().isEmpty()) {
 
             throw new RuntimeException("Email không được để trống");
         }
 
-        if (!request.getEmail()
-                .matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
+        if (!request.getEmail().matches(
+                "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
 
             throw new RuntimeException("Email không hợp lệ");
         }
 
         // password
-        if (request.getPassword() == null ||
-                request.getPassword().length() < 6) {
+        if (request.getPassword() == null
+                || request.getPassword().isEmpty()) {
 
-            throw new RuntimeException("Password phải >= 6 ký tự");
+            throw new RuntimeException("Mật khẩu không được để trống");
+        }
+
+        // ít nhất 8 ký tự
+        if (request.getPassword().length() < 8) {
+            throw new RuntimeException("Mật khẩu phải từ 8 ký tự");
+        }
+
+        // regex password mạnh
+        if (!request.getPassword().matches(
+                "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@#$%^&+=!]).{8,}$")) {
+
+            throw new RuntimeException(
+                    "Mật khẩu phải có chữ hoa, chữ thường, số và ký tự đặc biệt");
         }
 
         // role
-        if (request.getRole() == null ||
-                request.getRole().trim().isEmpty()) {
+        List<String> validRoles = List.of("USER", "ADMIN");
 
-            throw new RuntimeException("Role không được để trống");
-        }
-
-        if (!request.getRole().equalsIgnoreCase("USER") &&
-                !request.getRole().equalsIgnoreCase("ADMIN")) {
+        if (request.getRole() == null
+                || !validRoles.contains(request.getRole())) {
 
             throw new RuntimeException("Role không hợp lệ");
         }
     }
     public String register(RegisterRequest request) {
-
+        checkTestCase(request);
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             return "Email đã tồn tại";
         }
-
         User user = new User();
         user.setName(request.getName());
         user.setEmail(request.getEmail());

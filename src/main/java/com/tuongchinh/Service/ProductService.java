@@ -5,9 +5,9 @@ import com.tuongchinh.Entity.*;
 import com.tuongchinh.Repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -75,6 +75,7 @@ public class ProductService {
     }
 
     public ProductResponse create(ProductRequest request, List<MultipartFile> images) {
+        checkTestCase(request);
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy danh mục: " + request.getCategoryId()));
 
@@ -459,6 +460,74 @@ public class ProductService {
             throw new RuntimeException(String.format(
                 "LỖI (SKU: %s): Giá gốc (%.0f) không được nhỏ hơn giá bán (%.0f)",
                 vr.getSku(), comparePrice.doubleValue(), vr.getPrice().doubleValue()));
+        }
+    }
+    private void checkTestCase(ProductRequest request) {
+
+        if (request == null) {
+            throw new RuntimeException("Request không được null");
+        }
+
+        // name
+        if (request.getName() == null
+                || request.getName().trim().isEmpty()) {
+
+            throw new RuntimeException("Tên sản phẩm không được để trống");
+        }
+
+        // categoryId
+        if (request.getCategoryId() == null
+                || request.getCategoryId() <= 0) {
+
+            throw new RuntimeException("Danh mục không hợp lệ");
+        }
+
+        // brandId
+        if (request.getBrandId() == null
+                || request.getBrandId() <= 0) {
+
+            throw new RuntimeException("Thương hiệu không hợp lệ");
+        }
+
+        // variants
+        if (request.getVariants() == null
+                || request.getVariants().isEmpty()) {
+
+            throw new RuntimeException("Sản phẩm phải có ít nhất 1 biến thể");
+        }
+
+        for (ProductRequest.VariantRequest v : request.getVariants()) {
+
+            // sku
+            if (v.getSku() == null || v.getSku().trim().isEmpty()) {
+                throw new RuntimeException("SKU không được để trống");
+            }
+
+            // price
+            if (v.getPrice() == null
+                    || v.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
+
+                throw new RuntimeException("Giá bán phải lớn hơn 0");
+            }
+
+            // discountPrice
+            if (v.getDiscountPrice() != null
+                    && v.getDiscountPrice().compareTo(v.getPrice()) > 0) {
+
+                throw new RuntimeException("Giá khuyến mãi không được lớn hơn giá bán");
+            }
+
+            // stock
+            if (v.getStock() == null || v.getStock() < 0) {
+                throw new RuntimeException("Tồn kho không hợp lệ");
+            }
+
+            // attributeValueIds
+            if (v.getAttributeValueIds() == null
+                    || v.getAttributeValueIds().isEmpty()) {
+
+                throw new RuntimeException("Biến thể phải có thuộc tính");
+            }
         }
     }
 

@@ -16,4 +16,5 @@ public interface CategoryService {
       CategoryResponse update(Long id, CategoryRequest request);
       List<Long> getCategoryIdsWithChildren(List<Long> categoryIds);
       CategoryResponse mapToResponse(Category category, Map<Long, List<Category>> groupByParent);
+      void checkTestCase(CategoryRequest request);
 }

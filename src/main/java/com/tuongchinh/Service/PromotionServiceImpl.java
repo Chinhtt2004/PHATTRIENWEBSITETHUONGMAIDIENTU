@@ -157,4 +157,75 @@ public class PromotionServiceImpl implements PromotionService {
         resp.setIsActive(promotion.getIsActive());
         return resp;
     }
+    public void checkTestCase(PromotionRequest request) {
+
+        if (request == null) {
+            throw new RuntimeException("Request không được null");
+        }
+
+        // code
+        if (request.getCode() == null
+                || request.getCode().trim().isEmpty()) {
+
+            throw new RuntimeException("Mã giảm giá không được để trống");
+        }
+
+        if (request.getCode().length() > 50) {
+            throw new RuntimeException("Mã giảm giá quá dài");
+        }
+
+        // type
+        List<String> validTypes =
+                List.of("PERCENTAGE", "FIXED", "SHIPPING");
+
+        if (!validTypes.contains(request.getType())) {
+            throw new RuntimeException("Loại khuyến mãi không hợp lệ");
+        }
+
+        // value
+        if (request.getValue() == null
+                || request.getValue() <= 0) {
+
+            throw new RuntimeException("Giá trị giảm phải lớn hơn 0");
+        }
+
+        // percentage
+        if ("PERCENTAGE".equals(request.getType())
+                && request.getValue() > 100) {
+
+            throw new RuntimeException("Phần trăm giảm không được vượt quá 100%");
+        }
+
+        // minOrderAmount
+        if (request.getMinOrderAmount() != null
+                && request.getMinOrderAmount() < 0) {
+
+            throw new RuntimeException("Giá trị đơn hàng tối thiểu không hợp lệ");
+        }
+
+        // maxDiscountAmount
+        if (request.getMaxDiscountAmount() != null
+                && request.getMaxDiscountAmount() < 0) {
+
+            throw new RuntimeException("Giảm tối đa không hợp lệ");
+        }
+
+        // start/end date
+        if (request.getStartDate() == null
+                || request.getEndDate() == null) {
+
+            throw new RuntimeException("Ngày bắt đầu và kết thúc không được để trống");
+        }
+
+        if (!request.getEndDate().isAfter(request.getStartDate())) {
+            throw new RuntimeException("Ngày kết thúc phải sau ngày bắt đầu");
+        }
+
+        // usageLimit
+        if (request.getUsageLimit() != null
+                && request.getUsageLimit() <= 0) {
+
+            throw new RuntimeException("Số lượng sử dụng không hợp lệ");
+        }
+    }
 }

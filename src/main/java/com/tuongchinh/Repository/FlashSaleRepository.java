@@ -17,4 +17,5 @@ public interface FlashSaleRepository extends JpaRepository<FlashSale, Long> {
 
     // Lấy Flash Sale đã kết thúc
     List<FlashSale> findByEndTimeBefore(LocalDateTime now);
+    List<FlashSale> findByIsActiveTrue();
 }

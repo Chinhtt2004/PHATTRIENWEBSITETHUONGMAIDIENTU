@@ -52,7 +52,7 @@ public class VoucherService {
     }
 
     public VoucherResponse create(VoucherRequest request) {
-
+        checkTestCase(request);
         if (voucherRepository.findByCode(request.getCode()).isPresent()) {
             throw new RuntimeException("Mã voucher đã tồn tại");
         }
@@ -145,5 +145,76 @@ public class VoucherService {
         res.setUsedCount(v.getUsedCount());
         res.setIsActive(v.getIsActive());
         return res;
+    }
+    private void checkTestCase(VoucherRequest request) {
+
+        if (request == null) {
+            throw new RuntimeException("Request không được null");
+        }
+
+        // code
+        if (request.getCode() == null
+                || request.getCode().trim().isEmpty()) {
+
+            throw new RuntimeException("Mã voucher không được để trống");
+        }
+
+        if (request.getCode().length() > 50) {
+            throw new RuntimeException("Mã voucher quá dài");
+        }
+
+        // type
+        List<String> validTypes =
+                List.of("PERCENT", "FIXED", "SHIPPING");
+
+        if (request.getType() == null
+                || !validTypes.contains(request.getType())) {
+
+            throw new RuntimeException("Loại voucher không hợp lệ");
+        }
+
+        // value
+        if (request.getValue() == null
+                || request.getValue().compareTo(BigDecimal.ZERO) <= 0) {
+
+            throw new RuntimeException("Giá trị voucher phải lớn hơn 0");
+        }
+
+        // percent <= 100
+        if ("PERCENT".equals(request.getType())
+                && request.getValue().compareTo(BigDecimal.valueOf(100)) > 0) {
+
+            throw new RuntimeException("Voucher phần trăm không được vượt quá 100%");
+        }
+
+        // minOrderValue
+        if (request.getMinOrderValue() != null
+                && request.getMinOrderValue().compareTo(BigDecimal.ZERO) < 0) {
+
+            throw new RuntimeException("Đơn tối thiểu không hợp lệ");
+        }
+
+        // maxDiscount
+        if (request.getMaxDiscount() != null
+                && request.getMaxDiscount().compareTo(BigDecimal.ZERO) < 0) {
+
+            throw new RuntimeException("Giảm tối đa không hợp lệ");
+        }
+
+        // expiryDate
+        if (request.getExpiryDate() == null) {
+            throw new RuntimeException("Ngày hết hạn không được để trống");
+        }
+
+        if (!request.getExpiryDate().isAfter(LocalDateTime.now())) {
+            throw new RuntimeException("Voucher đã hết hạn");
+        }
+
+        // usageLimit
+        if (request.getUsageLimit() != null
+                && request.getUsageLimit() <= 0) {
+
+            throw new RuntimeException("Giới hạn sử dụng không hợp lệ");
+        }
     }
 }

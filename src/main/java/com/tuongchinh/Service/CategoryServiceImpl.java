@@ -35,6 +35,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public String create(CategoryRequest request) {
+        checkTestCase(request);
         try {
             Category category = new Category();
             category.setName(request.getName());
@@ -133,6 +134,52 @@ public class CategoryServiceImpl implements CategoryService {
             for (Long childId : children) {
                 addChildrenRecursive(childId, parentToChildrenIds, resultIds);
             }
+        }
+    }
+    public void checkTestCase(CategoryRequest request) {
+
+        if (request == null) {
+            throw new RuntimeException("Request không được null");
+        }
+
+        // name
+        if (request.getName() == null
+                || request.getName().trim().isEmpty()) {
+
+            throw new RuntimeException("Tên danh mục không được để trống");
+        }
+
+        // độ dài
+        if (request.getName().length() > 100) {
+            throw new RuntimeException("Tên danh mục quá dài");
+        }
+
+        // regex
+        if (!request.getName()
+                .matches("^[a-zA-ZÀ-ỹ0-9\\s]+$")) {
+
+            throw new RuntimeException("Tên danh mục không hợp lệ");
+        }
+
+        // chống script
+        String nameLower = request.getName().toLowerCase();
+
+        if (nameLower.contains("<script>")) {
+            throw new RuntimeException("Tên danh mục chứa nội dung nguy hiểm");
+        }
+
+        // description
+        if (request.getDescription() != null
+                && request.getDescription().length() > 500) {
+
+            throw new RuntimeException("Mô tả quá dài");
+        }
+
+        // parentId
+        if (request.getParentId() != null
+                && request.getParentId() <= 0) {
+
+            throw new RuntimeException("parentId không hợp lệ");
         }
     }
 }

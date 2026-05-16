@@ -5,8 +5,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class CategoryRequest {
+public class CreateBannerRequest {
+
     private String name;
-    private String description;
-    private Long parentId;
 }

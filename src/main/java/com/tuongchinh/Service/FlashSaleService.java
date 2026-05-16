@@ -2,6 +2,8 @@ package com.tuongchinh.Service;
 
 import com.tuongchinh.DTO.CreateFlashSaleRequest;
 import com.tuongchinh.DTO.AddFlashSaleVariantRequest;
+import com.tuongchinh.DTO.FlashSaleProductResponse;
+import com.tuongchinh.DTO.FlashSaleResponse;
 import com.tuongchinh.Entity.FlashSale;
 import com.tuongchinh.Entity.FlashSaleProduct;
 import com.tuongchinh.Entity.ProductVariant;
@@ -146,6 +148,129 @@ public class FlashSaleService {
         );
         return flashSaleProductRepository.save(
                 flashSaleProduct
+        );
+    }
+    public List<FlashSaleResponse> getActiveFlashSales() {
+
+        List<FlashSale> flashSales =
+                flashSaleRepository.findByIsActiveTrue();
+
+        return flashSales.stream().map(flashSale -> {
+
+            FlashSaleResponse response =
+                    new FlashSaleResponse();
+
+            response.setId(flashSale.getId());
+
+            response.setName(flashSale.getName());
+
+            response.setStartTime(
+                    flashSale.getStartTime()
+            );
+
+            response.setEndTime(
+                    flashSale.getEndTime()
+            );
+
+            response.setIsActive(
+                    flashSale.getIsActive()
+            );
+
+            List<FlashSaleProductResponse> productResponses =
+                    flashSaleProductRepository
+                            .findByFlashSaleId(
+                                    flashSale.getId()
+                            )
+                            .stream()
+                            .map(item -> {
+
+                                FlashSaleProductResponse p =
+                                        new FlashSaleProductResponse();
+
+                                p.setId(item.getId());
+
+                                p.setVariantId(
+                                        item.getVariant().getId()
+                                );
+
+                                p.setProductName(
+                                        item.getVariant()
+                                                .getProduct()
+                                                .getName()
+                                );
+
+                                p.setOriginalPrice(
+                                        item.getVariant().getPrice()
+                                );
+
+                                p.setSalePrice(
+                                        item.getSalePrice()
+                                );
+
+                                p.setQuantity(
+                                        item.getQuantity()
+                                );
+
+                                p.setSoldQuantity(
+                                        item.getSoldQuantity()
+                                );
+
+                                p.setMaxPerUser(
+                                        item.getMaxUser()
+                                );
+
+                                p.setImage(
+                                        item.getVariant().getImageUrl()
+                                );
+
+                                return p;
+
+                            }).toList();
+
+            response.setProducts(productResponses);
+
+            return response;
+
+        }).toList();
+    }
+    @Transactional
+    public void disableFlashSale(
+            Long flashSaleId
+    ) {
+
+        FlashSale flashSale =
+                flashSaleRepository.findById(
+                        flashSaleId
+                ).orElseThrow(() ->
+                        new RuntimeException(
+                                "Flash sale not found"
+                        ));
+
+        flashSale.setIsActive(false);
+
+        // tắt flash sale của variant
+        List<FlashSaleProduct> products =
+                flashSaleProductRepository
+                        .findByFlashSaleId(
+                                flashSaleId
+                        );
+
+        for (FlashSaleProduct item : products) {
+
+            ProductVariant variant =
+                    item.getVariant();
+
+            variant.setIsFlashSale(false);
+
+            variant.setDiscountPrice(null);
+
+            productVariantRepository.save(
+                    variant
+            );
+        }
+
+        flashSaleRepository.save(
+                flashSale
         );
     }
 }

@@ -28,6 +28,7 @@ public class AddressService {
 
     // Thêm địa chỉ mới
     public void addAddress(Long userId, AddressRequest request) {
+        checkTestCase(request);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy user"));
 
@@ -42,6 +43,65 @@ public class AddressService {
         address.setAddress(request.getAddress());
         address.setIsDefault(request.getIsDefault());
         addressRepository.save(address);
+    }
+    private void checkTestCase(AddressRequest request) {
+
+        // request null
+        if (request == null) {
+            throw new RuntimeException("Request không được null");
+        }
+
+        // receiverName
+        if (request.getReceiverName() == null
+                || request.getReceiverName().trim().isEmpty()) {
+
+            throw new RuntimeException("Tên người nhận không được để trống");
+        }
+
+        // độ dài tên
+        if (request.getReceiverName().length() > 100) {
+            throw new RuntimeException("Tên người nhận quá dài");
+        }
+
+        // regex tên
+        if (!request.getReceiverName()
+                .matches("^[a-zA-ZÀ-ỹ\\s]+$")) {
+
+            throw new RuntimeException("Tên người nhận không hợp lệ");
+        }
+
+        // phone
+        if (request.getPhone() == null
+                || request.getPhone().trim().isEmpty()) {
+
+            throw new RuntimeException("Số điện thoại không được để trống");
+        }
+
+        // regex phone VN
+        if (!request.getPhone().matches("^0\\d{9}$")) {
+            throw new RuntimeException("Số điện thoại không hợp lệ");
+        }
+
+        // address
+        if (request.getAddress() == null
+                || request.getAddress().trim().isEmpty()) {
+
+            throw new RuntimeException("Địa chỉ không được để trống");
+        }
+
+        // độ dài địa chỉ
+        if (request.getAddress().length() > 255) {
+            throw new RuntimeException("Địa chỉ quá dài");
+        }
+
+        // chống script cơ bản
+        String addressLower = request.getAddress().toLowerCase();
+
+        if (addressLower.contains("<script>")
+                || addressLower.contains("</script>")) {
+
+            throw new RuntimeException("Địa chỉ chứa nội dung không hợp lệ");
+        }
     }
 
     // Sửa địa chỉ
