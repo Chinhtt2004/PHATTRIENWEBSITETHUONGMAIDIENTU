@@ -5,7 +5,7 @@ import React from "react";
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Check,
   CreditCard,
@@ -121,6 +121,9 @@ const paymentMethods = [
 
 export function CheckoutContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectedItemIds = searchParams.get("items")?.split(",") || [];
+
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cartItems, setCartItems] = useState<any[]>([]);
@@ -184,20 +187,43 @@ export function CheckoutContent() {
             productsResult.value.map((p: any) => [Number(p.id), p])
           );
 
-          setCartItems(
-            itemsResult.value.map((item: any) => {
-              const product = productMap.get(item.productId);
+          const filteredItems = itemsResult.value
+            .filter((item: any) => selectedItemIds.includes(String(item.id)))
+            .map((item: any) => {
+              // Rebuild variant label from attributeValues if present
+              const attrs: Record<string, string> = {};
+              if (item.attributeValues) {
+                item.attributeValues.forEach((av: any) => {
+                  attrs[av.name] = av.value;
+                });
+              }
+              const variantLabel = Object.entries(attrs)
+                .map(([k, v]) => `${k}: ${v}`)
+                .join(" · ") || item.sku || "Mặc định";
+
+              // Normalize image URL
+              const rawImg = item.variantImageUrl || item.thumbnail || "/placeholder.svg";
+              const image = rawImg.startsWith("http") || rawImg.startsWith("/") 
+                ? rawImg : `/${rawImg}`;
+
               return {
                 id: String(item.id),
                 productId: String(item.productId),
                 name: item.productName,
-                variant: product?.variants[0]?.name || "Mặc định",
-                image: product?.images[0]?.url || "/placeholder.svg",
-                price: product?.price || 0,
+                variant: variantLabel,
+                image: image,
+                price: Number(item.effectivePrice ?? item.price ?? 0),
                 quantity: item.quantity,
               };
-            })
-          );
+            });
+
+          if (filteredItems.length === 0 && itemsResult.value.length > 0) {
+            toast.error("Vui lòng chọn sản phẩm từ giỏ hàng để thanh toán");
+            router.push("/cart");
+            return;
+          }
+
+          setCartItems(filteredItems);
         }
 
         if (profileResult.status === 'fulfilled') {

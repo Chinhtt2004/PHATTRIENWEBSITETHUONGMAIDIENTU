@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight, Tag, Sparkles, Gift, Check, Truck } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,6 +38,7 @@ export function CartContent() {
   const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
   const [isVoucherDialogOpen, setIsVoucherDialogOpen] = useState(false);
   const [appliedVoucherResult, setAppliedVoucherResult] = useState<VoucherApplyResponse | null>(null);
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
   useEffect(() => {
     const loadVouchers = async () => {
@@ -79,10 +81,25 @@ export function CartContent() {
     toast.success("Đã xóa mã giảm giá");
   };
 
-  const subtotal = cartItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
+  const subtotal = cartItems
+    .filter((item) => selectedItems.includes(item.id))
+    .reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+  const toggleItem = (itemId: string) => {
+    setSelectedItems((prev) =>
+      prev.includes(itemId)
+        ? prev.filter((id) => id !== itemId)
+        : [...prev, itemId]
+    );
+  };
+
+  const toggleAll = () => {
+    if (selectedItems.length === cartItems.length) {
+      setSelectedItems([]);
+    } else {
+      setSelectedItems(cartItems.map((item) => item.id));
+    }
+  };
   const discount = appliedVoucherResult?.discountAmount || 0;
   const isFreeShippingPromo = appliedVoucherResult?.type === "SHIPPING";
   const shipping = (subtotal >= 500000 || isFreeShippingPromo) ? 0 : 30000;
@@ -158,10 +175,24 @@ export function CartContent() {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Cart Items */}
           <div className="lg:col-span-2 space-y-4">
+            <div className="flex items-center gap-2 mb-2 p-2">
+              <Checkbox
+                id="select-all"
+                checked={selectedItems.length === cartItems.length && cartItems.length > 0}
+                onCheckedChange={toggleAll}
+              />
+              <label htmlFor="select-all" className="text-sm font-medium cursor-pointer">
+                Chọn tất cả ({cartItems.length} sản phẩm)
+              </label>
+            </div>
             {cartItems.map((item) => (
-              <Card key={item.id}>
+              <Card key={item.id} className={selectedItems.includes(item.id) ? "border-primary/30 ring-1 ring-primary/10" : ""}>
                 <CardContent className="p-4">
-                  <div className="flex gap-4">
+                  <div className="flex gap-4 items-center">
+                    <Checkbox
+                      checked={selectedItems.includes(item.id)}
+                      onCheckedChange={() => toggleItem(item.id)}
+                    />
                     {/* Product Image */}
                     <Link
                       href={item.slug ? `/product/${item.slug}` : "/products"}
@@ -339,11 +370,28 @@ export function CartContent() {
                 </div>
               </CardContent>
               <CardFooter className="flex-col gap-3">
-                <Button asChild className="w-full" size="lg">
-                  <Link href="/checkout">
-                    Tiến hành thanh toán
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Link>
+                <Button
+                  className="w-full"
+                  size="lg"
+                  disabled={selectedItems.length === 0}
+                  asChild={selectedItems.length > 0}
+                  onClick={() => {
+                    if (selectedItems.length === 0) {
+                      toast.error("Vui lòng chọn ít nhất một sản phẩm để thanh toán");
+                    }
+                  }}
+                >
+                  {selectedItems.length > 0 ? (
+                    <Link href={`/checkout?items=${selectedItems.join(",")}`}>
+                      Tiến hành thanh toán
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </Link>
+                  ) : (
+                    <>
+                      Tiến hành thanh toán
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </>
+                  )}
                 </Button>
                 <p className="text-xs text-center text-muted-foreground">
                   Bằng việc thanh toán, bạn đồng ý với{" "}

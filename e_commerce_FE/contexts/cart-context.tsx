@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { fetchCartItems, removeCartItem, addToCart, extractVariantAttributes } from "@/lib/api";
+import { fetchCartItems, removeCartItem, addToCart, extractVariantAttributes, updateCartItemQuantity } from "@/lib/api";
 import { toast } from "sonner";
 
 interface CartItem {
@@ -100,8 +100,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!item) return;
 
     try {
-      // New API: update by variantId
-      await addToCart(Number(item.variantId), newQuantity);
+      // New API: update by variantId (SET absolute quantity)
+      await updateCartItemQuantity(Number(item.variantId), newQuantity);
       setCartItems((items) =>
         items.map((cartItem) =>
           cartItem.id === itemId ? { ...cartItem, quantity: newQuantity } : cartItem
