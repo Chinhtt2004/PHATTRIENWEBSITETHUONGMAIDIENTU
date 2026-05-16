@@ -19,6 +19,7 @@ import java.util.List;
 public class ProductController {
 
     private final ProductService productService;
+
     @GetMapping("/public/product")
     public ResponseEntity<Page<ProductResponse>> searchProducts(
             @RequestParam(required = false) String keyword,
@@ -28,18 +29,15 @@ public class ProductController {
             @RequestParam(required = false) List<Long> brandIds,
             @RequestParam(required = false) List<Long> attributeValueIds,
             @RequestParam(required = false) Boolean inStock,
-            @RequestParam(defaultValue = "0")   int page,
-            @RequestParam(defaultValue = "20")  int size,
-            @RequestParam(defaultValue = "id")  String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDir
-    ) {
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
         return ResponseEntity.ok(
                 productService.searchProducts(
                         keyword, minPrice, maxPrice,
                         categoryIds, brandIds, inStock, attributeValueIds,
-                        page, size, sortBy, sortDir
-                )
-        );
+                        page, size, sortBy, sortDir));
     }
 
     @GetMapping("/public/product/{id}")
@@ -51,12 +49,6 @@ public class ProductController {
     public ResponseEntity<List<ProductResponse>> getByCategory(@PathVariable Long categoryId) {
         return ResponseEntity.ok(productService.getProductsByCategoryId(categoryId));
     }
-
-//    @GetMapping("/public/products/best-sellers")
-//    public ResponseEntity<List<BestSellingProductDTO>> getBestSellers(
-//            @RequestParam(defaultValue = "10") int limit) {
-//        return ResponseEntity.ok(productService.getBestSellingProducts(limit));
-//    }
 
     @GetMapping("/public/product/new")
     public ResponseEntity<List<ProductResponse>> getNewProducts(
@@ -71,8 +63,7 @@ public class ProductController {
     @PostMapping(value = "/admin/product", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ProductResponse> create(
             @RequestPart("product") ProductRequest request,
-            @RequestPart(value = "images", required = false) List<MultipartFile> images
-    ) {
+            @RequestPart(value = "images", required = false) List<MultipartFile> images) {
         return ResponseEntity.ok(productService.create(request, images));
     }
 
@@ -80,8 +71,7 @@ public class ProductController {
     public ResponseEntity<ProductResponse> update(
             @PathVariable Long id,
             @RequestPart("product") ProductRequest request,
-            @RequestPart(value = "images", required = false) List<MultipartFile> images
-    ) {
+            @RequestPart(value = "images", required = false) List<MultipartFile> images) {
         return ResponseEntity.ok(productService.update(id, request, images));
     }
 
@@ -93,10 +83,11 @@ public class ProductController {
 
     @GetMapping("/public/products/sale")
     public ResponseEntity<Page<ProductResponse>> getSaleProducts(
-            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         return ResponseEntity.ok(productService.getSaleProducts(page, size));
     }
+
     // ADMIN: Set giá sale cho variant
     @PutMapping("/admin/variants/sale")
     public ResponseEntity<SaleResponse> setSalePrice(@RequestBody SaleRequest request) {
@@ -110,18 +101,17 @@ public class ProductController {
         productService.removeSale(variantId);
         return ResponseEntity.noContent().build();
     }
+
     @GetMapping("public/product/best-sellers")
     public ResponseEntity<List<ProductResponse>> getBestSelling(
-            @RequestParam(defaultValue = "10") int limit
-    ) {
+            @RequestParam(defaultValue = "10") int limit) {
         List<ProductResponse> result = productService.getBestSelling(limit);
         return ResponseEntity.ok(result);
     }
 
     @GetMapping("public/product/flash-sale")
     public ResponseEntity<List<ProductResponse>> getFlashSale(
-            @RequestParam(defaultValue = "10") int limit
-    ) {
+            @RequestParam(defaultValue = "10") int limit) {
         return ResponseEntity.ok(productService.getFlashSale(limit));
     }
 }

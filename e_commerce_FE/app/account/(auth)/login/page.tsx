@@ -33,7 +33,7 @@ export default function LoginPage() {
       toast.success("Đăng nhập thành công!");
       
       if (response.role === "ADMIN") {
-        router.push("/admin");
+        window.location.href = `http://${window.location.hostname}:3001/admin`;
       } else {
         router.push("/");
       }

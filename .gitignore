@@ -37,6 +37,7 @@ build/
 ### Node.js / Next.js ###
 node_modules/
 .next/
+.next-admin/
 out/
 .pnpm-store/
 *.tsbuildinfo

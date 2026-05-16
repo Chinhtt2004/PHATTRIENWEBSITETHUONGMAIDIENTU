@@ -48,20 +48,20 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { formatPrice, type Product } from "@/lib/data";
-import { 
-  fetchCartItems, 
-  fetchProducts, 
-  fetchUserProfile, 
-  fetchPublicVouchers, 
-  checkout, 
-  createVNPayPayment, 
-  applyVoucher, 
-  fetchAddresses, 
+import {
+  fetchCartItems,
+  fetchProducts,
+  fetchUserProfile,
+  fetchPublicVouchers,
+  checkout,
+  createVNPayPayment,
+  applyVoucher,
+  fetchAddresses,
   addAddress,
   fetchMyOrders,
   triggerWebhook,
-  type Voucher, 
-  type VoucherApplyResponse, 
+  type Voucher,
+  type VoucherApplyResponse,
   type AddressResponse,
   type AddressRequest
 } from "@/lib/api";
@@ -304,13 +304,13 @@ export function CheckoutContent() {
       await addAddress(newAddressData);
       toast.success("Đã thêm địa chỉ mới");
       const addrs = await loadAddresses();
-      
+
       // Auto select the new address
-      const newAddr = addrs[addrs.length - 1]; 
+      const newAddr = addrs[addrs.length - 1];
       if (newAddr) {
         handleAddressSelect(newAddr.id.toString());
       }
-      
+
       setIsAddAddressDialogOpen(false);
       setNewAddressData({
         receiverName: "",
@@ -351,21 +351,21 @@ export function CheckoutContent() {
 
       toast.success("Đặt hàng thành công!");
 
-      try {
-        const myOrders = await fetchMyOrders();
-        const recentOrders = myOrders.slice(0, 10);
-        const webhookPayload = recentOrders.map((o: any) => ({
-          order_id: String(o.id),
-          user_id: formData.email || "unknown",
-          total: o.totalPrice,
-          payment_method: o.paymentMethod || paymentMethod.toUpperCase(),
-          created_at: o.orderDate || new Date().toISOString()
-        }));
-        await triggerWebhook(webhookPayload);
-        console.log("Đã gửi thông tin đơn hàng tới hệ thống thành công");
-      } catch (webhookError) {
-        console.error("Gửi webhook thất bại:", webhookError);
-      }
+      // try {
+      //   const myOrders = await fetchMyOrders();
+      //   const recentOrders = myOrders.slice(0, 10);
+      //   const webhookPayload = recentOrders.map((o: any) => ({
+      //     order_id: String(o.id),
+      //     user_id: formData.email || "unknown",
+      //     total: o.totalPrice,
+      //     payment_method: o.paymentMethod || paymentMethod.toUpperCase(),
+      //     created_at: o.orderDate || new Date().toISOString()
+      //   }));
+      //   await triggerWebhook(webhookPayload);
+      //   console.log("Đã gửi thông tin đơn hàng tới hệ thống thành công");
+      // } catch (webhookError) {
+      //   console.error("Gửi webhook thất bại:", webhookError);
+      // }
 
       if (paymentMethod === "vnpay") {
         if (order.paymentUrl) {
@@ -555,7 +555,7 @@ export function CheckoutContent() {
                     />
                     <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
                   </div>
-                  
+
                   {userAddresses.length > 0 && (
                     <div className="mt-3 p-3 rounded-xl bg-gradient-to-br from-primary-light/10 to-transparent border border-primary/5 space-y-2">
                       <div className="flex items-center justify-between mb-1">
@@ -563,9 +563,9 @@ export function CheckoutContent() {
                           <Sparkles className="h-3 w-3" />
                           Chọn từ địa chỉ đã lưu
                         </Label>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           className="text-[10px] text-primary h-auto p-0 hover:bg-transparent font-bold flex items-center gap-1"
                           onClick={() => setIsAddAddressDialogOpen(true)}
                         >
@@ -1165,17 +1165,17 @@ export function CheckoutContent() {
                       Đặt làm địa chỉ mặc định
                     </label>
                   </div>
-                  
+
                   <div className="flex gap-3 pt-4">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       className="flex-1 rounded-full"
                       onClick={() => setIsAddAddressDialogOpen(false)}
                       disabled={isAddingAddress}
                     >
                       Hủy
                     </Button>
-                    <Button 
+                    <Button
                       className="flex-1 rounded-full bg-primary hover:bg-primary-hover shadow-md shadow-primary/20"
                       onClick={handleAddAddress}
                       disabled={isAddingAddress}
