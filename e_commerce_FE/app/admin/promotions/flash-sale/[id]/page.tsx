@@ -183,22 +183,28 @@ export default function FlashSaleDetailPage({ params }: { params: Promise<{ id: 
                     onChange={(e) => setSearch(e.target.value)}
                   />
                 </div>
-                <div className="h-[300px] overflow-y-auto space-y-2">
+                <div className="h-[300px] overflow-y-auto space-y-2 pr-2">
                   {products.map(p => (
                     <div key={p.id} className="space-y-1 p-2 border rounded-md bg-muted/20">
                       <p className="font-medium text-sm">{p.name}</p>
                       <div className="grid grid-cols-1 gap-1">
                         {p.variants.map(v => (
-                          <div 
-                            key={v.id} 
-                            className={`text-xs p-2 rounded-md cursor-pointer border flex justify-between items-center ${selectedVariant?.id === v.id ? 'bg-primary/10 border-primary' : 'bg-background hover:bg-muted'}`}
+                          <div
+                            key={v.id}
+                            className={`text-xs p-3 rounded-md cursor-pointer border flex flex-col gap-1 transition-all ${selectedVariant?.id === v.id ? 'bg-primary/10 border-primary ring-1 ring-primary' : 'bg-background hover:bg-muted/50'}`}
                             onClick={() => {
                               setSelectedVariant(v);
                               setFormData(prev => ({ ...prev, salePrice: v.price }));
                             }}
                           >
-                            <span>SKU: {v.sku} - Tồn: {v.stock}</span>
-                            <span className="font-semibold">{v.price.toLocaleString("vi-VN")}đ</span>
+                            <div className="flex justify-between font-semibold">
+                              <span>SKU: {v.sku}</span>
+                              <span className="text-primary">{v.price.toLocaleString("vi-VN")}đ</span>
+                            </div>
+                            <div className="flex justify-between text-muted-foreground">
+                              <span>Tồn: <span className={v.stock > 0 ? "text-green-600 font-medium" : "text-destructive font-medium"}>{v.stock}</span></span>
+                              <span>Giá nhập: {v.costPrice ? `${v.costPrice.toLocaleString("vi-VN")}đ` : "N/A"}</span>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -211,30 +217,63 @@ export default function FlashSaleDetailPage({ params }: { params: Promise<{ id: 
               <div className="space-y-4 pl-2">
                 {selectedVariant ? (
                   <>
-                    <div className="p-3 bg-muted rounded-md mb-4">
-                      <p className="text-sm font-semibold">Đang chọn:</p>
-                      <p className="text-xs text-muted-foreground">SKU: {selectedVariant.sku}</p>
-                      <p className="text-xs text-muted-foreground">Giá gốc: {selectedVariant.price.toLocaleString("vi-VN")}đ</p>
+                    <div className="p-3 bg-muted rounded-md mb-4 border">
+                      <p className="text-sm font-semibold mb-2">Đang chọn: <span className="text-primary">{selectedVariant.sku}</span></p>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="flex flex-col">
+                          <span className="text-muted-foreground">Giá gốc:</span>
+                          <span className="font-medium">{selectedVariant.price.toLocaleString("vi-VN")}đ</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-muted-foreground">Giá nhập:</span>
+                          <span className="font-medium">{selectedVariant.costPrice ? `${selectedVariant.costPrice.toLocaleString("vi-VN")}đ` : "N/A"}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-muted-foreground">Tồn kho hiện tại:</span>
+                          <span className="font-medium text-blue-600">{selectedVariant.stock} sản phẩm</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Giá Khuyến Mãi (VNĐ)</Label>
+
+                    <div className="space-y-2 relative">
+                      <Label className={selectedVariant.costPrice && formData.salePrice < selectedVariant.costPrice ? "text-orange-500" : ""}>Giá Khuyến Mãi (VNĐ)</Label>
                       <Input
                         type="number"
                         min={0}
                         value={formData.salePrice}
+                        className={selectedVariant.costPrice && formData.salePrice < selectedVariant.costPrice ? "border-orange-500 focus-visible:ring-orange-500" : ""}
                         onChange={(e) => setFormData({ ...formData, salePrice: Number(e.target.value) })}
                       />
+                      {selectedVariant.costPrice && formData.salePrice < selectedVariant.costPrice && (
+                        <p className="text-xs text-orange-500 font-medium bg-orange-50 p-2 rounded-md border border-orange-200">
+                          ⚠️ Giá Sale đang thấp hơn Giá nhập. Đơn hàng sẽ bị lỗ !
+                        </p>
+                      )}
+                      {formData.salePrice >= selectedVariant.price && (
+                        <p className="text-xs text-destructive font-medium">
+                          ❌ Giá Sale phải thấp hơn Giá gốc ({selectedVariant.price.toLocaleString("vi-VN")}đ)
+                        </p>
+                      )}
                     </div>
-                    <div className="space-y-2">
-                      <Label>Số lượng (Kho Flash Sale)</Label>
+
+                    <div className="space-y-2 relative">
+                      <Label className={formData.quantity > selectedVariant.stock ? "text-destructive" : ""}>Số lượng (Kho Flash Sale)</Label>
                       <Input
                         type="number"
                         min={1}
                         value={formData.quantity}
+                        className={formData.quantity > selectedVariant.stock ? "border-destructive focus-visible:ring-destructive" : ""}
                         onChange={(e) => setFormData({ ...formData, quantity: Number(e.target.value) })}
                       />
-                      <p className="text-[10px] text-muted-foreground">Lưu ý: Không vượt quá tồn kho thực tế ({selectedVariant.stock})</p>
+                      {formData.quantity > selectedVariant.stock ? (
+                        <p className="text-xs text-destructive font-bold bg-red-50 p-2 rounded-md border border-red-200">
+                          ❌ Vượt quá tồn kho thực tế! Chỉ còn {selectedVariant.stock} SP.
+                        </p>
+                      ) : (
+                        <p className="text-[10px] text-muted-foreground">Lưu ý: Không vượt quá tồn kho thực tế ({selectedVariant.stock})</p>
+                      )}
                     </div>
+
                     <div className="space-y-2">
                       <Label>Giới hạn mua / 1 Khách hàng</Label>
                       <Input
@@ -254,7 +293,12 @@ export default function FlashSaleDetailPage({ params }: { params: Promise<{ id: 
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsAddOpen(false)}>Hủy</Button>
-              <Button onClick={handleAdd} disabled={!selectedVariant}>Thêm vào Flash Sale</Button>
+              <Button
+                onClick={handleAdd}
+                disabled={!selectedVariant || formData.quantity > selectedVariant.stock || formData.salePrice >= selectedVariant.price}
+              >
+                Thêm vào Flash Sale
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
