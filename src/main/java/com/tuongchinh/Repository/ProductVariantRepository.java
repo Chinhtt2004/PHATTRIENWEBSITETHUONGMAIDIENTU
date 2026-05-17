@@ -14,6 +14,7 @@ public interface ProductVariantRepository extends JpaRepository<ProductVariant, 
     List<ProductVariant> findByProductId(Long productId);
 
     List<ProductVariant> findByProductIdAndIsActiveTrue(Long productId);
+    Optional<ProductVariant> findBySku(String sku);
     // Lấy tất cả variant đang sale
     @Query("""
         SELECT pv FROM ProductVariant pv

@@ -15,43 +15,40 @@ import java.util.List;
 @RequestMapping("/api/")
 @RequiredArgsConstructor
 public class FlashSaleController {
-    private final FlashSaleService flashSaleService;
-    @PostMapping("/admin/flashsale/crea")
-    public FlashSale createFlashSale(
-            @RequestBody
-            CreateFlashSaleRequest request
-    ) {
+        private final FlashSaleService flashSaleService;
 
-        return flashSaleService
-                .createFlashSale(request);
-    }
+        @PostMapping("/admin/flashsale/create")
+        public FlashSale createFlashSale(
+                        @RequestBody CreateFlashSaleRequest request) {
 
-    @PostMapping("/admin/flashsale/{flashSaleId}")
-    public String addFlashSaleVariant(
-            @PathVariable Long flashSaleId,
-            @RequestBody AddFlashSaleVariantRequest request
-    ) {
+                return flashSaleService
+                                .createFlashSale(request);
+        }
 
-        flashSaleService.addFlashSaleVariant(
-                flashSaleId,
-                request
-        );
+        @PostMapping("/admin/flashsale/{flashSaleId}")
+        public String addFlashSaleVariant(
+                        @PathVariable Long flashSaleId,
+                        @RequestBody AddFlashSaleVariantRequest request) {
 
-        return "Add flash sale variant successfully";
-    }
-    @GetMapping("public/flashsale/active")
-    public List<FlashSaleResponse> getActiveFlashSales() {
-        return flashSaleService.getActiveFlashSales();
-    }
-    @PutMapping("/admin/flashsale/{flashSaleId}")
-    public String disableFlashSale(
-            @PathVariable Long flashSaleId
-    ) {
+                flashSaleService.addFlashSaleVariant(
+                                flashSaleId,
+                                request);
 
-        flashSaleService.disableFlashSale(
-                flashSaleId
-        );
+                return "Add flash sale variant successfully";
+        }
 
-        return "Flash sale disabled successfully";
-    }
+        @GetMapping("public/flashsale/active")
+        public List<FlashSaleResponse> getActiveFlashSales() {
+                return flashSaleService.getActiveFlashSales();
+        }
+
+        @PutMapping("/admin/flashsale/{flashSaleId}")
+        public String disableFlashSale(
+                        @PathVariable Long flashSaleId) {
+
+                flashSaleService.disableFlashSale(
+                                flashSaleId);
+
+                return "Flash sale disabled successfully";
+        }
 }

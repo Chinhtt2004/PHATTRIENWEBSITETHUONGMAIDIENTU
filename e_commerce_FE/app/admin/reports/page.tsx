@@ -46,7 +46,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { fetchAdminReportSummary, type ReportSummary } from "@/lib/api";
+import { fetchAdminReportSummary, adminExportSummaryReportExcel, type ReportSummary } from "@/lib/api";
+import { toast } from "sonner";
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
@@ -64,6 +65,27 @@ export default function AdminReportsPage() {
   const [dateRange, setDateRange] = useState("30days");
   const [report, setReport] = useState<ReportSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportSummary = async () => {
+    try {
+      setIsExporting(true);
+      const blob = await adminExportSummaryReportExcel();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Bao_cao_tong_hop_${new Date().toISOString().split("T")[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success("Xuất báo cáo tổng quan thành công!");
+    } catch (error) {
+      toast.error("Lỗi khi xuất báo cáo tổng quan");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   useEffect(() => {
     async function loadReport() {
@@ -147,9 +169,18 @@ export default function AdminReportsPage() {
               <SelectItem value="year">Năm nay</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            Xuất báo cáo
+          <Button variant="outline" onClick={handleExportSummary} disabled={isExporting}>
+            {isExporting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Đang xuất...
+              </>
+            ) : (
+              <>
+                <Download className="mr-2 h-4 w-4" />
+                Xuất báo cáo
+              </>
+            )}
           </Button>
         </div>
       </div>

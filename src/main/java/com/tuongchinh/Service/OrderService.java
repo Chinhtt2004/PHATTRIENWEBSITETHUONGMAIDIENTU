@@ -32,6 +32,7 @@ public class OrderService {
     private final AddressRepository addressRepository;
     private final PaymentService paymentService;
     private final ProductRepository productRepository;
+    private final FlashSaleProductRepository flashSaleProductRepository;
 
     @Transactional
     public OrderResponse checkout(Long userId, CheckoutRequest req, HttpServletRequest request) {
@@ -82,6 +83,14 @@ public class OrderService {
             // Dùng getEffectivePrice() → ưu tiên discountPrice nếu có
             BigDecimal price = variant.getEffectivePrice();
             total = total.add(price.multiply(BigDecimal.valueOf(item.getQuantity())));
+
+            // Tăng soldQuantity cho Flash Sale nếu có
+            java.util.Optional<FlashSaleProduct> activeFlashSale = flashSaleProductRepository.findActiveByVariantId(variant.getId());
+            if (activeFlashSale.isPresent()) {
+                FlashSaleProduct fsp = activeFlashSale.get();
+                fsp.setSoldQuantity(fsp.getSoldQuantity() + item.getQuantity());
+                flashSaleProductRepository.save(fsp);
+            }
         }
 
         // 4. Áp voucher (nếu có)

@@ -17,6 +17,7 @@ public class CartService {
     private final CartRepository cartRepository;
     private final CartItemRepository cartItemRepository;
     private final ProductVariantRepository variantRepository;
+    private final FlashSaleProductRepository flashSaleProductRepository;
 
     // Thêm vào giỏ hàng
     public void addToCart(Long userId, Long variantId, int quantity) {
@@ -38,14 +39,31 @@ public class CartService {
 
         // Nếu variant đã có trong giỏ → cộng thêm số lượng
         Optional<CartItem> existing = cartItemRepository.findByCartIdAndVariantId(cart.getId(), variantId);
+        
+        int newQty = quantity;
+        if (existing.isPresent()) {
+            newQty = existing.get().getQuantity() + quantity;
+        }
+
+        if (variant.getStock() < newQty) {
+            throw new RuntimeException("Không đủ hàng, chỉ còn " + variant.getStock() + " sản phẩm");
+        }
+
+        // Kiểm tra Flash Sale Limit
+        Optional<FlashSaleProduct> activeFlashSale = flashSaleProductRepository.findActiveByVariantId(variantId);
+        if (activeFlashSale.isPresent()) {
+            FlashSaleProduct fsp = activeFlashSale.get();
+            if (newQty > fsp.getMaxUser()) {
+                throw new RuntimeException("Sản phẩm đang trong Flash Sale, bạn chỉ được mua tối đa " + fsp.getMaxUser() + " sản phẩm");
+            }
+            int availableFlashSaleStock = fsp.getQuantity() - fsp.getSoldQuantity();
+            if (newQty > availableFlashSaleStock) {
+                throw new RuntimeException("Kho Flash Sale chỉ còn " + availableFlashSaleStock + " sản phẩm");
+            }
+        }
+
         if (existing.isPresent()) {
             CartItem item = existing.get();
-            int newQty = item.getQuantity() + quantity;
-
-            // Kiểm tra lại tồn kho sau khi cộng
-            if (variant.getStock() < newQty) {
-                throw new RuntimeException("Không đủ hàng, chỉ còn " + variant.getStock() + " sản phẩm");
-            }
             item.setQuantity(newQty);
             cartItemRepository.save(item);
         } else {
@@ -75,6 +93,19 @@ public class CartService {
 
         if (variant.getStock() < quantity) {
             throw new RuntimeException("Không đủ hàng, chỉ còn " + variant.getStock() + " sản phẩm");
+        }
+
+        // Kiểm tra Flash Sale Limit
+        Optional<FlashSaleProduct> activeFlashSale = flashSaleProductRepository.findActiveByVariantId(variantId);
+        if (activeFlashSale.isPresent()) {
+            FlashSaleProduct fsp = activeFlashSale.get();
+            if (quantity > fsp.getMaxUser()) {
+                throw new RuntimeException("Sản phẩm đang trong Flash Sale, bạn chỉ được mua tối đa " + fsp.getMaxUser() + " sản phẩm");
+            }
+            int availableFlashSaleStock = fsp.getQuantity() - fsp.getSoldQuantity();
+            if (quantity > availableFlashSaleStock) {
+                throw new RuntimeException("Kho Flash Sale chỉ còn " + availableFlashSaleStock + " sản phẩm");
+            }
         }
 
         item.setQuantity(quantity);

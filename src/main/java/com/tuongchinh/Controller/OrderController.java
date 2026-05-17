@@ -6,11 +6,14 @@ import com.tuongchinh.DTO.OrderUptateStatusRequest;
 import com.tuongchinh.Service.JwtService;
 import com.tuongchinh.Service.OrderService;
 import com.tuongchinh.Service.UserService;
+import com.tuongchinh.Service.OrderExportService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -21,6 +24,7 @@ public class OrderController {
     private final OrderService orderService;
     private final UserService userService;
     private final JwtService jwtService;
+    private final OrderExportService orderExportService;
 
     // POST /api/orders/checkout
     @PostMapping("user/orders/checkout")
@@ -85,5 +89,12 @@ public class OrderController {
     public ResponseEntity<OrderResponse> updateStatus(
             @RequestBody OrderUptateStatusRequest request) {
         return ResponseEntity.ok(orderService.updateOrderStatus(request));
+    }
+
+    @GetMapping("/admin/orders/export")
+    public void exportOrders(HttpServletResponse response) throws IOException {
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename=orders.xlsx");
+        orderExportService.exportOrdersToExcel(response.getOutputStream());
     }
 }

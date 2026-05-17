@@ -85,6 +85,12 @@ public class FlashSaleService {
                         ));
 
         // validate
+        if (request.getQuantity() > variant.getStock()) {
+            throw new RuntimeException(
+                    "Số lượng Flash Sale không được vượt quá tồn kho thực tế (" + variant.getStock() + ")"
+            );
+        }
+
         if (
                 request.getSalePrice()
                         .compareTo(
@@ -93,7 +99,7 @@ public class FlashSaleService {
         ) {
 
             throw new RuntimeException(
-                    "Sale price must be smaller than original price"
+                    "Giá Sale phải thấp hơn giá gốc của sản phẩm"
             );
         }
 
