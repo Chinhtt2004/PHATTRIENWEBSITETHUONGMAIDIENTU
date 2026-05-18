@@ -53,16 +53,16 @@ public class PageController {
     // UPDATE
     // =========================
 
-//    @PutMapping("/{id}")
-//    public ResponseEntity<?> update(
-//            @PathVariable Long id,
-//            @RequestBody CreatePageRequest req
-//    ) {
-//
-//        return ResponseEntity.ok(
-//                pageService.update(id, req)
-//        );
-//    }
+    @PutMapping("admin/page/{id}")
+    public ResponseEntity<?> update(
+            @PathVariable Long id,
+            @RequestBody CreatePageRequest req
+    ) {
+
+        return ResponseEntity.ok(
+                pageService.update(id, req)
+        );
+    }
 
     // =========================
     // DELETE

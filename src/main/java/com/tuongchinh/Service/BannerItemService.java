@@ -138,6 +138,21 @@ public class BannerItemService {
     }
 
     // =========================================
+    // LIST BY BANNER
+    // =========================================
+
+    public java.util.List<BannerItemResponse> getByBanner(Long bannerId) {
+        Banner banner = bannerRepository.findById(bannerId)
+                .orElseThrow(() -> new RuntimeException("Banner not found"));
+
+        return bannerItemRepository
+                .findByBannerAndActiveTrueOrderByPositionAsc(banner)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    // =========================================
     // MAP RESPONSE
     // =========================================
 

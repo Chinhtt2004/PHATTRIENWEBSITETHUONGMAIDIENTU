@@ -7,7 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/")
+@RequestMapping("/api/admin/banneritems")
 @RequiredArgsConstructor
 public class BannerItemController {
 
@@ -16,8 +16,7 @@ public class BannerItemController {
     // =========================================
     // CREATE
     // =========================================
-    @PostMapping("admin/banneritems/create"
-    )
+    @PostMapping
     public ResponseEntity<?> create(
             @ModelAttribute CreateBannerItemRequest req
     ) {
@@ -26,15 +25,16 @@ public class BannerItemController {
                 bannerItemService.create(req)
         );
     }
-//    @GetMapping("/banner/{bannerId}")
-//    public ResponseEntity<?> getByBanner(
-//            @PathVariable Long bannerId
-//    ) {
-//
-//        return ResponseEntity.ok(
-//                bannerItemService.getByBanner(bannerId)
-//        );
-//    }
+
+    @GetMapping("/banner/{bannerId}")
+    public ResponseEntity<?> getByBanner(
+            @PathVariable Long bannerId
+    ) {
+
+        return ResponseEntity.ok(
+                bannerItemService.getByBanner(bannerId)
+        );
+    }
 
     // =========================================
     // GET DETAIL
@@ -57,7 +57,7 @@ public class BannerItemController {
     @PutMapping("/{id}")
     public ResponseEntity<?> update(
             @PathVariable Long id,
-            @RequestBody CreateBannerItemRequest req
+            @ModelAttribute CreateBannerItemRequest req
     ) {
 
         return ResponseEntity.ok(
