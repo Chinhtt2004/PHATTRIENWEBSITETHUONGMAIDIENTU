@@ -12,5 +12,6 @@ public class CategoryResponse {
     private String name;
     private String description;
     private Long parentId;
+    private Long productCount;
     private List<CategoryResponse> children;
 }

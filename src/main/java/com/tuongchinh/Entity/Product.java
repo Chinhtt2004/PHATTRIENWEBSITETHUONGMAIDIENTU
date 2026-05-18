@@ -1,12 +1,20 @@
 package com.tuongchinh.Entity;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.tuongchinh.Entity.Category;
 import jakarta.persistence.*;
-import java.math.BigDecimal;
+import lombok.Getter;
+import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.time.LocalDateTime;
+import org.hibernate.annotations.BatchSize;
 
 @Entity
 @Table(name = "product")
+@Getter
+@Setter
+@BatchSize(size = 100)
 public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -15,62 +23,29 @@ public class Product {
     private String name;
     @Column(columnDefinition = "TEXT")
     private String description;
-    @Column(nullable = false, precision = 15, scale = 2)
-    private BigDecimal price;
-    @Column(name = "stock_quantity", nullable = false)
-    private Integer stockQuantity;
-    @Column(name = "image_url", length = 500)
-    private String imageUrl;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id")
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Category category;
-    @Column(name = "created_at")
+    @ManyToOne
+    @JoinColumn(name = "brand_id")
+    private Brand brand;
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
-    @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-    }
-    public Long getId() {
-        return id;
-    }
-    public String getName() {
-        return name;
-    }
-    public void setName(String name) {
-        this.name = name;
-    }
-    public String getDescription() {
-        return description;
-    }
-    public void setDescription(String description) {
-        this.description = description;
-    }
-    public BigDecimal getPrice() {
-        return price;
-    }
-    public void setPrice(BigDecimal price) {
-        this.price = price;
-    }
-    public Integer getStockQuantity() {
-        return stockQuantity;
-    }
-    public void setStockQuantity(Integer stockQuantity) {
-        this.stockQuantity = stockQuantity;
-    }
-    public String getImageUrl() {
-        return imageUrl;
-    }
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
-    }
-    public Category getCategory() {
-        return category;
-    }
-    public void setCategory(Category category) {
-        this.category = category;
-    }
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @BatchSize(size = 100)
+    private List<ProductVariant> variants = new ArrayList<>();
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @BatchSize(size = 100)
+    private List<ProductImage> images = new ArrayList<>();
+    @Column(name = "average_rating")
+    private Double averageRating = 0.0;
+
+    @Column(name = "total_reviews")
+    private Integer totalReviews = 0;
+    private Integer totalSold = 0;
+
 }

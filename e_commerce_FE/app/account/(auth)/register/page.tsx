@@ -39,7 +39,41 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (formData.password !== formData.confirmPassword) {
+    const firstName = formData.firstName.trim();
+    const lastName = formData.lastName.trim();
+    const email = formData.email.trim();
+    const phone = formData.phone.trim();
+    const password = formData.password;
+    const confirmPassword = formData.confirmPassword;
+
+    if (!firstName || !lastName || !email || !password) {
+      toast.error("Vui lòng điền đầy đủ các thông tin bắt buộc (*)");
+      return;
+    }
+
+    const nameRegex = /^[\p{L}\s]+$/u;
+    if (!nameRegex.test(firstName) || !nameRegex.test(lastName)) {
+      toast.error("Họ tên không hợp lệ (chỉ chứa chữ cái)");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error("Email không đúng định dạng");
+      return;
+    }
+
+    if (phone && !/^(0|84)(3|5|7|8|9)([0-9]{8})$/.test(phone.replace(/\s/g, ""))) {
+      toast.error("Số điện thoại không hợp lệ");
+      return;
+    }
+
+    if (password.length < 8) {
+      toast.error("Mật khẩu phải có ít nhất 8 ký tự");
+      return;
+    }
+
+    if (password !== confirmPassword) {
       toast.error("Mật khẩu xác nhận không khớp!");
       return;
     }
@@ -47,8 +81,8 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      const name = `${formData.lastName} ${formData.firstName}`.trim();
-      await registerUser(name, formData.email, formData.password);
+      const name = `${lastName} ${firstName}`.trim();
+      await registerUser(name, email, password);
 
       toast.success("Đăng ký thành công! Vui lòng đăng nhập.");
       router.push("/account/login");

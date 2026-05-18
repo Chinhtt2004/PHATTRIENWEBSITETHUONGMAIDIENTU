@@ -36,15 +36,17 @@ import {
 } from "@/components/ui/breadcrumb";
 import { toast } from "sonner";
 import { ProductCard } from "@/components/product/product-card";
-import { addToCart } from "@/lib/api";
+import { useCart } from "@/contexts/cart-context";
 import {
   type Product,
-  type Review,
+  type ProductVariant,
   formatPrice,
   getDiscountPercentage,
   getBadgeLabel,
   categories,
 } from "@/lib/data";
+import { normalizeImageUrl } from "@/lib/api";
+import { ProductReviews } from "@/components/product/product-reviews";
 
 interface ProductDetailProps {
   product: Product;
@@ -58,19 +60,58 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
   const [selectedImage, setSelectedImage] = useState(0);
   const [isWishlisted, setIsWishlisted] = useState(false);
 
+  // When variant changes, switch to its image if it has a dedicated one
+  const handleVariantSelect = (variant: typeof selectedVariant) => {
+    setSelectedVariant(variant);
+    if (variant.imageUrl) {
+      // find the index of this variant's image in the product images array
+      const idx = product.images.findIndex((img) => img.url === variant.imageUrl);
+      if (idx >= 0) setSelectedImage(idx);
+    }
+  };
+
+  /**
+   * Group variants by attribute type so we render one row per attribute.
+   * e.g. { color: [varA, varB], size: [varC, varD] }
+   * When NO attributes exist (single default variant) we skip the selector.
+   */
+  const attributeGroups = (() => {
+    const groups: Record<string, typeof product.variants> = {};
+    for (const variant of product.variants) {
+      const keys = Object.keys(variant.attributes).filter((k) => k !== "colorHex");
+      if (keys.length === 0 && product.variants.length > 1) {
+        // Fallback: If no attributes but multiple variants, group by a "Phiên bản" key
+        if (!groups["Phiên bản"]) groups["Phiên bản"] = [];
+        groups["Phiên bản"].push(variant);
+        continue;
+      }
+      for (const key of keys) {
+        if (!groups[key]) groups[key] = [];
+        // Deduplicate variants per value (a variant appears once per attribute group)
+        const seen = groups[key].some(
+          (v) => v.attributes[key] === variant.attributes[key]
+        );
+        if (!seen) groups[key].push(variant);
+      }
+    }
+    return groups;
+  })();
+
+  const hasAttributes = Object.keys(attributeGroups).length > 0;
+
   const discount = getDiscountPercentage(
     selectedVariant.price,
-    product.compareAtPrice
+    selectedVariant.compareAtPrice || product.compareAtPrice
   );
 
   const category = categories.find((c) => c.id === product.categoryId);
 
+  const { addItem } = useCart();
+
   const handleAddToCart = async () => {
     try {
-      await addToCart(Number(product.id), quantity);
-      toast.success("Đã thêm vào giỏ hàng!", {
-        description: `${product.name} - ${selectedVariant.name} x ${quantity}`,
-      });
+      // Use the addItem from CartContext to ensure header count updates
+      await addItem(Number(selectedVariant.id), quantity);
       return true;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Không thể thêm vào giỏ hàng";
@@ -79,7 +120,6 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
         router.push("/account/login");
         return false;
       }
-      toast.error(message);
       return false;
     }
   };
@@ -231,6 +271,8 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
                   </span>
                 </div>
                 <span className="text-muted-foreground">|</span>
+                <span className="text-muted-foreground font-medium">Đã bán {product.totalSold}</span>
+                <span className="text-muted-foreground">|</span>
                 <span className="text-muted-foreground">SKU: {product.sku}</span>
               </div>
             </div>
@@ -240,12 +282,12 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
               <span className="text-3xl font-bold text-primary">
                 {formatPrice(selectedVariant.price)}
               </span>
-              {product.compareAtPrice && (
+              { (selectedVariant.compareAtPrice || product.compareAtPrice || 0) > selectedVariant.price && (
                 <>
                   <span className="text-xl text-muted-foreground line-through">
-                    {formatPrice(product.compareAtPrice)}
+                    {formatPrice(selectedVariant.compareAtPrice || product.compareAtPrice || 0)}
                   </span>
-                  {discount && (
+                  {Boolean(discount && discount > 0) && (
                     <Badge variant="destructive">Tiết kiệm {discount}%</Badge>
                   )}
                 </>
@@ -258,49 +300,64 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
             </p>
 
             {/* Variants */}
-            {product.variants.length > 1 && (
-              <div>
-                <label className="block text-sm font-medium mb-3">
-                  Lựa chọn:{" "}
-                  <span className="text-primary">{selectedVariant.name}</span>
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {product.variants.map((variant) => {
-                    const isOutOfStock = variant.inventory <= 0;
-                    const hasColor = variant.attributes.colorHex;
+            {hasAttributes && (
+              <div className="space-y-4">
+                {Object.entries(attributeGroups).map(([attrKey, groupVariants]) => {
+                  // The "active" value for this attribute row
+                  const activeValue = selectedVariant.attributes[attrKey];
+                  return (
+                    <div key={attrKey}>
+                      <label className="block text-sm font-medium mb-2 capitalize">
+                        {attrKey}:{" "}
+                        <span className="text-primary">{activeValue}</span>
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {groupVariants.map((variant) => {
+                          const isOutOfStock = variant.inventory <= 0;
+                          const isSelected =
+                            selectedVariant.attributes[attrKey] ===
+                            variant.attributes[attrKey];
+                          const hasColor = variant.attributes.colorHex;
 
-                    return (
-                      <button
-                        key={variant.id}
-                        onClick={() => !isOutOfStock && setSelectedVariant(variant)}
-                        disabled={isOutOfStock}
-                        className={`relative flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all ${
-                          selectedVariant.id === variant.id
-                            ? "border-primary bg-primary/5"
-                            : isOutOfStock
-                              ? "border-muted text-muted-foreground cursor-not-allowed opacity-50"
-                              : "border-border hover:border-primary/50"
-                        }`}
-                      >
-                        {hasColor && (
-                          <span
-                            className="w-4 h-4 rounded-full border border-border"
-                            style={{ backgroundColor: variant.attributes.colorHex }}
-                          />
-                        )}
-                        <span>{variant.name}</span>
-                        {selectedVariant.id === variant.id && (
-                          <Check className="h-4 w-4 text-primary" />
-                        )}
-                        {isOutOfStock && (
-                          <span className="absolute -top-2 -right-2 text-xs bg-muted px-1.5 rounded">
-                            Hết hàng
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+                          return (
+                            <button
+                              key={variant.id}
+                              onClick={() =>
+                                !isOutOfStock && handleVariantSelect(variant)
+                              }
+                              disabled={isOutOfStock}
+                              className={`relative flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all ${
+                                isSelected
+                                  ? "border-primary bg-primary/5"
+                                  : isOutOfStock
+                                    ? "border-muted text-muted-foreground cursor-not-allowed opacity-50"
+                                    : "border-border hover:border-primary/50"
+                              }`}
+                            >
+                              {hasColor && (
+                                <span
+                                  className="w-4 h-4 rounded-full border border-border"
+                                  style={{
+                                    backgroundColor: variant.attributes.colorHex,
+                                  }}
+                                />
+                              )}
+                              <span>{variant.attributes[attrKey] || variant.name || variant.sku}</span>
+                              {isSelected && (
+                                <Check className="h-4 w-4 text-primary" />
+                              )}
+                              {isOutOfStock && (
+                                <span className="absolute -top-2 -right-2 text-xs bg-muted px-1.5 rounded">
+                                  Hết hàng
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -485,149 +542,11 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
               )}
             </TabsContent>
             <TabsContent value="reviews" className="mt-6">
-              {product.reviews && product.reviews.length > 0 ? (
-                <div className="space-y-6">
-                  {/* Rating Summary */}
-                  <div className="flex flex-col sm:flex-row gap-6 p-5 rounded-2xl bg-muted/50 border border-border/50">
-                    <div className="flex flex-col items-center justify-center sm:min-w-[140px]">
-                      <span className="text-4xl font-bold text-primary">
-                        {product.rating.average}
-                      </span>
-                      <div className="flex items-center gap-0.5 mt-1">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-4 w-4 ${
-                              i < Math.floor(product.rating.average)
-                                ? "fill-warning text-warning"
-                                : "text-muted-foreground/30"
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-sm text-muted-foreground mt-1">
-                        {product.rating.count} đánh giá
-                      </span>
-                    </div>
-                    <div className="flex-1 space-y-1.5">
-                      {[5, 4, 3, 2, 1].map((star) => {
-                        const count = product.reviews.filter(
-                          (r) => r.rating === star
-                        ).length;
-                        const percent =
-                          product.reviews.length > 0
-                            ? (count / product.reviews.length) * 100
-                            : 0;
-                        return (
-                          <div key={star} className="flex items-center gap-2">
-                            <span className="text-sm w-4 text-muted-foreground">
-                              {star}
-                            </span>
-                            <Star className="h-3 w-3 fill-warning text-warning" />
-                            <div className="flex-1 h-2 rounded-full bg-border overflow-hidden">
-                              <div
-                                className="h-full rounded-full bg-warning transition-all"
-                                style={{ width: `${percent}%` }}
-                              />
-                            </div>
-                            <span className="text-xs text-muted-foreground w-8 text-right">
-                              {count}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Review List */}
-                  <div className="divide-y divide-border">
-                    {product.reviews.map((review) => (
-                      <div key={review.id} className="py-5 first:pt-0">
-                        <div className="flex items-start gap-3">
-                          <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
-                            <Image
-                              src={review.avatar}
-                              alt={review.userName}
-                              fill
-                              className="object-cover"
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-medium text-sm">
-                                {review.userName}
-                              </span>
-                              {review.verified && (
-                                <span className="inline-flex items-center gap-1 text-xs text-primary">
-                                  <BadgeCheck className="h-3.5 w-3.5" />
-                                  Đã mua hàng
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2 mt-1">
-                              <div className="flex">
-                                {Array.from({ length: 5 }).map((_, i) => (
-                                  <Star
-                                    key={i}
-                                    className={`h-3.5 w-3.5 ${
-                                      i < review.rating
-                                        ? "fill-warning text-warning"
-                                        : "text-muted-foreground/30"
-                                    }`}
-                                  />
-                                ))}
-                              </div>
-                              <span className="text-xs text-muted-foreground">
-                                {review.date}
-                              </span>
-                            </div>
-                            {review.skinType && (
-                              <span className="inline-block mt-1.5 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                                {review.skinType}
-                              </span>
-                            )}
-                            <h4 className="font-medium text-sm mt-2">
-                              {review.title}
-                            </h4>
-                            <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
-                              {review.content}
-                            </p>
-                            {review.images && review.images.length > 0 && (
-                              <div className="flex gap-2 mt-3">
-                                {review.images.map((img, idx) => (
-                                  <div
-                                    key={idx}
-                                    className="relative w-16 h-16 rounded-lg overflow-hidden border border-border"
-                                  >
-                                    <Image
-                                      src={img}
-                                      alt={`Review image ${idx + 1}`}
-                                      fill
-                                      className="object-cover"
-                                    />
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                            <button className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mt-3 transition-colors">
-                              <ThumbsUp className="h-3.5 w-3.5" />
-                              Hữu ích ({review.helpful})
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Star className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground mb-4">
-                    Chưa có đánh giá nào cho sản phẩm này.
-                  </p>
-                  <Button>Viết đánh giá đầu tiên</Button>
-                </div>
-              )}
+              <ProductReviews 
+                productId={Number(product.id)} 
+                averageRating={product.rating.average}
+                totalReviews={product.rating.count}
+              />
             </TabsContent>
           </Tabs>
         </div>

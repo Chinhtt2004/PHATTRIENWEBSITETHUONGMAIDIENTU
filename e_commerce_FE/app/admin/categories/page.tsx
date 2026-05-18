@@ -8,6 +8,9 @@ import {
   Edit,
   Trash2,
   Loader2,
+  ChevronRight,
+  ChevronDown,
+  FolderTree,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,8 +45,16 @@ import {
   adminCreateCategory,
   adminUpdateCategory,
   adminDeleteCategory,
-  type CategoryRequest
+  type CategoryRequest,
+  fetchBrands
 } from "@/lib/api";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { Category } from "@/lib/data";
 import { toast } from "sonner";
 import {
@@ -65,10 +76,22 @@ export default function AdminCategoriesPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  const toggleExpand = (id: string) => {
+    const newExpanded = new Set(expandedIds);
+    if (newExpanded.has(id)) {
+      newExpanded.delete(id);
+    } else {
+      newExpanded.add(id);
+    }
+    setExpandedIds(newExpanded);
+  };
 
   const [formData, setFormData] = useState<CategoryRequest>({
     name: "",
     description: "",
+    parentId: null,
   });
 
   const loadCategories = useCallback(async () => {
@@ -93,12 +116,14 @@ export default function AdminCategoriesPage() {
       setFormData({
         name: category.name,
         description: category.description || "",
+        parentId: category.parentId ? Number(category.parentId) : null,
       });
     } else {
       setEditingCategory(null);
       setFormData({
         name: "",
         description: "",
+        parentId: null,
       });
     }
     setIsDialogOpen(true);
@@ -139,9 +164,28 @@ export default function AdminCategoriesPage() {
     }
   };
 
-  const filteredCategories = categories.filter((cat) =>
-    cat.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter logic: show if name matches OR if it's a child of a visible expanded parent
+  const filteredCategories = categories.filter((cat) => {
+    if (searchQuery) {
+      return cat.name.toLowerCase().includes(searchQuery.toLowerCase());
+    }
+    
+    // In flat list, parentId belongs to parent that must be expanded
+    if (!cat.parentId) return true;
+    
+    // Check if ALL ancestors are expanded
+    let currentParentId: string | undefined = cat.parentId;
+    while (currentParentId) {
+      if (!expandedIds.has(currentParentId)) return false;
+      const parent = categories.find(c => c.id === currentParentId);
+      currentParentId = parent?.parentId;
+    }
+    return true;
+  });
+
+  const getParentName = (parentId?: string) => {
+    return categories.find(c => c.id === parentId)?.name || "—";
+  };
 
   return (
     <div className="space-y-6 pt-16 lg:pt-0">
@@ -185,10 +229,10 @@ export default function AdminCategoriesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Tên danh mục</TableHead>
-                    <TableHead>Mô tả</TableHead>
-                    <TableHead>Sản phẩm</TableHead>
-                    <TableHead className="w-12"></TableHead>
+                    <TableHead className="w-[30%]">Tên danh mục</TableHead>
+                    <TableHead className="w-[40%]">Mô tả</TableHead>
+                    <TableHead className="text-right">Sản phẩm</TableHead>
+                    <TableHead className="w-[100px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -199,41 +243,84 @@ export default function AdminCategoriesPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredCategories.map((category) => (
-                      <TableRow key={category.id}>
-                        <TableCell className="font-medium">
-                          {category.name}
-                        </TableCell>
-                        <TableCell className="max-w-md truncate text-muted-foreground">
-                          {category.description || "Không có mô tả"}
-                        </TableCell>
-                        <TableCell>
-                          {category.productCount || 0} sản phẩm
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleOpenDialog(category)}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Chỉnh sửa
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="text-destructive"
-                                onClick={() => setCategoryToDelete(category)}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Xóa
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))
+                    filteredCategories.map((category) => {
+                      const hasChildren = categories.some(c => c.parentId === category.id);
+                      const isExpanded = expandedIds.has(category.id);
+                      const level = category.level || 0;
+
+                      return (
+                        <TableRow key={category.id} className="group hover:bg-muted/50 transition-colors">
+                          <TableCell className="font-medium p-0">
+                             <div 
+                               className="flex items-center"
+                               style={{ paddingLeft: `${level * 24 + 12}px` }}
+                             >
+                                <div className="flex items-center h-12 w-full gap-2 py-2">
+                                  {/* Guide line for nested items */}
+                                  {level > 0 && (
+                                    <div className="absolute left-0 top-0 bottom-0 border-l border-muted-foreground/20" 
+                                         style={{ left: `${(level - 1) * 24 + 23}px` }} 
+                                    />
+                                  )}
+                                  
+                                  {hasChildren ? (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6 p-0 hover:bg-muted"
+                                      onClick={() => toggleExpand(category.id)}
+                                    >
+                                      {isExpanded ? (
+                                        <ChevronDown className="h-4 w-4" />
+                                      ) : (
+                                        <ChevronRight className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                  ) : (
+                                    <div className="w-6" /> // Spacer for alignment
+                                  )}
+                                  
+                                  {level > 0 ? (
+                                    <FolderTree className="h-4 w-4 text-muted-foreground/60" />
+                                  ) : (
+                                    <div className="h-2 w-2 rounded-full bg-primary" />
+                                  )}
+                                  
+                                  <span className="truncate">{category.name}</span>
+                                </div>
+                             </div>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-sm max-w-md truncate">
+                            {category.description || "Không có mô tả"}
+                          </TableCell>
+                          <TableCell className="text-right whitespace-nowrap">
+                            {category.productCount || 0}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleOpenDialog(category)}>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Chỉnh sửa
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  onClick={() => setCategoryToDelete(category)}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Xóa
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>
@@ -262,6 +349,27 @@ export default function AdminCategoriesPage() {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="VD: Chăm sóc da"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="parentId">Danh mục cha</Label>
+              <Select
+                value={formData.parentId?.toString() || "none"}
+                onValueChange={(val) => setFormData({ ...formData, parentId: val === "none" ? null : Number(val) })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Không có (Danh mục gốc)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Không có (Danh mục gốc)</SelectItem>
+                  {categories
+                    .filter(c => c.id !== editingCategory?.id)
+                    .map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        {cat.level ? "  ".repeat(cat.level) + "- " : ""}{cat.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="description">Mô tả</Label>

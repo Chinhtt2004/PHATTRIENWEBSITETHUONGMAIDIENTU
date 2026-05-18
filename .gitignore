@@ -37,6 +37,7 @@ build/
 ### Node.js / Next.js ###
 node_modules/
 .next/
+.next-admin/
 out/
 .pnpm-store/
 *.tsbuildinfo
@@ -45,6 +46,11 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+
+### RAG Service ###
+rag_service/chroma_db/
+__pycache__/
+venv/
 
 ### Environment files ###
 .env

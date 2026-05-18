@@ -8,29 +8,37 @@ import { Heart, ShoppingBag, Star, Sparkles, Crown, Flame, Zap } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { type Product, formatPrice, getDiscountPercentage, getBadgeLabel } from "@/lib/data";
-import { addToCart } from "@/lib/api";
+import { useCart } from "@/contexts/cart-context";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface ProductCardProps {
   product: Product;
   priority?: boolean;
+  rank?: number;
 }
 
-export function ProductCard({ product, priority = false }: ProductCardProps) {
+export function ProductCard({ product, priority = false, rank }: ProductCardProps) {
   const router = useRouter();
   const [isAdding, setIsAdding] = useState(false);
   const discount = getDiscountPercentage(product.price, product.compareAtPrice);
+
+  const { addItem } = useCart();
 
   const handleAddToCart = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
 
+    const firstVariant = product.variants[0];
+    if (!firstVariant) {
+      toast.error("Sản phẩm chưa có phiên bản nào");
+      return;
+    }
+
     try {
       setIsAdding(true);
-      await addToCart(Number(product.id), 1);
-      toast.success("Đã thêm vào giỏ hàng!", {
-        description: product.name,
-      });
+      // Use the addItem from CartContext to ensure header count updates
+      await addItem(Number(firstVariant.id), 1);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Không thể thêm vào giỏ hàng";
       if (message.includes("403") || message.includes("401") || /token/i.test(message)) {
@@ -38,7 +46,6 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
         router.push("/account/login");
         return;
       }
-      toast.error(message);
     } finally {
       setIsAdding(false);
     }
@@ -59,7 +66,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
 
         {/* Badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-1.5">
-          {discount && (
+          {Boolean(discount && discount > 0) && (
             <Badge className="bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md shadow-rose-500/20 gap-1 font-semibold">
               <Zap className="h-3 w-3" />
               -{discount}%
@@ -83,6 +90,34 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
             </Badge>
           ))}
         </div>
+
+        {/* Rank Badge for Best Sellers */}
+        {rank !== undefined && (
+          <div className="absolute -top-1 -right-1 p-2 pointer-events-none z-10">
+            <div className="relative flex items-center justify-center">
+              <div className={cn(
+                "absolute inset-0 blur-lg opacity-40 rounded-full",
+                rank === 1 ? "bg-amber-400" :
+                rank === 2 ? "bg-slate-300" :
+                rank === 3 ? "bg-amber-600" :
+                "bg-primary/20"
+              )} />
+              <div className={cn(
+                "relative flex items-center justify-center w-8 h-8 rounded-full border shadow-lg transform rotate-12 group-hover:rotate-0 transition-transform duration-500",
+                rank === 1 ? "bg-gradient-to-br from-amber-300 via-yellow-500 to-amber-600 border-amber-200 text-white" :
+                rank === 2 ? "bg-gradient-to-br from-slate-200 via-slate-400 to-slate-500 border-slate-100 text-white" :
+                rank === 3 ? "bg-gradient-to-br from-amber-600 via-amber-700 to-amber-900 border-amber-500 text-white" :
+                "bg-white/90 backdrop-blur-sm border-primary/20 text-primary"
+              )}>
+                <span className="text-[10px] font-black leading-none select-none tracking-tighter">
+                  TOP
+                  <br />
+                  {rank.toString().padStart(2, '0')}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Quick Actions */}
         <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
@@ -123,6 +158,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
             ))}
           </div>
           <span className="text-xs text-muted-foreground ml-1">({product.rating.count})</span>
+          <span className="text-[10px] text-muted-foreground/60 ml-auto font-medium">Đã bán {product.totalSold}</span>
         </div>
 
         {/* Title */}
@@ -137,7 +173,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
           <span className="text-lg font-bold bg-gradient-to-r from-primary to-rose-500 bg-clip-text text-transparent">
             {formatPrice(product.price)}
           </span>
-          {product.compareAtPrice && (
+          {(product.compareAtPrice || 0) > product.price && (
             <span className="text-xs text-muted-foreground line-through">
               {formatPrice(product.compareAtPrice)}
             </span>

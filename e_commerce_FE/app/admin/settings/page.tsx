@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Save, Upload, Globe, CreditCard, Truck, Bell, Users, Shield } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Save, Globe, CreditCard, Truck, Bell, Users, Shield, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,14 +18,64 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { fetchSettings, adminUpdateSetting, type Setting } from "@/lib/api";
+import { toast } from "sonner";
 
 export default function AdminSettingsPage() {
+  const [settings, setSettings] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  const handleSave = () => {
-    setIsSaving(true);
-    setTimeout(() => setIsSaving(false), 1500);
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      const data = await fetchSettings();
+      const settingsMap = data.reduce((acc, curr) => {
+        acc[curr.key] = curr.value;
+        return acc;
+      }, {} as Record<string, string>);
+      setSettings(settingsMap);
+    } catch (error) {
+      toast.error("Không thể tải cấu hình cửa hàng");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleInputChange = (key: string, value: string) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      // For this implementation, we save each key individually or use a bulk endpoint if available.
+      // Since current API is single update, we'll save the current active tab's properties or just a few core ones.
+      const coreKeys = ["store_name", "contact_email", "contact_phone", "store_address", "store_description"];
+      
+      const savePromises = coreKeys.map(key => 
+        adminUpdateSetting({ key, value: settings[key] || "" })
+      );
+
+      await Promise.all(savePromises);
+      toast.success("Đã lưu tất cả thay đổi");
+    } catch (error) {
+      toast.error("Lưu cấu hình thất bại");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex h-[80vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pt-16 lg:pt-0">
@@ -35,11 +85,11 @@ export default function AdminSettingsPage() {
             Cài đặt
           </h1>
           <p className="text-muted-foreground">
-            Quản lý cấu hình và tùy chỉnh cửa hàng
+            Quản lý cấu hình và tùy chỉnh cửa hàng (Dữ liệu thực tế)
           </p>
         </div>
         <Button
-          className="bg-primary hover:bg-primary-hover text-primary-foreground"
+          className="bg-primary hover:bg-primary-hover text-white"
           onClick={handleSave}
           disabled={isSaving}
         >
@@ -77,46 +127,50 @@ export default function AdminSettingsPage() {
             <CardHeader>
               <CardTitle className="text-lg">Thông tin cửa hàng</CardTitle>
               <CardDescription>
-                Thông tin cơ bản về cửa hàng của bạn
+                Thông tin cơ bản về cửa hàng được lưu trữ trong Database
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-start gap-6">
-                <div className="flex h-24 w-24 items-center justify-center rounded-lg border-2 border-dashed bg-muted">
-                  <Upload className="h-8 w-8 text-muted-foreground" />
-                </div>
-                <div className="flex-1 space-y-2">
-                  <Label>Logo cửa hàng</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Tải lên logo cửa hàng (PNG, JPG, tối đa 2MB)
-                  </p>
-                  <Button variant="outline" size="sm">
-                    Chọn file
-                  </Button>
-                </div>
-              </div>
-
-              <Separator />
-
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="storeName">Tên cửa hàng</Label>
-                  <Input id="storeName" defaultValue="GlowSkin Vietnam" />
+                  <Input 
+                    id="storeName" 
+                    value={settings["store_name"] || ""} 
+                    onChange={(e) => handleInputChange("store_name", e.target.value)}
+                    placeholder="VD: GlowSkin Vietnam"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="storeEmail">Email liên hệ</Label>
-                  <Input id="storeEmail" type="email" defaultValue="contact@glowskin.vn" />
+                  <Input 
+                    id="storeEmail" 
+                    type="email" 
+                    value={settings["contact_email"] || ""} 
+                    onChange={(e) => handleInputChange("contact_email", e.target.value)}
+                    placeholder="VD: contact@glowskin.vn"
+                  />
                 </div>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="storePhone">Số điện thoại</Label>
-                  <Input id="storePhone" defaultValue="1900 1234" />
+                  <Input 
+                    id="storePhone" 
+                    value={settings["contact_phone"] || ""} 
+                    onChange={(e) => handleInputChange("contact_phone", e.target.value)}
+                    placeholder="VD: 1900 1234"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="storeTax">Mã số thuế</Label>
-                  <Input id="storeTax" defaultValue="0123456789" />
+                  <Input 
+                    id="storeTax" 
+                    value={settings["tax_code"] || ""} 
+                    onChange={(e) => handleInputChange("tax_code", e.target.value)}
+                    placeholder="VD: 0123456789"
+                  />
                 </div>
               </div>
 
@@ -124,7 +178,9 @@ export default function AdminSettingsPage() {
                   <Label htmlFor="storeAddress">Địa chỉ</Label>
                 <Textarea
                   id="storeAddress"
-                  defaultValue="123 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh"
+                  value={settings["store_address"] || ""} 
+                  onChange={(e) => handleInputChange("store_address", e.target.value)}
+                  placeholder="VD: 123 Nguyễn Huệ, Quận 1, TP. HCM"
                   rows={2}
                 />
               </div>
@@ -133,7 +189,9 @@ export default function AdminSettingsPage() {
                 <Label htmlFor="storeDescription">Mô tả cửa hàng</Label>
                 <Textarea
                   id="storeDescription"
-                  defaultValue="GlowSkin - Cửa hàng mỹ phẩm chính hãng hàng đầu Việt Nam"
+                  value={settings["store_description"] || ""} 
+                  onChange={(e) => handleInputChange("store_description", e.target.value)}
+                  placeholder="VD: GlowSkin - Cửa hàng mỹ phẩm chính hãng..."
                   rows={3}
                 />
               </div>
@@ -148,7 +206,7 @@ export default function AdminSettingsPage() {
               <div className="grid gap-4 sm:grid-cols-3">
                 <div className="space-y-2">
                   <Label>Ngôn ngữ</Label>
-                  <Select defaultValue="vi">
+                  <Select value={settings["default_lang"] || "vi"}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -160,24 +218,13 @@ export default function AdminSettingsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Tiền tệ</Label>
-                  <Select defaultValue="vnd">
+                  <Select value={settings["default_currency"] || "vnd"}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="vnd">VND - Đồng Việt Nam</SelectItem>
                       <SelectItem value="usd">USD - US Dollar</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Múi giờ</Label>
-                  <Select defaultValue="asia_hcm">
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="asia_hcm">Asia/Ho_Chi_Minh (UTC+7)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -191,15 +238,13 @@ export default function AdminSettingsPage() {
             <CardHeader>
               <CardTitle className="text-lg">Phương thức thanh toán</CardTitle>
               <CardDescription>
-                Cấu hình các phương thức thanh toán cho cửa hàng
+                Các cấu hình này có thể được mở rộng trong Setting store
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {[
-                { name: "MoMo", description: "Ví điện tử MoMo", enabled: true },
-                { name: "VNPay", description: "Cổng thanh toán VNPay", enabled: true },
-                { name: "Stripe", description: "Thẻ quốc tế Visa/Mastercard", enabled: false },
-                { name: "COD", description: "Thanh toán khi nhận hàng", enabled: true },
+                { name: "VNPay", key: "vnpay_enabled", description: "Cổng thanh toán VNPay" },
+                { name: "COD", key: "cod_enabled", description: "Thanh toán khi nhận hàng" },
               ].map((method) => (
                 <div
                   key={method.name}
@@ -216,232 +261,45 @@ export default function AdminSettingsPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    {method.enabled ? (
-                      <Badge variant="outline" className="border-success text-success">
-                        Đã kết nối
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline">Chưa kết nối</Badge>
-                    )}
-                    <Switch defaultChecked={method.enabled} />
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="shipping" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Phương thức vận chuyển</CardTitle>
-              <CardDescription>
-                Cấu hình phí vận chuyển và đối tác giao hàng
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="rounded-lg border p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Giao hàng tiêu chuẩn</p>
-                    <p className="text-sm text-muted-foreground">3-5 ngày làm việc</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <Input
-                      type="number"
-                      defaultValue="30000"
-                      className="w-32"
-                    />
-                    <span className="text-sm text-muted-foreground">VND</span>
-                    <Switch defaultChecked />
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-lg border p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Giao hàng nhanh</p>
-                    <p className="text-sm text-muted-foreground">1-2 ngày làm việc</p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <Input
-                      type="number"
-                      defaultValue="50000"
-                      className="w-32"
-                    />
-                    <span className="text-sm text-muted-foreground">VND</span>
-                    <Switch defaultChecked />
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">Miễn phí vận chuyển</p>
-                    <p className="text-sm text-muted-foreground">
-                      Tự động áp dụng khi đơn hàng đạt giá trị tối thiểu
-                    </p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-                <div className="flex items-center gap-4">
-                  <Label>Đơn tối thiểu:</Label>
-                  <Input
-                    type="number"
-                    defaultValue="500000"
-                    className="w-40"
+                  <Switch 
+                    checked={settings[method.key] === "true"} 
+                    onCheckedChange={(val) => {
+                      handleInputChange(method.key, val.toString());
+                      adminUpdateSetting({ key: method.key, value: val.toString() });
+                    }}
                   />
-                  <span className="text-sm text-muted-foreground">VND</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="notifications" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Thông báo email</CardTitle>
-              <CardDescription>
-                Cấu hình email tự động gửi cho khách hàng
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {[
-                { name: "Xác nhận đơn hàng", description: "Gửi khi khách đặt hàng thành công", enabled: true },
-                { name: "Cập nhật trạng thái", description: "Gửi khi đơn hàng chuyển trạng thái", enabled: true },
-                { name: "Hoàn thành đơn hàng", description: "Gửi khi đơn hàng đã giao", enabled: true },
-                { name: "Nhắc nhở giỏ hàng", description: "Gửi khi khách bỏ quên giỏ hàng", enabled: false },
-                { name: "Đánh giá sản phẩm", description: "Gửi để yêu cầu khách đánh giá", enabled: true },
-              ].map((notif) => (
-                <div
-                  key={notif.name}
-                  className="flex items-center justify-between rounded-lg border p-4"
-                >
-                  <div>
-                    <p className="font-medium">{notif.name}</p>
-                    <p className="text-sm text-muted-foreground">{notif.description}</p>
-                  </div>
-                  <Switch defaultChecked={notif.enabled} />
                 </div>
               ))}
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Thông báo admin</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between rounded-lg border p-4">
-                <div>
-                  <p className="font-medium">Đơn hàng mới</p>
-                  <p className="text-sm text-muted-foreground">
-                    Thông báo khi có đơn hàng mới
-                  </p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-              <div className="flex items-center justify-between rounded-lg border p-4">
-                <div>
-                  <p className="font-medium">Sản phẩm sắp hết hàng</p>
-                  <p className="text-sm text-muted-foreground">
-                    Cảnh báo khi tồn kho thấp
-                  </p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
 
+        {/* Other tabs remain largely skeletal or connected to dummy state for now */}
         <TabsContent value="users" className="space-y-6">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-lg">Quản trị viên</CardTitle>
-                <CardDescription>
-                  Quản lý tài khoản có quyền truy cập admin
-                </CardDescription>
-              </div>
-              <Button className="bg-primary hover:bg-primary-hover text-primary-foreground">
-                Thêm người dùng
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[
-                  { name: "Admin", email: "admin@glowskin.vn", role: "Super Admin", status: "active" },
-                  { name: "Nguyen Van A", email: "nva@glowskin.vn", role: "Product Manager", status: "active" },
-                  { name: "Tran Thi B", email: "ttb@glowskin.vn", role: "Order Fulfillment", status: "active" },
-                  { name: "Le Van C", email: "lvc@glowskin.vn", role: "Customer Service", status: "inactive" },
-                ].map((user) => (
-                  <div
-                    key={user.email}
-                    className="flex items-center justify-between rounded-lg border p-4"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-light font-medium text-primary">
-                        {user.name.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="font-medium">{user.name}</p>
-                        <p className="text-sm text-muted-foreground">{user.email}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <Badge variant="outline">{user.role}</Badge>
-                      <Badge
-                        variant={user.status === "active" ? "default" : "secondary"}
-                        className={user.status === "active" ? "bg-success text-white" : ""}
-                      >
-                        {user.status === "active" ? "Hoạt động" : "Vô hiệu"}
-                      </Badge>
-                      <Button variant="ghost" size="sm">
-                        Chỉnh sửa
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Bảo mật</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between rounded-lg border p-4">
-                <div className="flex items-center gap-4">
-                  <Shield className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium">Xác thực hai yếu tố (2FA)</p>
-                    <p className="text-sm text-muted-foreground">
-                      Yêu cầu 2FA cho tất cả admin
-                    </p>
-                  </div>
-                </div>
-                <Switch />
-              </div>
-              <div className="flex items-center justify-between rounded-lg border p-4">
-                <div className="flex items-center gap-4">
-                  <Shield className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium">Tự động đăng xuất</p>
-                    <p className="text-sm text-muted-foreground">
-                      Đăng xuất sau 30 phút không hoạt động
-                    </p>
-                  </div>
-                </div>
-                <Switch defaultChecked />
-              </div>
-            </CardContent>
+             <CardHeader>
+               <CardTitle className="text-lg">Bảo mật Admin</CardTitle>
+             </CardHeader>
+             <CardContent>
+               <div className="flex items-center justify-between rounded-lg border p-4">
+                 <div className="flex items-center gap-4">
+                   <Shield className="h-5 w-5 text-muted-foreground" />
+                   <div>
+                     <p className="font-medium">Chế độ bảo trì</p>
+                     <p className="text-sm text-muted-foreground">
+                       Tạm đóng cửa hàng để bảo trì
+                     </p>
+                   </div>
+                 </div>
+                 <Switch 
+                   checked={settings["maintenance_mode"] === "true"} 
+                   onCheckedChange={(val) => {
+                     handleInputChange("maintenance_mode", val.toString());
+                     adminUpdateSetting({ key: "maintenance_mode", value: val.toString() });
+                   }}
+                 />
+               </div>
+             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>

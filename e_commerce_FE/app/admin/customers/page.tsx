@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Search, MoreHorizontal, Eye, Mail, UserX, Crown } from "lucide-react";
+import Link from "next/link";
+import { Search, MoreHorizontal, Eye, Mail, UserX, UserCheck, Crown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -23,64 +24,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-const customers = [
-  {
-    id: "cust_001",
-    name: "Nguyễn Thị Lan",
-    email: "lan.nguyen@example.com",
-    phone: "0901234567",
-    orders: 12,
-    totalSpent: 15600000,
-    tier: "Gold",
-    joinDate: "01/06/2023",
-    avatar: null,
-  },
-  {
-    id: "cust_002",
-    name: "Trần Văn Minh",
-    email: "minh.tran@example.com",
-    phone: "0912345678",
-    orders: 5,
-    totalSpent: 4200000,
-    tier: "Silver",
-    joinDate: "15/09/2024",
-    avatar: null,
-  },
-  {
-    id: "cust_003",
-    name: "Lê Thị Hương",
-    email: "huong.le@example.com",
-    phone: "0923456789",
-    orders: 28,
-    totalSpent: 42000000,
-    tier: "Platinum",
-    joinDate: "20/03/2022",
-    avatar: null,
-  },
-  {
-    id: "cust_004",
-    name: "Phạm Văn Đức",
-    email: "duc.pham@example.com",
-    phone: "0934567890",
-    orders: 2,
-    totalSpent: 980000,
-    tier: "Bronze",
-    joinDate: "10/01/2026",
-    avatar: null,
-  },
-  {
-    id: "cust_005",
-    name: "Hoàng Thị Mai",
-    email: "mai.hoang@example.com",
-    phone: "0945678901",
-    orders: 8,
-    totalSpent: 8500000,
-    tier: "Gold",
-    joinDate: "05/07/2024",
-    avatar: null,
-  },
-];
+import { adminFetchUsers, adminToggleUserStatus, type BackendUser } from "@/lib/api";
+import { toast } from "sonner";
 
 const tierColors: Record<string, string> = {
   Bronze: "bg-amber-100 text-amber-800",
@@ -90,26 +35,55 @@ const tierColors: Record<string, string> = {
 };
 
 function formatCurrency(amount: number) {
-  return new Intl.NumberFormat("vi-VN").format(amount) + "d";
+  return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
 }
 
 function getInitials(name: string) {
   return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
+    ? name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : "??";
 }
 
 export default function AdminCustomersPage() {
+  const [users, setUsers] = useState<BackendUser[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredCustomers = customers.filter(
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const loadUsers = async () => {
+    try {
+      const data = await adminFetchUsers();
+      setUsers(data || []);
+    } catch (error) {
+      toast.error("Không thể tải danh sách khách hàng");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleStatus = async (user: BackendUser) => {
+    try {
+      await adminToggleUserStatus(user.id, !user.isActive);
+      toast.success(user.isActive ? "Vô hiệu hóa thành công" : "Kích hoạt thành công");
+      loadUsers();
+    } catch (error) {
+      toast.error("Thao tác thất bại");
+    }
+  };
+
+  const filteredCustomers = (users || []).filter(
     (customer) =>
       customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       customer.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      customer.phone.includes(searchQuery)
+      (customer.phone && customer.phone.includes(searchQuery))
   );
 
   return (
@@ -127,25 +101,22 @@ export default function AdminCustomersPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="p-4">
-            <p className="text-2xl font-bold">{customers.length}</p>
+            <p className="text-2xl font-bold">{users.length}</p>
             <p className="text-sm text-muted-foreground">Tổng khách hàng</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-2xl font-bold">
-              {customers.filter((c) => c.tier === "Gold" || c.tier === "Platinum").length}
+              {users.filter((u) => u.isActive).length}
             </p>
-            <p className="text-sm text-muted-foreground">Khách hàng VIP</p>
+            <p className="text-sm text-muted-foreground">Đang hoạt động</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-2xl font-bold">
-              {formatCurrency(
-                customers.reduce((acc, c) => acc + c.totalSpent, 0) /
-                  customers.length
-              )}
+              {formatCurrency(users.length > 0 ? users.reduce((acc, u) => acc + (u.totalSpent || 0), 0) / users.length : 0)}
             </p>
             <p className="text-sm text-muted-foreground">
               Chi tiêu trung bình
@@ -155,10 +126,7 @@ export default function AdminCustomersPage() {
         <Card>
           <CardContent className="p-4">
             <p className="text-2xl font-bold">
-              {(
-                customers.reduce((acc, c) => acc + c.orders, 0) /
-                customers.length
-              ).toFixed(1)}
+              {(users.length > 0 ? users.reduce((acc, u) => acc + (u.orderCount || 0), 0) / users.length : 0).toFixed(1)}
             </p>
             <p className="text-sm text-muted-foreground">
               Đơn hàng trung bình
@@ -194,12 +162,23 @@ export default function AdminCustomersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredCustomers.map((customer) => (
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-10">
+                      <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                    </TableCell>
+                  </TableRow>
+                ) : filteredCustomers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
+                      Không tìm thấy khách hàng nào.
+                    </TableCell>
+                  </TableRow>
+                ) : filteredCustomers.map((customer) => (
                   <TableRow key={customer.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar>
-                          <AvatarImage src={customer.avatar || undefined} />
                           <AvatarFallback className="bg-primary-light text-primary">
                             {getInitials(customer.name)}
                           </AvatarFallback>
@@ -211,24 +190,21 @@ export default function AdminCustomersPage() {
                       <div>
                         <p className="text-sm">{customer.email}</p>
                         <p className="text-sm text-muted-foreground">
-                          {customer.phone}
+                          {customer.phone || "-"}
                         </p>
                       </div>
                     </TableCell>
-                    <TableCell>{customer.orders}</TableCell>
+                    <TableCell>{customer.orderCount || 0}</TableCell>
                     <TableCell className="font-medium">
-                      {formatCurrency(customer.totalSpent)}
+                      {formatCurrency(customer.totalSpent || 0)}
                     </TableCell>
                     <TableCell>
-                      <Badge className={tierColors[customer.tier]}>
-                        {customer.tier === "Platinum" && (
-                          <Crown className="mr-1 h-3 w-3" />
-                        )}
-                        {customer.tier}
+                      <Badge className={customer.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
+                        {customer.isActive ? "Hoạt động" : "Bị khóa"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {customer.joinDate}
+                      {customer.createdAt ? new Date(customer.createdAt).toLocaleDateString("vi-VN") : "-"}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
@@ -238,18 +214,32 @@ export default function AdminCustomersPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
-                            <Eye className="mr-2 h-4 w-4" />
-                            Xem chi tiết
+                          <DropdownMenuItem asChild>
+                            <Link href={`/admin/customers/${customer.id}`} className="flex items-center cursor-pointer">
+                              <Eye className="mr-2 h-4 w-4" />
+                              Xem chi tiết
+                            </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem>
                             <Mail className="mr-2 h-4 w-4" />
                             Gửi email
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive">
-                            <UserX className="mr-2 h-4 w-4" />
-                            Vô hiệu hóa
+                          <DropdownMenuItem 
+                            className={customer.isActive ? "text-destructive" : "text-green-600"}
+                            onClick={() => handleToggleStatus(customer)}
+                          >
+                            {customer.isActive ? (
+                              <>
+                                <UserX className="mr-2 h-4 w-4" />
+                                Vô hiệu hóa
+                              </>
+                            ) : (
+                              <>
+                                <UserCheck className="mr-2 h-4 w-4" />
+                                Kích hoạt
+                              </>
+                            )}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

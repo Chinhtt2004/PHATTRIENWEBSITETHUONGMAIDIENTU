@@ -30,6 +30,7 @@ export interface Product {
   variants: ProductVariant[];
   attributes: Record<string, string[]>;
   rating: { average: number; count: number };
+  totalSold: number;
   badges: string[];
   inventory: { available: boolean; quantity: number };
   ingredients: string[];
@@ -47,7 +48,14 @@ export interface ProductVariant {
   sku: string;
   name: string;
   price: number;
+  discountPrice?: number;
+  compareAtPrice?: number;
+  costPrice?: number;
+  /** Total stock for this variant (mirrors `inventory` for new model) */
+  stock: number;
   inventory: number;
+  /** Per-variant image URL; falls back to the product's first image if absent */
+  imageUrl?: string;
   attributes: Record<string, string>;
 }
 
@@ -58,6 +66,9 @@ export interface Category {
   description: string;
   image: string;
   productCount: number;
+  parentId?: string;
+  level?: number;
+  children?: Category[];
 }
 
 export interface CartItem {
@@ -153,8 +164,8 @@ export const products: Product[] = [
       { id: "img_001_2", url: "https://images.unsplash.com/photo-1617897903246-719242758050?w=800&h=800&fit=crop", alt: "Kết cấu Serum Vitamin C" }
     ],
     variants: [
-      { id: "var_001_1", sku: "SERUM-VC-001-30ML", name: "30ml", price: 450000, inventory: 45, attributes: { size: "30ml" } },
-      { id: "var_001_2", sku: "SERUM-VC-001-50ML", name: "50ml", price: 650000, inventory: 20, attributes: { size: "50ml" } }
+      { id: "var_001_1", sku: "SERUM-VC-001-30ML", name: "30ml", price: 450000, stock: 45, inventory: 45, attributes: { size: "30ml" } },
+      { id: "var_001_2", sku: "SERUM-VC-001-50ML", name: "50ml", price: 650000, stock: 20, inventory: 20, attributes: { size: "50ml" } }
     ],
     attributes: { skin_type: ["oily", "combination"], concerns: ["dark_spots", "dullness"] },
     rating: { average: 4.5, count: 128 },
@@ -228,10 +239,11 @@ export const products: Product[] = [
       { id: "img_002_1", url: "https://images.unsplash.com/photo-1611930022073-b7a4ba5fcccd?w=800&h=800&fit=crop", alt: "Kem Dưỡng Ẩm 50ml" }
     ],
     variants: [
-      { id: "var_002_1", sku: "CREAM-HYA-002-50ML", name: "50ml", price: 380000, inventory: 30, attributes: { size: "50ml" } }
+      { id: "var_002_1", sku: "CREAM-HYA-002-50ML", name: "50ml", price: 380000, stock: 30, inventory: 30, attributes: { size: "50ml" } }
     ],
     attributes: { skin_type: ["dry", "normal"], concerns: ["dehydration"] },
     rating: { average: 4.8, count: 256 },
+    totalSold: 450,
     badges: ["new"],
     inventory: { available: true, quantity: 30 },
     ingredients: [
@@ -290,8 +302,8 @@ export const products: Product[] = [
       { id: "img_003_1", url: "https://images.unsplash.com/photo-1556228578-0d85b1a4d571?w=800&h=800&fit=crop", alt: "Sữa Rửa Mặt 150ml" }
     ],
     variants: [
-      { id: "var_003_1", sku: "CLEANSER-003-150ML", name: "150ml", price: 250000, inventory: 100, attributes: { size: "150ml" } },
-      { id: "var_003_2", sku: "CLEANSER-003-300ML", name: "300ml", price: 420000, inventory: 50, attributes: { size: "300ml" } }
+      { id: "var_003_1", sku: "CLEANSER-003-150ML", name: "150ml", price: 250000, stock: 100, inventory: 100, attributes: { size: "150ml" } },
+      { id: "var_003_2", sku: "CLEANSER-003-300ML", name: "300ml", price: 420000, stock: 50, inventory: 50, attributes: { size: "300ml" } }
     ],
     attributes: { skin_type: ["all"], concerns: ["sensitive"] },
     rating: { average: 4.3, count: 89 },
@@ -352,7 +364,7 @@ export const products: Product[] = [
       { id: "img_004_1", url: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=800&h=800&fit=crop", alt: "Kem Chống Nắng 50ml" }
     ],
     variants: [
-      { id: "var_004_1", sku: "SUNSCREEN-004-50ML", name: "50ml", price: 320000, inventory: 80, attributes: { size: "50ml" } }
+      { id: "var_004_1", sku: "SUNSCREEN-004-50ML", name: "50ml", price: 320000, stock: 80, inventory: 80, attributes: { size: "50ml" } }
     ],
     attributes: { skin_type: ["all"], concerns: ["sun_protection"] },
     rating: { average: 4.6, count: 312 },
@@ -426,9 +438,9 @@ export const products: Product[] = [
       { id: "img_005_1", url: "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=800&h=800&fit=crop", alt: "Son Môi Velvet" }
     ],
     variants: [
-      { id: "var_005_1", sku: "LIPSTICK-005-RED", name: "Đỏ Cherry", price: 280000, inventory: 40, attributes: { color: "Đỏ Cherry", colorHex: "#8B0000" } },
-      { id: "var_005_2", sku: "LIPSTICK-005-PINK", name: "Hồng Nude", price: 280000, inventory: 35, attributes: { color: "Hồng Nude", colorHex: "#E8B4B8" } },
-      { id: "var_005_3", sku: "LIPSTICK-005-CORAL", name: "Cam San Hô", price: 280000, inventory: 25, attributes: { color: "Cam San Hô", colorHex: "#FF7F50" } }
+      { id: "var_005_1", sku: "LIPSTICK-005-RED", name: "Đỏ Cherry", price: 280000, stock: 40, inventory: 40, attributes: { color: "Đỏ Cherry", colorHex: "#8B0000" } },
+      { id: "var_005_2", sku: "LIPSTICK-005-PINK", name: "Hồng Nude", price: 280000, stock: 35, inventory: 35, attributes: { color: "Hồng Nude", colorHex: "#E8B4B8" } },
+      { id: "var_005_3", sku: "LIPSTICK-005-CORAL", name: "Cam San Hô", price: 280000, stock: 25, inventory: 25, attributes: { color: "Cam San Hô", colorHex: "#FF7F50" } }
     ],
     attributes: { finish: ["matte"], duration: ["8h"] },
     rating: { average: 4.4, count: 178 },
@@ -490,7 +502,7 @@ export const products: Product[] = [
       { id: "img_006_1", url: "https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=800&h=800&fit=crop", alt: "Toner Cân Bằng Da 200ml" }
     ],
     variants: [
-      { id: "var_006_1", sku: "TONER-006-200ML", name: "200ml", price: 290000, inventory: 60, attributes: { size: "200ml" } }
+      { id: "var_006_1", sku: "TONER-006-200ML", name: "200ml", price: 290000, stock: 60, inventory: 60, attributes: { size: "200ml" } }
     ],
     attributes: { skin_type: ["oily", "combination"], concerns: ["pores"] },
     rating: { average: 4.2, count: 95 },
@@ -551,8 +563,8 @@ export const products: Product[] = [
       { id: "img_007_1", url: "https://images.unsplash.com/photo-1596755389378-c31d21fd1273?w=800&h=800&fit=crop", alt: "Mặt Nạ Collagen" }
     ],
     variants: [
-      { id: "var_007_1", sku: "MASK-007-1PC", name: "1 miếng", price: 35000, inventory: 200, attributes: { size: "1 miếng" } },
-      { id: "var_007_2", sku: "MASK-007-10PC", name: "Hộp 10 miếng", price: 300000, inventory: 50, attributes: { size: "Hộp 10 miếng" } }
+      { id: "var_007_1", sku: "MASK-007-1PC", name: "1 miếng", price: 35000, stock: 200, inventory: 200, attributes: { size: "1 miếng" } },
+      { id: "var_007_2", sku: "MASK-007-10PC", name: "Hộp 10 miếng", price: 300000, stock: 50, inventory: 50, attributes: { size: "Hộp 10 miếng" } }
     ],
     attributes: { skin_type: ["all"], concerns: ["dehydration", "dullness"] },
     rating: { average: 4.7, count: 432 },
@@ -625,7 +637,7 @@ export const products: Product[] = [
       { id: "img_008_1", url: "https://images.unsplash.com/photo-1571781926291-c477ebfd024b?w=800&h=800&fit=crop", alt: "Kem Dưỡng Mắt 15ml" }
     ],
     variants: [
-      { id: "var_008_1", sku: "EYECREAM-008-15ML", name: "15ml", price: 520000, inventory: 25, attributes: { size: "15ml" } }
+      { id: "var_008_1", sku: "EYECREAM-008-15ML", name: "15ml", price: 520000, stock: 25, inventory: 25, attributes: { size: "15ml" } }
     ],
     attributes: { skin_type: ["all"], concerns: ["wrinkles", "dark_circles"] },
     rating: { average: 4.6, count: 156 },

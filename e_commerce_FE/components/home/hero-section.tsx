@@ -8,7 +8,7 @@ import { ArrowRight, Sparkles } from "lucide-react";
 export function HeroSection() {
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-primary-light via-background to-secondary/30">
-      <div className="container mx-auto px-4 py-12 lg:py-20">
+      <div className="container mx-auto px-4 py-16 lg:py-24">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           {/* Content */}
           <div className="text-center lg:text-left order-2 lg:order-1">
@@ -59,18 +59,16 @@ export function HeroSection() {
 
           {/* Image */}
           <div className="relative order-1 lg:order-2">
-            <div className="relative aspect-[4/5] max-w-md mx-auto lg:max-w-none">
+            <div className="relative aspect-square max-w-md mx-auto lg:max-w-none">
               {/* Background decoration */}
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/40 rounded-[3rem] transform rotate-3"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/40 rounded-[3rem] transform rotate-3 shadow-inner"></div>
               
-              {/* Main image */}
-              <div className="relative rounded-[2.5rem] overflow-hidden shadow-2xl transform -rotate-2 hover:rotate-0 transition-transform duration-500">
+              <div className="relative h-full rounded-[2.5rem] overflow-hidden shadow-2xl transform -rotate-2 hover:rotate-0 transition-all duration-700 bg-white/40 backdrop-blur-sm p-1">
                 <Image
-                  src="https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=800&h=1000&fit=crop"
+                  src="https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=1000&h=1000&fit=max&q=90"
                   alt="Mỹ phẩm cao cấp GlowSkin"
-                  width={600}
-                  height={750}
-                  className="object-cover"
+                  fill
+                  className="object-cover rounded-[2.2rem]"
                   priority
                 />
               </div>

@@ -9,8 +9,8 @@ import lombok.Setter;
 
 @Entity
 @Table(
-        name = "cart_items",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"cart_id", "product_id"})
+        name = "cart_item",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"cart_id", "variant_id"})
 )
 @Getter
 @Setter
@@ -25,8 +25,8 @@ public class CartItem {
     @JsonIgnoreProperties("items")
     private Cart cart;
     @ManyToOne
-    @JoinColumn(name = "product_id", nullable = false)
-    private Product product;
+    @JoinColumn(name = "variant_id")
+    private ProductVariant variant;
     @Column(nullable = false)
     private Integer quantity;
 }

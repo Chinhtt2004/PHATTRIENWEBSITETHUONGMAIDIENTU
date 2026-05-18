@@ -6,11 +6,10 @@ import {
   Users,
   TrendingUp,
   ArrowUpRight,
-  ArrowDownRight,
   Loader2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { fetchProducts } from "@/lib/api";
+import { fetchAdminReportSummary, adminFetchAllOrders, type ReportSummary, type OrderResponse } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -27,142 +26,91 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import {
-  Line,
-  LineChart,
+  Area,
+  AreaChart,
   XAxis,
   YAxis,
   ResponsiveContainer,
   Bar,
   BarChart,
+  Pie,
+  PieChart,
+  Cell,
 } from "recharts";
 
-const stats = [
-  {
-    title: "Tổng doanh thu",
-    value: "125.400.000d",
-    change: "+12.5%",
-    trend: "up",
-    icon: TrendingUp,
-  },
-  {
-    title: "Đơn hàng",
-    value: "1,234",
-    change: "+8.2%",
-    trend: "up",
-    icon: ShoppingCart,
-  },
-  {
-    title: "Sản phẩm",
-    value: "156",
-    change: "+3",
-    trend: "up",
-    icon: Package,
-  },
-  {
-    title: "Khách hàng",
-    value: "2,456",
-    change: "+15.3%",
-    trend: "up",
-    icon: Users,
-  },
-];
-
-const revenueData = [
-  { month: "T1", revenue: 45000000 },
-  { month: "T2", revenue: 52000000 },
-  { month: "T3", revenue: 48000000 },
-  { month: "T4", revenue: 61000000 },
-  { month: "T5", revenue: 55000000 },
-  { month: "T6", revenue: 67000000 },
-  { month: "T7", revenue: 72000000 },
-  { month: "T8", revenue: 85000000 },
-  { month: "T9", revenue: 78000000 },
-  { month: "T10", revenue: 92000000 },
-  { month: "T11", revenue: 105000000 },
-  { month: "T12", revenue: 125400000 },
-];
-
-const categoryData = [
-  { name: "Chăm sóc da", sales: 45 },
-  { name: "Trang điểm", sales: 30 },
-  { name: "Dưỡng thể", sales: 15 },
-  { name: "Nước hoa", sales: 10 },
-];
-
-const _recentOrders = [
-  {
-    id: "VN260128001",
-    customer: "Nguyễn Thị Lan",
-    total: 1250000,
-    status: "processing",
-    date: "28/01/2026",
-  },
-  {
-    id: "VN260128002",
-    customer: "Trần Văn Minh",
-    total: 850000,
-    status: "shipped",
-    date: "28/01/2026",
-  },
-  {
-    id: "VN260127003",
-    customer: "Lê Thị Hương",
-    total: 2100000,
-    status: "delivered",
-    date: "27/01/2026",
-  },
-  {
-    id: "VN260127004",
-    customer: "Phạm Văn Đức",
-    total: 450000,
-    status: "pending",
-    date: "27/01/2026",
-  },
-  {
-    id: "VN260126005",
-    customer: "Hoàng Thị Mai",
-    total: 1800000,
-    status: "delivered",
-    date: "26/01/2026",
-  },
-];
-
 const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
-  pending: { label: "Chờ xử lý", variant: "outline" },
-  processing: { label: "Đang xử lý", variant: "secondary" },
-  shipped: { label: "Đang giao", variant: "default" },
-  delivered: { label: "Đã giao", variant: "default" },
-  cancelled: { label: "Đã hủy", variant: "destructive" },
+  PENDING: { label: "Chờ xử lý", variant: "outline" },
+  PROCESSING: { label: "Đang xử lý", variant: "secondary" },
+  SHIPPED: { label: "Đang giao", variant: "default" },
+  DELIVERED: { label: "Đã giao", variant: "default" }, // Using "default" as "success" is not a standard variant for this Badge component
+  CANCELLED: { label: "Đã hủy", variant: "destructive" },
 };
 
 function formatCurrency(amount: number) {
-  return new Intl.NumberFormat("vi-VN").format(amount) + "d";
+  return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
 }
 
 export default function AdminDashboard() {
-  const [productCount, setProductCount] = useState<number>(0);
+  const [report, setReport] = useState<ReportSummary | null>(null);
+  const [recentOrders, setRecentOrders] = useState<OrderResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    async function loadStats() {
+    async function loadDashboardData() {
       try {
-        const allProducts = await fetchProducts({ size: 1000 });
-        setProductCount(allProducts.length);
+        const [reportData, ordersData] = await Promise.all([
+          fetchAdminReportSummary(),
+          adminFetchAllOrders()
+        ]);
+        setReport(reportData);
+        setRecentOrders(ordersData.slice(0, 5));
       } catch (error) {
-        console.error("Failed to load dashboard stats", error);
+        console.error("Failed to load dashboard data", error);
       } finally {
         setIsLoading(false);
       }
     }
-    loadStats();
+    loadDashboardData();
   }, []);
 
-  const updatedStats = stats.map(stat => {
-    if (stat.title === "Sản phẩm") {
-      return { ...stat, value: isLoading ? "..." : productCount.toString() };
-    }
-    return stat;
-  });
+  if (isLoading) {
+    return (
+      <div className="flex h-[80vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  const statsList = [
+    {
+      title: "Tổng doanh thu",
+      value: formatCurrency(report?.totalRevenue || 0),
+      change: "+0%",
+      trend: "up",
+      icon: TrendingUp,
+    },
+    {
+      title: "Đơn hàng",
+      value: (report?.totalOrders || 0).toString(),
+      change: "+0%",
+      trend: "up",
+      icon: ShoppingCart,
+    },
+    {
+      title: "Sản phẩm",
+      value: (report?.totalProducts || 0).toString(),
+      change: "+0",
+      trend: "up",
+      icon: Package,
+    },
+    {
+      title: "Khách hàng",
+      value: (report?.totalCustomers || 0).toString(),
+      change: "+0%",
+      trend: "up",
+      icon: Users,
+    },
+  ];
 
   return (
     <div className="space-y-6 pt-16 lg:pt-0">
@@ -177,22 +125,18 @@ export default function AdminDashboard() {
 
       {/* Stats Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {updatedStats.map((stat) => (
+        {statsList.map((stat) => (
           <Card key={stat.title}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-light">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
                   <stat.icon className="h-5 w-5 text-primary" />
                 </div>
                 <div
-                  className={`flex items-center gap-1 text-sm font-medium ${stat.trend === "up" ? "text-success" : "text-destructive"}`}
+                  className={`flex items-center gap-1 text-sm font-medium ${stat.trend === "up" ? "text-green-600" : "text-red-600"}`}
                 >
                   {stat.change}
-                  {stat.trend === "up" ? (
-                    <ArrowUpRight className="h-4 w-4" />
-                  ) : (
-                    <ArrowDownRight className="h-4 w-4" />
-                  )}
+                  <ArrowUpRight className="h-4 w-4" />
                 </div>
               </div>
               <div className="mt-4">
@@ -204,29 +148,43 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* Charts */}
+      {/* Charts Row 1 */}
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Doanh thu theo tháng</CardTitle>
+            <CardTitle className="text-lg">Doanh thu gần đây</CardTitle>
           </CardHeader>
           <CardContent>
             <ChartContainer
               config={{
                 revenue: {
                   label: "Doanh thu",
-                  color: "var(--primary)",
+                  color: "hsl(var(--primary))",
                 },
               }}
               className="h-[300px] w-full"
             >
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={revenueData}>
-                  <XAxis dataKey="month" tickLine={false} axisLine={false} />
+                <AreaChart data={report?.revenueChart || []}>
+                  <defs>
+                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop
+                        offset="5%"
+                        stopColor="hsl(var(--primary))"
+                        stopOpacity={0.3}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor="hsl(var(--primary))"
+                        stopOpacity={0}
+                      />
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="date" tickLine={false} axisLine={false} />
                   <YAxis
                     tickLine={false}
                     axisLine={false}
-                    tickFormatter={(value) => `${value / 1000000}M`}
+                    tickFormatter={(value) => `${value / 1000}K`}
                   />
                   <ChartTooltip
                     content={
@@ -235,14 +193,14 @@ export default function AdminDashboard() {
                       />
                     }
                   />
-                  <Line
+                  <Area
                     type="monotone"
                     dataKey="revenue"
-                    stroke="var(--primary)"
+                    stroke="hsl(var(--primary))"
                     strokeWidth={2}
-                    dot={false}
+                    fill="url(#colorRevenue)"
                   />
-                </LineChart>
+                </AreaChart>
               </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
@@ -250,20 +208,20 @@ export default function AdminDashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Doanh số theo danh mục</CardTitle>
+            <CardTitle className="text-lg">Cơ cấu doanh thu</CardTitle>
           </CardHeader>
           <CardContent>
             <ChartContainer
               config={{
-                sales: {
-                  label: "Ti le",
-                  color: "var(--primary)",
+                value: {
+                  label: "Tỷ lệ",
+                  color: "hsl(var(--primary))",
                 },
               }}
               className="h-[300px] w-full"
             >
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={categoryData} layout="vertical">
+                <BarChart data={report?.categoryChart || []} layout="vertical">
                   <XAxis type="number" tickLine={false} axisLine={false} />
                   <YAxis
                     type="category"
@@ -278,10 +236,109 @@ export default function AdminDashboard() {
                     }
                   />
                   <Bar
-                    dataKey="sales"
-                    fill="var(--primary)"
+                    dataKey="value"
+                    fill="hsl(var(--primary))"
                     radius={[0, 4, 4, 0]}
                   />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts Row 2 */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Trạng thái đơn hàng</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer
+              config={{
+                count: {
+                  label: "Số lượng",
+                  color: "hsl(var(--primary))",
+                },
+              }}
+              className="h-[300px] w-full"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={report?.statusChart || []}
+                    dataKey="count"
+                    nameKey="status"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                  >
+                    {(report?.statusChart || []).map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent 
+                        formatter={(value, name) => [
+                          `${value} đơn`, 
+                          statusMap[name as string]?.label || name
+                        ]} 
+                      />
+                    }
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+            {/* Simple Legend */}
+            <div className="mt-4 flex flex-wrap justify-center gap-4">
+              {(report?.statusChart || []).map((entry) => (
+                <div key={entry.status} className="flex items-center gap-2">
+                  <div className="h-3 w-3 rounded-full" style={{ backgroundColor: entry.color }}></div>
+                  <span className="text-xs text-muted-foreground">{statusMap[entry.status]?.label || entry.status}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Doanh thu theo thương hiệu</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer
+              config={{
+                value: {
+                  label: "Tỷ lệ",
+                  color: "hsl(var(--primary))",
+                },
+              }}
+              className="h-[300px] w-full"
+            >
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={report?.brandChart || []}>
+                  <XAxis dataKey="name" tickLine={false} axisLine={false} />
+                  <YAxis
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) => `${value}%`}
+                  />
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent formatter={(value) => `${value}%`} />
+                    }
+                  />
+                  <Bar
+                    dataKey="value"
+                    radius={[4, 4, 0, 0]}
+                  >
+                    {(report?.brandChart || []).map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </ChartContainer>
@@ -306,20 +363,26 @@ export default function AdminDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {_recentOrders.map((order) => (
+              {recentOrders.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">
+                    Chưa có đơn hàng nào.
+                  </TableCell>
+                </TableRow>
+              ) : recentOrders.map((order) => (
                 <TableRow key={order.id}>
                   <TableCell className="font-mono font-medium">
-                    {order.id}
+                    #{order.id}
                   </TableCell>
-                  <TableCell>{order.customer}</TableCell>
-                  <TableCell>{formatCurrency(order.total)}</TableCell>
+                  <TableCell>{order.receiverName}</TableCell>
+                  <TableCell>{formatCurrency(order.totalPrice)}</TableCell>
                   <TableCell>
-                    <Badge variant={statusMap[order.status].variant}>
-                      {statusMap[order.status].label}
+                    <Badge variant={statusMap[order.orderStatus]?.variant || "outline"}>
+                      {statusMap[order.orderStatus]?.label || order.orderStatus}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {order.date}
+                    {new Date(order.orderDate).toLocaleDateString("vi-VN")}
                   </TableCell>
                 </TableRow>
               ))}

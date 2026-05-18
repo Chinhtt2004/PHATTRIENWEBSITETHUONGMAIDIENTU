@@ -16,4 +16,5 @@ public interface PromotionService {
     PromotionResponse createPromotion(PromotionRequest request);
     PromotionResponse updatePromotion(Long id, PromotionRequest request);
     void deletePromotion(Long id);
+    void checkTestCase(PromotionRequest request);
 }

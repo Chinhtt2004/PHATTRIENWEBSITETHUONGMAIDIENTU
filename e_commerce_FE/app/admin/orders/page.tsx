@@ -1,16 +1,16 @@
 "use client";
 
-import Link from "next/link"
-
-import { useState } from "react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
   Search,
   MoreHorizontal,
   Eye,
   Truck,
   XCircle,
-  Filter,
   Download,
+  Loader2,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,119 +31,99 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-const orders = [
-  {
-    id: "VN260128001",
-    customer: "Nguyen Thi Lan",
-    email: "lan@example.com",
-    items: 3,
-    total: 1250000,
-    status: "processing",
-    paymentStatus: "paid",
-    date: "28/01/2026 14:30",
-  },
-  {
-    id: "VN260128002",
-    customer: "Tran Van Minh",
-    email: "minh@example.com",
-    items: 2,
-    total: 850000,
-    status: "shipped",
-    paymentStatus: "paid",
-    date: "28/01/2026 11:15",
-  },
-  {
-    id: "VN260127003",
-    customer: "Le Thi Huong",
-    email: "huong@example.com",
-    items: 5,
-    total: 2100000,
-    status: "delivered",
-    paymentStatus: "paid",
-    date: "27/01/2026 16:45",
-  },
-  {
-    id: "VN260127004",
-    customer: "Pham Van Duc",
-    email: "duc@example.com",
-    items: 1,
-    total: 450000,
-    status: "pending",
-    paymentStatus: "pending",
-    date: "27/01/2026 09:20",
-  },
-  {
-    id: "VN260126005",
-    customer: "Hoang Thi Mai",
-    email: "mai@example.com",
-    items: 4,
-    total: 1800000,
-    status: "delivered",
-    paymentStatus: "paid",
-    date: "26/01/2026 20:10",
-  },
-  {
-    id: "VN260125006",
-    customer: "Vo Van Nam",
-    email: "nam@example.com",
-    items: 2,
-    total: 680000,
-    status: "cancelled",
-    paymentStatus: "refunded",
-    date: "25/01/2026 13:00",
-  },
-];
+import { adminFetchAllOrders, adminUpdateOrderStatus, adminExportOrdersExcel, type OrderResponse } from "@/lib/api";
+import { toast } from "sonner";
 
 const statusMap: Record<
   string,
   { label: string; variant: "default" | "secondary" | "outline" | "destructive" }
 > = {
-  pending: { label: "Chờ xử lý", variant: "outline" },
-  processing: { label: "Đang xử lý", variant: "secondary" },
-  shipped: { label: "Đang giao", variant: "default" },
-  delivered: { label: "Đã giao", variant: "default" },
-  cancelled: { label: "Đã hủy", variant: "destructive" },
+  PENDING: { label: "Chờ xử lý", variant: "outline" },
+  PROCESSING: { label: "Đang xử lý", variant: "secondary" },
+  SHIPPED: { label: "Đang giao", variant: "default" },
+  DELIVERED: { label: "Đã giao", variant: "default" },
+  CANCELLED: { label: "Đã hủy", variant: "destructive" },
 };
 
 const paymentStatusMap: Record<string, { label: string; color: string }> = {
-  pending: { label: "Chờ thanh toán", color: "text-warning" },
-  paid: { label: "Đã thanh toán", color: "text-success" },
-  refunded: { label: "Đã hoàn tiền", color: "text-muted-foreground" },
+  PENDING: { label: "Chờ thanh toán", color: "text-amber-600" },
+  PAID: { label: "Đã thanh toán", color: "text-green-600" },
+  REFUNDED: { label: "Đã hoàn tiền", color: "text-muted-foreground" },
 };
 
 function formatCurrency(amount: number) {
-  return new Intl.NumberFormat("vi-VN").format(amount) + "d";
+  return new Intl.NumberFormat("vi-VN").format(amount) + "đ";
 }
 
 export default function AdminOrdersPage() {
+  const [orders, setOrders] = useState<OrderResponse[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportOrders = async () => {
+    try {
+      setIsExporting(true);
+      const blob = await adminExportOrdersExcel();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Danh_sach_don_hang_${new Date().toISOString().split("T")[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success("Xuất báo cáo đơn hàng thành công!");
+    } catch (error) {
+      toast.error("Lỗi khi xuất file Excel đơn hàng");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  useEffect(() => {
+    loadOrders();
+  }, []);
+
+  const loadOrders = async () => {
+    try {
+      const data = await adminFetchAllOrders();
+      setOrders(data || []);
+    } catch (error) {
+      toast.error("Không thể tải danh sách đơn hàng");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateStatus = async (orderId: number, status: string) => {
+    try {
+      await adminUpdateOrderStatus(orderId, status);
+      toast.success(`Đã cập nhật trạng thái đơn hàng #${orderId}`);
+      loadOrders();
+    } catch (error) {
+      toast.error("Cập nhật trạng thái thất bại");
+    }
+  };
 
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
-      order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.customer.toLowerCase().includes(searchQuery.toLowerCase());
+      order.id.toString().includes(searchQuery) ||
+      (order.receiverName || "").toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus =
-      statusFilter === "all" || order.status === statusFilter;
+      statusFilter === "all" || order.orderStatus === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
   const orderCounts = {
     all: orders.length,
-    pending: orders.filter((o) => o.status === "pending").length,
-    processing: orders.filter((o) => o.status === "processing").length,
-    shipped: orders.filter((o) => o.status === "shipped").length,
-    delivered: orders.filter((o) => o.status === "delivered").length,
-    cancelled: orders.filter((o) => o.status === "cancelled").length,
+    PENDING: orders.filter((o) => o.orderStatus === "PENDING").length,
+    PROCESSING: orders.filter((o) => o.orderStatus === "PROCESSING").length,
+    SHIPPED: orders.filter((o) => o.orderStatus === "SHIPPED").length,
+    DELIVERED: orders.filter((o) => o.orderStatus === "DELIVERED").length,
+    CANCELLED: orders.filter((o) => o.orderStatus === "CANCELLED").length,
   };
 
   return (
@@ -154,12 +134,21 @@ export default function AdminOrdersPage() {
             Đơn hàng
           </h1>
           <p className="text-muted-foreground">
-            Quản lý và xử lý đơn hàng của khách
+            Quản lý và xử lý đơn hàng của khách từ hệ thống
           </p>
         </div>
-        <Button variant="outline">
-          <Download className="mr-2 h-4 w-4" />
-          Xuất báo cáo
+        <Button variant="outline" onClick={handleExportOrders} disabled={isExporting}>
+          {isExporting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Đang xuất...
+            </>
+          ) : (
+            <>
+              <Download className="mr-2 h-4 w-4" />
+              Xuất báo cáo
+            </>
+          )}
         </Button>
       </div>
 
@@ -170,20 +159,20 @@ export default function AdminOrdersPage() {
       >
         <TabsList className="w-full justify-start overflow-x-auto">
           <TabsTrigger value="all">Tất cả ({orderCounts.all})</TabsTrigger>
-          <TabsTrigger value="pending">
-            Chờ xử lý ({orderCounts.pending})
+          <TabsTrigger value="PENDING">
+            Chờ xử lý ({orderCounts.PENDING})
           </TabsTrigger>
-          <TabsTrigger value="processing">
-            Đang xử lý ({orderCounts.processing})
+          <TabsTrigger value="PROCESSING">
+            Đang xử lý ({orderCounts.PROCESSING})
           </TabsTrigger>
-          <TabsTrigger value="shipped">
-            Đang giao ({orderCounts.shipped})
+          <TabsTrigger value="SHIPPED">
+            Đang giao ({orderCounts.SHIPPED})
           </TabsTrigger>
-          <TabsTrigger value="delivered">
-            Đã giao ({orderCounts.delivered})
+          <TabsTrigger value="DELIVERED">
+            Đã giao ({orderCounts.DELIVERED})
           </TabsTrigger>
-          <TabsTrigger value="cancelled">
-            Đã hủy ({orderCounts.cancelled})
+          <TabsTrigger value="CANCELLED">
+            Đã hủy ({orderCounts.CANCELLED})
           </TabsTrigger>
         </TabsList>
       </Tabs>
@@ -203,13 +192,12 @@ export default function AdminOrdersPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-lg border">
+          <div className="rounded-lg border overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Mã đơn hàng</TableHead>
                   <TableHead>Khách hàng</TableHead>
-                  <TableHead>Sản phẩm</TableHead>
                   <TableHead>Tổng tiền</TableHead>
                   <TableHead>Trạng thái</TableHead>
                   <TableHead>Thanh toán</TableHead>
@@ -218,37 +206,48 @@ export default function AdminOrdersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredOrders.map((order) => (
+                {loading ? (
+                  <TableRow>
+                     <TableCell colSpan={7} className="text-center py-10">
+                       <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                     </TableCell>
+                  </TableRow>
+                ) : filteredOrders.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-10 text-muted-foreground">
+                      Không tìm thấy đơn hàng nào.
+                    </TableCell>
+                  </TableRow>
+                ) : filteredOrders.map((order) => (
                   <TableRow key={order.id}>
                     <TableCell className="font-mono font-medium">
-                      {order.id}
+                      #{order.id}
                     </TableCell>
                     <TableCell>
                       <div>
-                        <p className="font-medium">{order.customer}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {order.email}
+                        <p className="font-medium">{order.receiverName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {order.phone}
                         </p>
                       </div>
                     </TableCell>
-                    <TableCell>{order.items} sản phẩm</TableCell>
                     <TableCell className="font-medium">
-                      {formatCurrency(order.total)}
+                      {formatCurrency(order.totalPrice)}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={statusMap[order.status].variant}>
-                        {statusMap[order.status].label}
+                      <Badge variant={statusMap[order.orderStatus]?.variant || "outline"}>
+                        {statusMap[order.orderStatus]?.label || order.orderStatus}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <span
-                        className={`text-sm font-medium ${paymentStatusMap[order.paymentStatus].color}`}
+                        className={`text-sm font-medium ${paymentStatusMap[order.paymentStatus]?.color || "text-muted-foreground"}`}
                       >
-                        {paymentStatusMap[order.paymentStatus].label}
+                        {paymentStatusMap[order.paymentStatus]?.label || order.paymentStatus}
                       </span>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {order.date}
+                    <TableCell className="text-muted-foreground text-sm">
+                      {new Date(order.orderDate).toLocaleDateString("vi-VN")}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
@@ -264,16 +263,36 @@ export default function AdminOrdersPage() {
                               Xem chi tiết
                             </Link>
                           </DropdownMenuItem>
-                          {order.status === "processing" && (
-                            <DropdownMenuItem>
-                              <Truck className="mr-2 h-4 w-4" />
-                              Đánh dấu đã giao
+                          
+                          {order.orderStatus === "PENDING" && (
+                            <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, "PROCESSING")}>
+                              <CheckCircle2 className="mr-2 h-4 w-4 text-blue-600" />
+                              Xác nhận đơn
                             </DropdownMenuItem>
                           )}
+
+                          {order.orderStatus === "PROCESSING" && (
+                            <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, "SHIPPED")}>
+                              <Truck className="mr-2 h-4 w-4 text-primary" />
+                              Giao cho vận chuyển
+                            </DropdownMenuItem>
+                          )}
+
+                          {order.orderStatus === "SHIPPED" && (
+                            <DropdownMenuItem onClick={() => handleUpdateStatus(order.id, "DELIVERED")}>
+                              <CheckCircle2 className="mr-2 h-4 w-4 text-green-600" />
+                              Đã giao thành công
+                            </DropdownMenuItem>
+                          )}
+
                           <DropdownMenuSeparator />
-                          {order.status !== "cancelled" &&
-                            order.status !== "delivered" && (
-                              <DropdownMenuItem className="text-destructive">
+                          
+                          {order.orderStatus !== "CANCELLED" &&
+                            order.orderStatus !== "DELIVERED" && (
+                              <DropdownMenuItem 
+                                className="text-destructive"
+                                onClick={() => handleUpdateStatus(order.id, "CANCELLED")}
+                              >
                                 <XCircle className="mr-2 h-4 w-4" />
                                 Hủy đơn hàng
                               </DropdownMenuItem>
@@ -286,14 +305,6 @@ export default function AdminOrdersPage() {
               </TableBody>
             </Table>
           </div>
-
-          {filteredOrders.length === 0 && (
-            <div className="py-12 text-center">
-              <p className="text-muted-foreground">
-                Không tìm thấy đơn hàng nào
-              </p>
-            </div>
-          )}
 
           <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
             <span>Hiển thị {filteredOrders.length} đơn hàng</span>
