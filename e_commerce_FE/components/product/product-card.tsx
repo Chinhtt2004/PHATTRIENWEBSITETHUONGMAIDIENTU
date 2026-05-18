@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -11,6 +11,7 @@ import { type Product, formatPrice, getDiscountPercentage, getBadgeLabel } from 
 import { useCart } from "@/contexts/cart-context";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { fetchActiveFlashSalesCached, fetchBestSellersCached, fetchNewProductsCached } from "@/lib/api";
 
 interface ProductCardProps {
   product: Product;
@@ -24,6 +25,59 @@ export function ProductCard({ product, priority = false, rank }: ProductCardProp
   const discount = getDiscountPercentage(product.price, product.compareAtPrice);
 
   const { addItem } = useCart();
+  const [isFlashSale, setIsFlashSale] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function checkFlashSale() {
+      try {
+        const campaigns = await fetchActiveFlashSalesCached();
+        const now = new Date();
+        const activeCampaigns = campaigns.filter(c => c.isActive && new Date(c.endTime) > now && new Date(c.startTime) <= now);
+        
+        const isProdInFlashSale = activeCampaigns.some(campaign => 
+          campaign.products.some(p => 
+            product.variants.some(v => String(v.id) === String(p.variantId))
+          )
+        );
+        
+        if (isMounted) {
+          setIsFlashSale(isProdInFlashSale);
+        }
+      } catch (e) {
+        // Silent error
+      }
+    }
+    checkFlashSale();
+    return () => { isMounted = false; };
+  }, [product.variants]);
+
+  const [extraBadges, setExtraBadges] = useState<string[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function checkExtraBadges() {
+      try {
+        const [bestSellers, newProducts] = await Promise.all([
+          fetchBestSellersCached().catch(() => []),
+          fetchNewProductsCached().catch(() => []),
+        ]);
+        
+        const badgesToAdd: string[] = [];
+        const isBestselling = bestSellers.some(bp => String(bp.id) === String(product.id));
+        const isNewArrival = newProducts.some(np => String(np.id) === String(product.id));
+        
+        if (isBestselling) badgesToAdd.push("bestseller");
+        if (isNewArrival) badgesToAdd.push("new");
+        
+        if (isMounted) {
+          setExtraBadges(badgesToAdd);
+        }
+      } catch (e) {}
+    }
+    checkExtraBadges();
+    return () => { isMounted = false; };
+  }, [product.id]);
 
   const handleAddToCart = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -66,13 +120,22 @@ export function ProductCard({ product, priority = false, rank }: ProductCardProp
 
         {/* Badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-1.5">
+          {isFlashSale && (
+            <div className="relative group/flame select-none self-start">
+              <div className="absolute inset-0 bg-orange-500 rounded-full animate-ping opacity-25" />
+              <div className="relative flex items-center gap-1 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 text-white text-[9px] font-black px-2.5 py-0.5 rounded-full shadow-[0_2px_8px_rgba(249,115,22,0.5)] border border-orange-400/20 animate-pulse">
+                <Flame className="h-3 w-3 fill-amber-300 text-amber-300 animate-bounce" />
+                <span>HOT 🔥</span>
+              </div>
+            </div>
+          )}
           {Boolean(discount && discount > 0) && (
-            <Badge className="bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md shadow-rose-500/20 gap-1 font-semibold">
+            <Badge className="bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md shadow-rose-500/20 gap-1 font-semibold self-start">
               <Zap className="h-3 w-3" />
               -{discount}%
             </Badge>
           )}
-          {product.badges.map((badge) => (
+          {Array.from(new Set([...product.badges, ...extraBadges])).filter(b => !(isFlashSale && b === "sale")).map((badge) => (
             <Badge
               key={badge}
               className={

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Zap } from "lucide-react";
+import { ChevronLeft, ChevronRight, Zap, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatPrice } from "@/lib/data";
 import { fetchActiveFlashSales, FlashSaleResponse } from "@/lib/api";
@@ -236,6 +236,14 @@ export function FlashSaleSection() {
                             fill
                             className="object-cover group-hover/card:scale-110 transition-transform duration-500"
                           />
+                          {/* Burning Fire Flash Sale Tag */}
+                          {!isSoldOut && (
+                            <div className="absolute top-2 left-2 z-10 flex items-center gap-1 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-[0_2px_8px_rgba(249,115,22,0.5)] border border-orange-400/20 animate-pulse">
+                              <Flame className="h-3 w-3 fill-amber-300 text-amber-300 animate-bounce" />
+                              <span>HOT 🔥</span>
+                            </div>
+                          )}
+
                           {/* Discount badge - Pulse effect */}
                           {discount > 0 && !isSoldOut && (
                             <div className="absolute top-2 right-2 flex flex-col items-center">

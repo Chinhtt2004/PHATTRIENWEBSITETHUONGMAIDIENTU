@@ -310,6 +310,7 @@ public class ProductService {
         res.setAverageRating(product.getAverageRating());
         res.setTotalReviews(product.getTotalReviews());
         res.setTotalSold(product.getTotalSold());
+        res.setCreatedAt(product.getCreatedAt());
         return res;
     }
 

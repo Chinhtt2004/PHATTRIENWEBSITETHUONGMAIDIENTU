@@ -366,6 +366,22 @@ export function normalizeImageUrl(url?: string | null): string {
 
 // --- Mappers ---
 
+export function safeParseDate(dateVal: any): Date | null {
+  if (!dateVal) return null;
+  if (typeof dateVal === "string") {
+    const d = new Date(dateVal);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  if (Array.isArray(dateVal)) {
+    const [year, month = 1, day = 1, hour = 0, minute = 0, second = 0] = dateVal;
+    return new Date(year, month - 1, day, hour, minute, second);
+  }
+  if (typeof dateVal === "number") {
+    return new Date(dateVal);
+  }
+  return null;
+}
+
 export function mapBackendProduct(product: BackendProduct): Product {
   const description = stripHtml(product.description || "");
   const categoryId = String(
@@ -445,13 +461,17 @@ export function mapBackendProduct(product: BackendProduct): Product {
     badges.push("sale");
   }
 
-  // 2. Bestseller badge (based on totalSold)
-  if (product.totalSold && product.totalSold >= 50) {
+  // 2. Bestseller badge (strictly based on totalSold)
+  const isBestseller = product.totalSold ? product.totalSold >= 5 : false;
+  if (isBestseller) {
     badges.push("bestseller");
   }
 
-  // 3. New badge (created within the last 14 days)
-  const isNew = product.createdAt ? (new Date().getTime() - new Date(product.createdAt).getTime()) < 14 * 24 * 60 * 60 * 1000 : false;
+  // 3. New badge (strictly based on createdAt)
+  const createdAtDate = product.createdAt ? safeParseDate(product.createdAt) : null;
+  const isNew = createdAtDate
+    ? (new Date().getTime() - createdAtDate.getTime()) < 10 * 24 * 60 * 60 * 1000
+    : false;
   if (isNew) {
     badges.push("new");
   }
@@ -679,7 +699,13 @@ export async function fetchBestSellers(limit = 10): Promise<Product[]> {
 export async function fetchNewProducts(limit = 10): Promise<Product[]> {
   const res = await fetch(`${API_BASE_URL}/api/public/product/new?limit=${limit}`, { cache: "no-store" });
   const data = (await ensureOk(res)) as BackendProduct[];
-  return data.map(mapBackendProduct);
+  const products = data.map(mapBackendProduct);
+  return products.map(p => {
+    if (!p.badges.includes("new")) {
+      return { ...p, badges: [...p.badges, "new"] };
+    }
+    return p;
+  });
 }
 
 // Admin Products
@@ -1288,6 +1314,24 @@ export async function fetchActiveFlashSales(): Promise<FlashSaleResponse[]> {
   return ensureOk(res);
 }
 
+let activeFlashSalesPromise: Promise<FlashSaleResponse[]> | null = null;
+let activeFlashSalesCacheTime = 0;
+
+export async function fetchActiveFlashSalesCached(): Promise<FlashSaleResponse[]> {
+  if (typeof window === "undefined") {
+    return fetchActiveFlashSales();
+  }
+  const now = Date.now();
+  if (!activeFlashSalesPromise || (now - activeFlashSalesCacheTime > 10000)) {
+    activeFlashSalesCacheTime = now;
+    activeFlashSalesPromise = fetchActiveFlashSales().catch(err => {
+      activeFlashSalesPromise = null;
+      throw err;
+    });
+  }
+  return activeFlashSalesPromise;
+}
+
 export async function adminFetchAllFlashSales(): Promise<FlashSaleResponse[]> {
   const res = await fetch(`${API_BASE_URL}/api/admin/flashsale/all`, { credentials: "include", cache: "no-store" });
   return ensureOk(res);
@@ -1310,10 +1354,10 @@ export async function addFlashSaleVariant(flashSaleId: number, data: { variantId
     body: JSON.stringify(data),
     credentials: "include",
   });
-  
+
   if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(errText || res.statusText);
+    const errText = await res.text();
+    throw new Error(errText || res.statusText);
   }
   return res.text();
 }
@@ -1333,7 +1377,7 @@ export async function updateFlashSale(flashSaleId: number, data: { name: string;
     body: JSON.stringify(data),
     credentials: "include",
   });
-  
+
   return ensureOk(res);
 }
 
@@ -1535,6 +1579,42 @@ export async function adminReorderPageSections(pageId: number, data: { id: numbe
     throw new Error("Failed to reorder sections");
   }
   return res.text();
+}
+
+let bestSellersPromise: Promise<Product[]> | null = null;
+let bestSellersCacheTime = 0;
+
+export async function fetchBestSellersCached(): Promise<Product[]> {
+  if (typeof window === "undefined") {
+    return fetchBestSellers();
+  }
+  const now = Date.now();
+  if (!bestSellersPromise || (now - bestSellersCacheTime > 30000)) {
+    bestSellersCacheTime = now;
+    bestSellersPromise = fetchBestSellers().catch(err => {
+      bestSellersPromise = null;
+      throw err;
+    });
+  }
+  return bestSellersPromise;
+}
+
+let newProductsPromise: Promise<Product[]> | null = null;
+let newProductsCacheTime = 0;
+
+export async function fetchNewProductsCached(): Promise<Product[]> {
+  if (typeof window === "undefined") {
+    return fetchNewProducts();
+  }
+  const now = Date.now();
+  if (!newProductsPromise || (now - newProductsCacheTime > 30000)) {
+    newProductsCacheTime = now;
+    newProductsPromise = fetchNewProducts().catch(err => {
+      newProductsPromise = null;
+      throw err;
+    });
+  }
+  return newProductsPromise;
 }
 
 

@@ -4,6 +4,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.time.LocalDateTime;
 
 @Data
 public class ProductResponse {
@@ -21,6 +22,7 @@ public class ProductResponse {
     private List<String> images;
     private BigDecimal priceMin;
     private List<VariantResponse> variants;
+    private LocalDateTime createdAt;
 
     @Data
     public static class VariantResponse {

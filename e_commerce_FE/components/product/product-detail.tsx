@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -45,7 +45,7 @@ import {
   getBadgeLabel,
   categories,
 } from "@/lib/data";
-import { normalizeImageUrl } from "@/lib/api";
+import { normalizeImageUrl, fetchActiveFlashSalesCached, fetchBestSellersCached, fetchNewProductsCached } from "@/lib/api";
 import { ProductReviews } from "@/components/product/product-reviews";
 
 interface ProductDetailProps {
@@ -59,6 +59,59 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [isWishlisted, setIsWishlisted] = useState(false);
+  const [isFlashSale, setIsFlashSale] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function checkFlashSale() {
+      try {
+        const campaigns = await fetchActiveFlashSalesCached();
+        const now = new Date();
+        const activeCampaigns = campaigns.filter(c => c.isActive && new Date(c.endTime) > now && new Date(c.startTime) <= now);
+        
+        const isProdInFlashSale = activeCampaigns.some(campaign => 
+          campaign.products.some(p => 
+            product.variants.some(v => String(v.id) === String(p.variantId))
+          )
+        );
+        
+        if (isMounted) {
+          setIsFlashSale(isProdInFlashSale);
+        }
+      } catch (e) {
+        // Silent error
+      }
+    }
+    checkFlashSale();
+    return () => { isMounted = false; };
+  }, [product.variants]);
+
+  const [extraBadges, setExtraBadges] = useState<string[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function checkExtraBadges() {
+      try {
+        const [bestSellers, newProducts] = await Promise.all([
+          fetchBestSellersCached().catch(() => []),
+          fetchNewProductsCached().catch(() => []),
+        ]);
+        
+        const badgesToAdd: string[] = [];
+        const isBestselling = bestSellers.some(bp => String(bp.id) === String(product.id));
+        const isNewArrival = newProducts.some(np => String(np.id) === String(product.id));
+        
+        if (isBestselling) badgesToAdd.push("bestseller");
+        if (isNewArrival) badgesToAdd.push("new");
+        
+        if (isMounted) {
+          setExtraBadges(badgesToAdd);
+        }
+      } catch (e) {}
+    }
+    checkExtraBadges();
+    return () => { isMounted = false; };
+  }, [product.id]);
 
   // When variant changes, switch to its image if it has a dedicated one
   const handleVariantSelect = (variant: typeof selectedVariant) => {
@@ -194,13 +247,22 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
               />
               {/* Badges */}
               <div className="absolute top-4 left-4 flex flex-col gap-2">
+                {isFlashSale && (
+                  <div className="relative group/flame select-none self-start">
+                    <div className="absolute inset-0 bg-orange-500 rounded-full animate-ping opacity-25" />
+                    <div className="relative flex items-center gap-1.5 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 text-white text-[10px] font-black px-3.5 py-1 rounded-full shadow-[0_4px_12px_rgba(249,115,22,0.5)] border border-orange-400/20 animate-pulse">
+                      <Flame className="h-3.5 w-3.5 fill-amber-300 text-amber-300 animate-bounce" />
+                      <span>HOT SALE 🔥</span>
+                    </div>
+                  </div>
+                )}
                 {discount && (
-                  <Badge className="bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md shadow-rose-500/20 gap-1 font-semibold">
+                  <Badge className="bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md shadow-rose-500/20 gap-1 font-semibold self-start">
                     <Zap className="h-3 w-3" />
                     -{discount}%
                   </Badge>
                 )}
-                {product.badges.map((badge) => (
+                {Array.from(new Set([...product.badges, ...extraBadges])).filter(b => !(isFlashSale && b === "sale")).map((badge) => (
                   <Badge
                     key={badge}
                     className={
