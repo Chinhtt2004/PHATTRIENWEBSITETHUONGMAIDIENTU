@@ -42,14 +42,17 @@ public class FlashSaleController {
                 return flashSaleService.getActiveFlashSales();
         }
 
-        @PutMapping("/admin/flashsale/{flashSaleId}")
-        public String disableFlashSale(
+        @GetMapping("admin/flashsale/all")
+        public List<FlashSaleResponse> getAllFlashSales() {
+                return flashSaleService.getAllFlashSales();
+        }
+
+        @PutMapping("/admin/flashsale/toggle/{flashSaleId}")
+        public FlashSaleResponse toggleFlashSale(
                         @PathVariable Long flashSaleId) {
 
-                flashSaleService.disableFlashSale(
+                return flashSaleService.toggleFlashSaleStatus(
                                 flashSaleId);
-
-                return "Flash sale disabled successfully";
         }
         @PutMapping("/admin/flashsale/update/{flashSaleId}")
         public FlashSaleResponse update(

@@ -37,6 +37,10 @@ public class FlashSaleService {
             CreateFlashSaleRequest request
     ) {
 
+        if (request.getStartTime().isAfter(request.getEndTime()) || request.getStartTime().isEqual(request.getEndTime())) {
+            throw new RuntimeException("Thời gian bắt đầu phải trước thời gian kết thúc");
+        }
+
         FlashSale flashSale = new FlashSale();
 
         flashSale.setName(
@@ -239,8 +243,16 @@ public class FlashSaleService {
 
         }).toList();
     }
+
+    public List<FlashSaleResponse> getAllFlashSales() {
+
+        List<FlashSale> flashSales =
+                flashSaleRepository.findAll();
+
+        return flashSales.stream().map(this::mapToResponse).toList();
+    }
     @Transactional
-    public void disableFlashSale(
+    public FlashSaleResponse toggleFlashSaleStatus(
             Long flashSaleId
     ) {
 
@@ -252,9 +264,10 @@ public class FlashSaleService {
                                 "Flash sale not found"
                         ));
 
-        flashSale.setIsActive(false);
+        boolean newStatus = !flashSale.getIsActive();
+        flashSale.setIsActive(newStatus);
 
-        // tắt flash sale của variant
+        // cập nhật flash sale của variant
         List<FlashSaleProduct> products =
                 flashSaleProductRepository
                         .findByFlashSaleId(
@@ -266,9 +279,9 @@ public class FlashSaleService {
             ProductVariant variant =
                     item.getVariant();
 
-            variant.setIsFlashSale(false);
+            variant.setIsFlashSale(newStatus);
 
-            variant.setDiscountPrice(null);
+            variant.setDiscountPrice(newStatus ? item.getSalePrice() : null);
 
             productVariantRepository.save(
                     variant
@@ -278,11 +291,17 @@ public class FlashSaleService {
         flashSaleRepository.save(
                 flashSale
         );
+        
+        return mapToResponse(flashSale);
     }
     public FlashSaleResponse updateFlashSale(Long id, CreateFlashSaleRequest req) {
 
         FlashSale flashSale = flashSaleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Flash sale không tồn tại"));
+
+        if (req.getStartTime().isAfter(req.getEndTime()) || req.getStartTime().isEqual(req.getEndTime())) {
+            throw new RuntimeException("Thời gian bắt đầu phải trước thời gian kết thúc");
+        }
 
         flashSale.setName(req.getName());
         flashSale.setStartTime(req.getStartTime());

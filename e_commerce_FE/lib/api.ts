@@ -1288,6 +1288,11 @@ export async function fetchActiveFlashSales(): Promise<FlashSaleResponse[]> {
   return ensureOk(res);
 }
 
+export async function adminFetchAllFlashSales(): Promise<FlashSaleResponse[]> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/flashsale/all`, { credentials: "include", cache: "no-store" });
+  return ensureOk(res);
+}
+
 export async function createFlashSale(data: { name: string; startTime: string; endTime: string }): Promise<any> {
   const res = await fetch(`${API_BASE_URL}/api/admin/flashsale/create`, {
     method: "POST",
@@ -1313,18 +1318,25 @@ export async function addFlashSaleVariant(flashSaleId: number, data: { variantId
   return res.text();
 }
 
-export async function disableFlashSale(flashSaleId: number): Promise<any> {
-  const res = await fetch(`${API_BASE_URL}/api/admin/flashsale/${flashSaleId}`, {
+export async function toggleFlashSale(flashSaleId: number): Promise<FlashSaleResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/flashsale/toggle/${flashSaleId}`, {
     method: "PUT",
     credentials: "include",
   });
-  
-  if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(errText || res.statusText);
-  }
-  return res.text();
+  return ensureOk(res);
 }
+
+export async function updateFlashSale(flashSaleId: number, data: { name: string; startTime: string; endTime: string }): Promise<any> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/flashsale/update/${flashSaleId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+    credentials: "include",
+  });
+  
+  return ensureOk(res);
+}
+
 
 // --- Excel Import/Export ---
 
