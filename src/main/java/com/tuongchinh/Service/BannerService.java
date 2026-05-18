@@ -1,5 +1,6 @@
 package com.tuongchinh.Service;
 
+import com.tuongchinh.DTO.BannerResponse;
 import com.tuongchinh.DTO.CreateBannerRequest;
 import com.tuongchinh.Entity.Banner;
 import com.tuongchinh.Repository.BannerRepository;
@@ -14,11 +15,7 @@ public class BannerService {
 
     private final BannerRepository bannerRepository;
 
-    // =========================================
-    // CREATE
-    // =========================================
-
-    public Banner create(CreateBannerRequest req) {
+    public BannerResponse create(CreateBannerRequest req) {
 
         Banner banner = new Banner();
 
@@ -26,7 +23,8 @@ public class BannerService {
 
         banner.setActive(true);
 
-        return bannerRepository.save(banner);
+        bannerRepository.save(banner);
+        return MaptoReponse(banner);
     }
 
     // =========================================
@@ -53,7 +51,7 @@ public class BannerService {
     // UPDATE
     // =========================================
 
-    public Banner update(Long id,
+    public BannerResponse update(Long id,
                          CreateBannerRequest req) {
 
         Banner banner = bannerRepository.findById(id)
@@ -61,8 +59,8 @@ public class BannerService {
                         new RuntimeException("Banner not found"));
 
         banner.setName(req.getName());
-
-        return bannerRepository.save(banner);
+        bannerRepository.save(banner);
+        return MaptoReponse(banner);
     }
 
     // =========================================
@@ -76,5 +74,13 @@ public class BannerService {
                         new RuntimeException("Banner not found"));
 
         bannerRepository.delete(banner);
+    }
+
+    private BannerResponse MaptoReponse(Banner banner){
+        BannerResponse bannerResponse= new BannerResponse();
+        bannerResponse.setId(banner.getId());
+        bannerResponse.setActive(banner.getActive());
+        bannerResponse.setName(banner.getName());
+        return bannerResponse;
     }
 }

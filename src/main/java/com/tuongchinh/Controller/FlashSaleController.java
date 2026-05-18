@@ -51,4 +51,15 @@ public class FlashSaleController {
 
                 return "Flash sale disabled successfully";
         }
+        @PutMapping("/admin/flashsale/update/{flashSaleId}")
+        public FlashSaleResponse update(
+                @PathVariable Long flashSaleId,
+                @RequestBody CreateFlashSaleRequest request
+        ) {
+
+                return flashSaleService.updateFlashSale(
+                        flashSaleId,
+                        request
+                );
+        }
 }

@@ -2,6 +2,7 @@ package com.tuongchinh.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tuongchinh.DTO.AddFlashSaleVariantRequest;
 import com.tuongchinh.DTO.CreatePageRequest;
 import com.tuongchinh.DTO.PageResponse;
 import com.tuongchinh.DTO.SectionResponse;
@@ -14,6 +15,8 @@ import com.tuongchinh.Repository.BannerRepository;
 import com.tuongchinh.Repository.PageRepository;
 import com.tuongchinh.Repository.PageSectionRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -26,8 +29,9 @@ public class PageService {
     private final PageRepository pageRepository;
 
     private final PageSectionRepository pageSectionRepository;
-
+    private final ProductService productService;
     private final BannerRepository bannerRepository;
+    private final BannerService bannerService;
 
     private final BannerItemRepository bannerItemRepository;
 
@@ -106,7 +110,7 @@ public class PageService {
     // BUILD PAGE DYNAMIC
     // =====================================================
 
-    public PageResponse getPage(String slug) {
+    public AddFlashSaleVariantRequest.PageResponse getPage(String slug) {
 
         Page page = pageRepository
                 .findBySlugAndActiveTrue(slug)
@@ -175,10 +179,10 @@ public class PageService {
             sectionResponses.add(response);
         }
 
-        PageResponse response =
-                new PageResponse();
+        AddFlashSaleVariantRequest.PageResponse response =
+                new AddFlashSaleVariantRequest.PageResponse();
 
-        response.setPage(page.getSlug());
+        response.setSlug(page.getSlug());
 
         response.setSections(sectionResponses);
 
@@ -284,4 +288,109 @@ public class PageService {
             throw new RuntimeException(e);
         }
     }
+    public PageResponse getPageBySlug(
+            String slug
+    ) {
+
+        Page page = pageRepository
+                .findBySlug(slug)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Page not found"
+                        ));
+
+        List<PageSection> sections =
+                pageSectionRepository
+                        .findByPageAndActiveTrueOrderByPositionAsc(
+                                page
+                        );
+
+        List<SectionResponse> sectionResponses =
+                sections.stream()
+                        .map(this::mapSection)
+                        .toList();
+
+        PageResponse response =
+                new PageResponse();
+
+        response.setId(page.getId());
+
+        response.setName(page.getName());
+
+        response.setSlug(page.getSlug());
+
+        response.setSections(sectionResponses);
+
+        return response;
+    }
+    private SectionResponse mapSection(
+            PageSection section
+    ) {
+
+        SectionResponse response =
+                new SectionResponse();
+
+        response.setId(section.getId());
+
+        response.setType(section.getType());
+
+        response.setTitle(section.getTitle());
+
+        response.setPosition(
+                section.getPosition()
+        );
+
+        Object data = null;
+
+        switch (section.getType()) {
+
+            case "BANNER":
+
+                data = getBannerData(section);
+
+                break;
+
+            case "FLASH_SALE":
+
+                data = getFlashSaleData(section);
+
+                break;
+
+            case "BEST_SELLER":
+
+                data = getBestSellerData(section);
+
+                break;
+        }
+
+        response.setData(data);
+
+        return response;
+    }
+    private Object getBestSellerData(
+            PageSection section
+    ) {
+
+        try {
+
+            JsonNode config =
+                    objectMapper.readTree(
+                            section.getConfigJson()
+                    );
+
+            Integer limit =
+                    config.get("limit")
+                            .asInt();
+
+            Pageable pageable =
+                    PageRequest.of(0, limit);
+
+            return productService.getBestSelling(limit);
+
+        } catch (Exception e) {
+
+            throw new RuntimeException(e);
+        }
+    }
+
 }

@@ -1,5 +1,6 @@
 package com.tuongchinh.Service;
 
+import com.tuongchinh.DTO.BannerItemResponse;
 import com.tuongchinh.DTO.CreateBannerItemRequest;
 import com.tuongchinh.Entity.Banner;
 import com.tuongchinh.Entity.BannerItem;
@@ -7,8 +8,6 @@ import com.tuongchinh.Repository.BannerItemRepository;
 import com.tuongchinh.Repository.BannerRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -18,11 +17,13 @@ public class BannerItemService {
 
     private final BannerItemRepository bannerItemRepository;
 
+    private final CloudinaryService cloudinaryService;
+
     // =========================================
     // CREATE
     // =========================================
 
-    public BannerItem create(
+    public BannerItemResponse create(
             CreateBannerItemRequest req
     ) {
 
@@ -32,67 +33,32 @@ public class BannerItemService {
                 .orElseThrow(() ->
                         new RuntimeException("Banner not found"));
 
+        String imageUrl =
+                cloudinaryService.uploadImage(
+                        req.getImage()
+                );
+
+        String mobileImageUrl = null;
+
         BannerItem item = new BannerItem();
 
         item.setBanner(banner);
 
-        item.setImageUrl(req.getImageUrl());
-
-        item.setMobileImageUrl(req.getMobileImageUrl());
-
-        item.setRedirectUrl(req.getRedirectUrl());
-
-//        item.setTitle(req.getTitle());
-//
-//        item.setSubtitle(req.getSubtitle());
-//
-//        item.setButtonText(req.getButtonText());
-
+        item.setImageUrl(imageUrl);
         item.setPosition(req.getPosition());
 
         item.setActive(true);
 
-        return bannerItemRepository.save(item);
-    }
+        item = bannerItemRepository.save(item);
 
-    // =========================================
-    // GET BY BANNER
-    // =========================================
-
-    public List<BannerItem> getByBanner(
-            Long bannerId
-    ) {
-
-        Banner banner = bannerRepository.findById(
-                        bannerId
-                )
-                .orElseThrow(() ->
-                        new RuntimeException("Banner not found"));
-
-        return bannerItemRepository
-                .findByBannerAndActiveTrueOrderByPositionAsc(
-                        banner
-                );
-    }
-
-    // =========================================
-    // GET DETAIL
-    // =========================================
-
-    public BannerItem getDetail(Long id) {
-
-        return bannerItemRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException(
-                                "Banner item not found"
-                        ));
+        return mapToResponse(item);
     }
 
     // =========================================
     // UPDATE
     // =========================================
 
-    public BannerItem update(
+    public BannerItemResponse update(
             Long id,
             CreateBannerItemRequest req
     ) {
@@ -108,25 +74,33 @@ public class BannerItemService {
                         req.getBannerId()
                 )
                 .orElseThrow(() ->
-                        new RuntimeException("Banner not found"));
+                        new RuntimeException(
+                                "Banner not found"
+                        ));
 
         item.setBanner(banner);
 
-        item.setImageUrl(req.getImageUrl());
+        // upload image mới nếu có
+        if (req.getImage() != null
+                && !req.getImage().isEmpty()) {
 
-        item.setMobileImageUrl(req.getMobileImageUrl());
+            String imageUrl =
+                    cloudinaryService.uploadImage(
+                            req.getImage()
+                    );
 
-        item.setRedirectUrl(req.getRedirectUrl());
+            item.setImageUrl(imageUrl);
+        }
 
-//        item.setTitle(req.getTitle());
-//
-//        item.setSubtitle(req.getSubtitle());
-//
-//        item.setButtonText(req.getButtonText());
+        // upload mobile image mới nếu có
 
-        item.setPosition(req.getPosition());
+        item.setPosition(
+                req.getPosition()
+        );
 
-        return bannerItemRepository.save(item);
+        item = bannerItemRepository.save(item);
+
+        return mapToResponse(item);
     }
 
     // =========================================
@@ -143,5 +117,54 @@ public class BannerItemService {
                                 ));
 
         bannerItemRepository.delete(item);
+    }
+
+    // =========================================
+    // DETAIL
+    // =========================================
+
+    public BannerItemResponse getDetail(
+            Long id
+    ) {
+
+        BannerItem item =
+                bannerItemRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Banner item not found"
+                                ));
+
+        return mapToResponse(item);
+    }
+
+    // =========================================
+    // MAP RESPONSE
+    // =========================================
+
+    private BannerItemResponse mapToResponse(
+            BannerItem bannerItem
+    ) {
+
+        BannerItemResponse response =
+                new BannerItemResponse();
+
+        response.setId(
+                bannerItem.getId()
+        );
+
+        response.setImageUrl(
+                bannerItem.getImageUrl()
+        );
+
+
+        response.setPosition(
+                bannerItem.getPosition()
+        );
+
+        response.setActive(
+                bannerItem.getActive()
+        );
+
+        return response;
     }
 }

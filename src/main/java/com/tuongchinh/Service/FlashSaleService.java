@@ -279,4 +279,97 @@ public class FlashSaleService {
                 flashSale
         );
     }
+    public FlashSaleResponse updateFlashSale(Long id, CreateFlashSaleRequest req) {
+
+        FlashSale flashSale = flashSaleRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Flash sale không tồn tại"));
+
+        flashSale.setName(req.getName());
+        flashSale.setStartTime(req.getStartTime());
+        flashSale.setEndTime(req.getEndTime());
+        flashSaleRepository.save(flashSale);
+        return mapToResponse(flashSale);
+    }
+    private FlashSaleResponse mapToResponse(
+            FlashSale flashSale
+    ) {
+
+        FlashSaleResponse response =
+                new FlashSaleResponse();
+
+        response.setId(
+                flashSale.getId()
+        );
+
+        response.setName(
+                flashSale.getName()
+        );
+
+        response.setStartTime(
+                flashSale.getStartTime()
+        );
+
+        response.setEndTime(
+                flashSale.getEndTime()
+        );
+
+        response.setIsActive(
+                flashSale.getIsActive()
+        );
+
+        List<FlashSaleProductResponse> productResponses =
+                flashSaleProductRepository
+                        .findByFlashSaleId(
+                                flashSale.getId()
+                        )
+                        .stream()
+                        .map(item -> {
+
+                            FlashSaleProductResponse p =
+                                    new FlashSaleProductResponse();
+
+                            p.setId(item.getId());
+
+                            p.setVariantId(
+                                    item.getVariant().getId()
+                            );
+
+                            p.setProductName(
+                                    item.getVariant()
+                                            .getProduct()
+                                            .getName()
+                            );
+
+                            p.setOriginalPrice(
+                                    item.getVariant().getPrice()
+                            );
+
+                            p.setSalePrice(
+                                    item.getSalePrice()
+                            );
+
+                            p.setQuantity(
+                                    item.getQuantity()
+                            );
+
+                            p.setSoldQuantity(
+                                    item.getSoldQuantity()
+                            );
+
+                            p.setMaxPerUser(
+                                    item.getMaxUser()
+                            );
+
+                            p.setImage(
+                                    item.getVariant().getImageUrl()
+                            );
+
+                            return p;
+
+                        }).toList();
+
+        response.setProducts(productResponses);
+
+        return response;
+    }
 }

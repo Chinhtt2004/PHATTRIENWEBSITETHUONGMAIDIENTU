@@ -16,8 +16,6 @@ public class BannerItem {
     @JoinColumn(name = "banner_id")
     private Banner banner;
     private String imageUrl;
-    private String mobileImageUrl;
-    private String redirectUrl;
     private Integer position;
     private Boolean active = true;
 }

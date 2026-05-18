@@ -17,16 +17,11 @@ public class PageSection {
     @ManyToOne
     @JoinColumn(name = "page_id")
     private Page page;
-
     // BANNER, FLASH_SALE, PRODUCT_GRID
     private String type;
-
     private String title;
-
     private Integer position;
-
     @Column(columnDefinition = "TEXT")
     private String configJson;
-
     private Boolean active = true;
 }

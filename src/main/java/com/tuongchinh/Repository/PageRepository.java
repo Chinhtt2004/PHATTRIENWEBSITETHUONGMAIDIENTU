@@ -10,4 +10,7 @@ public interface PageRepository
         extends JpaRepository<Page, Long> {
 
     Optional<Page> findBySlugAndActiveTrue(String slug);
+    Optional<Page> findBySlug(
+            String slug
+    );
 }

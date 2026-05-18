@@ -1,7 +1,6 @@
 package com.tuongchinh.Controller;
 
 import com.tuongchinh.DTO.CreatePageRequest;
-import com.tuongchinh.DTO.PageResponse;
 import com.tuongchinh.Service.PageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -54,16 +53,16 @@ public class PageController {
     // UPDATE
     // =========================
 
-    @PutMapping("/{id}")
-    public ResponseEntity<?> update(
-            @PathVariable Long id,
-            @RequestBody CreatePageRequest req
-    ) {
-
-        return ResponseEntity.ok(
-                pageService.update(id, req)
-        );
-    }
+//    @PutMapping("/{id}")
+//    public ResponseEntity<?> update(
+//            @PathVariable Long id,
+//            @RequestBody CreatePageRequest req
+//    ) {
+//
+//        return ResponseEntity.ok(
+//                pageService.update(id, req)
+//        );
+//    }
 
     // =========================
     // DELETE
@@ -78,4 +77,12 @@ public class PageController {
 
         return ResponseEntity.ok("Deleted");
     }
+//    @GetMapping("pubic/{slug}")
+//    public ResponseEntity<?> getPage(
+//            @PathVariable String slug
+//    ) {
+//        return ResponseEntity.ok(
+//                pageService.getPageBySlug(slug)
+//        );
+//    }
 }

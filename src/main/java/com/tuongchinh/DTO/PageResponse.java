@@ -8,8 +8,8 @@ import java.util.List;
 @Getter
 @Setter
 public class PageResponse {
-
-    private String page;
-
+    private Long id;
+    private String name;
+    private String slug;
     private List<SectionResponse> sections;
 }
