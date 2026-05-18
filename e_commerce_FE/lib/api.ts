@@ -1390,4 +1390,151 @@ export async function adminExportSummaryReportExcel(): Promise<Blob> {
   return res.blob();
 }
 
+// --- DYNAMIC PAGE BUILDER ---
+
+export interface SectionResponseDTO {
+  id: number;
+  type: string;
+  title?: string;
+  position: number;
+  configJson: any;
+  active?: boolean;
+}
+
+export interface PageResponseDTO {
+  name: string;
+  slug: string;
+  sections: SectionResponseDTO[];
+}
+
+export async function fetchPageBySlug(slug: string): Promise<PageResponseDTO> {
+  const res = await fetch(`${API_BASE_URL}/api/public/pages/${slug}`, {
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    if (res.status === 404) {
+      throw new Error("Page not found");
+    }
+    throw new Error(`Failed to fetch page: ${res.status}`);
+  }
+  return res.json();
+}
+
+// --- ADMIN DYNAMIC PAGE BUILDER ---
+
+export interface CreatePageRequest {
+  name: string;
+  slug: string;
+  active: boolean;
+}
+
+export interface PageSummaryDTO {
+  id: number;
+  name: string;
+  slug: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatePageSectionRequest {
+  pageId: number;
+  type: string;
+  title: string;
+  position: number;
+  configJson: any;
+  active: boolean;
+}
+
+export async function adminFetchPages(): Promise<PageSummaryDTO[]> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/pages`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  return ensureOk(res);
+}
+
+export async function adminCreatePage(data: CreatePageRequest): Promise<PageSummaryDTO> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/pages`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+    credentials: "include",
+  });
+  return ensureOk(res);
+}
+
+export async function adminUpdatePage(id: number, data: CreatePageRequest): Promise<PageSummaryDTO> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/pages/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+    credentials: "include",
+  });
+  return ensureOk(res);
+}
+
+export async function adminDeletePage(id: number): Promise<string> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/pages/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!res.ok) {
+    throw new Error("Failed to delete page");
+  }
+  return res.text();
+}
+
+export async function adminFetchPageSections(pageId: number): Promise<SectionResponseDTO[]> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/page/${pageId}`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  return ensureOk(res);
+}
+
+export async function adminCreatePageSection(data: CreatePageSectionRequest): Promise<SectionResponseDTO> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/section`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+    credentials: "include",
+  });
+  return ensureOk(res);
+}
+
+export async function adminUpdatePageSection(id: number, data: CreatePageSectionRequest): Promise<SectionResponseDTO> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+    credentials: "include",
+  });
+  return ensureOk(res);
+}
+
+export async function adminDeletePageSection(id: number): Promise<string> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!res.ok) {
+    throw new Error("Failed to delete page section");
+  }
+  return res.text();
+}
+
+export async function adminReorderPageSections(pageId: number, data: { id: number; position: number }[]): Promise<string> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/page/${pageId}/reorder`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+    credentials: "include",
+  });
+  if (!res.ok) {
+    throw new Error("Failed to reorder sections");
+  }
+  return res.text();
+}
+
 

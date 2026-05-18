@@ -14,6 +14,7 @@ import {
   X,
   Sparkles,
   LogOut,
+  Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,7 @@ const navigation = [
   { name: "Voucher", href: "/admin/vouchers", icon: Tag },
   { name: "Flash Sale", href: "/admin/promotions/flash-sale", icon: Sparkles },
   { name: "Báo cáo", href: "/admin/reports", icon: BarChart3 },
+  { name: "Giao diện", href: "/admin/pages", icon: Layers },
   { name: "Cài đặt", href: "/admin/settings", icon: Settings },
 ];
 

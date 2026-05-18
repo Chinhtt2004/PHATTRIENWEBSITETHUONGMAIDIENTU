@@ -16,16 +16,16 @@ export function HeroSection() {
               <Sparkles className="h-4 w-4" />
               <span>Bộ sưu tập Xuân Hè 2026</span>
             </div>
-            
+
             <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight mb-6 text-balance">
               Khám Phá
               <span className="text-primary block">Vẻ Đẹp Toàn Diện</span>
             </h1>
-            
+
             <p className="text-lg text-muted-foreground mb-8 max-w-lg mx-auto lg:mx-0 text-pretty">
               Trải nghiệm các sản phẩm mỹ phẩm cao cấp, được tuyển chọn từ những thương hiệu hàng đầu thế giới. Chăm sóc làn da của bạn với những tinh chất tự nhiên nhất.
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <Button asChild size="lg" className="text-base px-8">
                 <Link href="/products">
@@ -62,7 +62,7 @@ export function HeroSection() {
             <div className="relative aspect-square max-w-md mx-auto lg:max-w-none">
               {/* Background decoration */}
               <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/40 rounded-[3rem] transform rotate-3 shadow-inner"></div>
-              
+
               <div className="relative h-full rounded-[2.5rem] overflow-hidden shadow-2xl transform -rotate-2 hover:rotate-0 transition-all duration-700 bg-white/40 backdrop-blur-sm p-1">
                 <Image
                   src="https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=1000&h=1000&fit=max&q=90"

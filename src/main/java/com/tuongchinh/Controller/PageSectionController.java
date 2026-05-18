@@ -1,10 +1,12 @@
 package com.tuongchinh.Controller;
 
 import com.tuongchinh.DTO.CreatePageSectionRequest;
+import com.tuongchinh.DTO.ReorderSectionRequest;
 import com.tuongchinh.Service.PageSectionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -68,6 +70,19 @@ public class PageSectionController {
         return ResponseEntity.ok(
                 pageSectionService.update(id, req)
         );
+    }
+
+    // =========================================
+    // REORDER
+    // =========================================
+
+    @PutMapping("/page/{pageId}/reorder")
+    public ResponseEntity<?> reorder(
+            @PathVariable Long pageId,
+            @RequestBody List<ReorderSectionRequest> requests
+    ) {
+        pageSectionService.reorderSections(pageId, requests);
+        return ResponseEntity.ok("Reordered successfully");
     }
 
     // =========================================

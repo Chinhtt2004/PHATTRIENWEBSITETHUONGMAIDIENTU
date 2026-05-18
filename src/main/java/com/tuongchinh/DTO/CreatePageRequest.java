@@ -10,4 +10,6 @@ public class CreatePageRequest {
     private String name;
 
     private String slug;
+    
+    private Boolean active;
 }

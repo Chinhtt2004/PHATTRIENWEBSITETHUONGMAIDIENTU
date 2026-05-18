@@ -1,88 +1,24 @@
 package com.tuongchinh.Controller;
 
-import com.tuongchinh.DTO.CreatePageRequest;
+import com.tuongchinh.DTO.PageResponseDTO;
 import com.tuongchinh.Service.PageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/")
+@RequestMapping("/api/public/pages")
 @RequiredArgsConstructor
 public class PageController {
 
     private final PageService pageService;
 
-    // =========================
-    // CREATE
-    // =========================
-
-    @PostMapping("admin/page")
-    public ResponseEntity<?> create(
-            @RequestBody CreatePageRequest req
-    ) {
-
-        return ResponseEntity.ok(
-                pageService.create(req)
-        );
-    }
-
-    @GetMapping("public/page")
-    public ResponseEntity<?> getAll() {
-
-        return ResponseEntity.ok(
-                pageService.getAll()
-        );
-    }
-
-    // =========================
-    // GET DETAIL
-    // =========================
-
-    @GetMapping("public/page/{slug}")
-    public ResponseEntity<?> getPage(
-            @PathVariable String slug
-    ) {
-
-        return ResponseEntity.ok(
-                pageService.getPage(slug)
-        );
-    }
-
-    // =========================
-    // UPDATE
-    // =========================
-
-    @PutMapping("admin/page/{id}")
-    public ResponseEntity<?> update(
-            @PathVariable Long id,
-            @RequestBody CreatePageRequest req
-    ) {
-
-        return ResponseEntity.ok(
-                pageService.update(id, req)
-        );
-    }
-
-    // =========================
-    // DELETE
-    // =========================
-
-    @DeleteMapping("admin/page/{id}")
-    public ResponseEntity<?> delete(
-            @PathVariable Long id
-    ) {
-
-        pageService.delete(id);
-
-        return ResponseEntity.ok("Deleted");
-    }
-    @GetMapping("pubic/{slug}")
-    public ResponseEntity<?> getdetailPage(
-            @PathVariable String slug
-    ) {
-        return ResponseEntity.ok(
-                pageService.getPageBySlug(slug)
-        );
+    @GetMapping("/{slug}")
+    public ResponseEntity<PageResponseDTO> getPageLayout(@PathVariable String slug) {
+        PageResponseDTO responseDTO = pageService.getPageLayoutBySlug(slug);
+        return ResponseEntity.ok(responseDTO);
     }
 }

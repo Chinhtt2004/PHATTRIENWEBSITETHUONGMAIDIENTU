@@ -2,12 +2,14 @@ package com.tuongchinh.Service;
 
 import com.tuongchinh.DTO.CreatePageSectionRequest;
 import com.tuongchinh.DTO.PageSectionResponse;
+import com.tuongchinh.DTO.ReorderSectionRequest;
 import com.tuongchinh.Entity.Page;
 import com.tuongchinh.Entity.PageSection;
 import com.tuongchinh.Repository.PageRepository;
 import com.tuongchinh.Repository.PageSectionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.cache.CacheManager;
 
 import java.util.List;
 
@@ -18,6 +20,14 @@ public class PageSectionService {
     private final PageRepository pageRepository;
 
     private final PageSectionRepository pageSectionRepository;
+
+    private final CacheManager cacheManager;
+
+    private void evictPageCache(String slug) {
+        if (cacheManager.getCache("page_layouts") != null) {
+            cacheManager.getCache("page_layouts").evict(slug);
+        }
+    }
 
     // =========================================
     // CREATE
@@ -47,9 +57,11 @@ public class PageSectionService {
 
         section.setConfigJson(req.getConfigJson());
 
-        section.setActive(true);
+        section.setActive(req.getActive() != null ? req.getActive() : true);
 
         section = pageSectionRepository.save(section);
+
+        evictPageCache(page.getSlug());
 
         return mapToResponse(section);
     }
@@ -71,8 +83,8 @@ public class PageSectionService {
                         ));
 
         return pageSectionRepository
-                .findByPageAndActiveTrueOrderByPositionAsc(
-                        page
+                .findByPageIdOrderByPositionAsc(
+                        pageId
                 )
                 .stream()
                 .map(this::mapToResponse)
@@ -130,8 +142,14 @@ public class PageSectionService {
         section.setPosition(req.getPosition());
 
         section.setConfigJson(req.getConfigJson());
+        
+        if (req.getActive() != null) {
+            section.setActive(req.getActive());
+        }
 
         section = pageSectionRepository.save(section);
+
+        evictPageCache(page.getSlug());
 
         return mapToResponse(section);
     }
@@ -150,6 +168,28 @@ public class PageSectionService {
                                 ));
 
         pageSectionRepository.delete(section);
+
+        evictPageCache(section.getPage().getSlug());
+    }
+
+    // =========================================
+    // REORDER
+    // =========================================
+
+    public void reorderSections(Long pageId, List<ReorderSectionRequest> requests) {
+        Page page = pageRepository.findById(pageId)
+                .orElseThrow(() -> new RuntimeException("Page not found"));
+
+        for (ReorderSectionRequest req : requests) {
+            PageSection section = pageSectionRepository.findById(req.getId())
+                    .orElse(null);
+            if (section != null && section.getPage().getId().equals(pageId)) {
+                section.setPosition(req.getPosition());
+                pageSectionRepository.save(section);
+            }
+        }
+        
+        evictPageCache(page.getSlug());
     }
 
     // =========================================
