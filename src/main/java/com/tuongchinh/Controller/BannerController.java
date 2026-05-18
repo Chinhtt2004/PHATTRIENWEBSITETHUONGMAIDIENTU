@@ -18,14 +18,14 @@ public class BannerController {
                 bannerService.create(req)
         );
     }
-    @GetMapping("public/banner")
+    @GetMapping("admin/banner/all")
     public ResponseEntity<?> getAll() {
 
         return ResponseEntity.ok(
                 bannerService.getAll()
         );
     }
-    @PutMapping("admin/banner/{id}")
+    @PutMapping("admin/banner/update/{id}")
     public ResponseEntity<?> update(
             @PathVariable Long id,
             @RequestBody CreateBannerRequest req
@@ -43,5 +43,11 @@ public class BannerController {
         bannerService.delete(id);
 
         return ResponseEntity.ok("Deleted");
+    }
+    @PutMapping("admin/banner/set_active/{id}")
+    public ResponseEntity<?> setActive(@PathVariable Long id){
+        return ResponseEntity.ok(
+                bannerService.setActive(id)
+        );
     }
 }

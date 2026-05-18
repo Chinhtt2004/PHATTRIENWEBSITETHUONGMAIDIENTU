@@ -7,6 +7,7 @@ import com.tuongchinh.Repository.BannerRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -31,9 +32,13 @@ public class BannerService {
     // GET ALL
     // =========================================
 
-    public List<Banner> getAll() {
-
-        return bannerRepository.findAll();
+    public List<BannerResponse> getAll() {
+        List<BannerResponse> responses=new ArrayList<>();
+        List<Banner> banners = bannerRepository.findAll();
+        for (Banner x: banners){
+            responses.add(MaptoReponse(x));
+        }
+        return responses;
     }
 
     // =========================================
@@ -75,7 +80,13 @@ public class BannerService {
 
         bannerRepository.delete(banner);
     }
-
+    public BannerResponse setActive(Long id){
+        Banner banner = bannerRepository.findById(id).orElseThrow(()->new RuntimeException("Banner not found"));
+        if(banner.getActive()==true) banner.setActive(false);
+        else banner.setActive(true);
+        bannerRepository.save(banner);
+        return MaptoReponse(banner);
+    }
     private BannerResponse MaptoReponse(Banner banner){
         BannerResponse bannerResponse= new BannerResponse();
         bannerResponse.setId(banner.getId());
