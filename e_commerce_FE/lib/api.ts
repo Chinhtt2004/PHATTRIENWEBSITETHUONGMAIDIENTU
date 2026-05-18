@@ -1260,3 +1260,122 @@ export async function triggerWebhook(orders: any[]): Promise<any> {
   return ensureOk(res);
 }
 
+// --- Flash Sale ---
+
+export interface FlashSaleProductResponse {
+  id: number;
+  variantId: number;
+  productName: string;
+  originalPrice: number;
+  salePrice: number;
+  quantity: number;
+  soldQuantity: number;
+  maxPerUser: number;
+  image: string;
+}
+
+export interface FlashSaleResponse {
+  id: number;
+  name: string;
+  startTime: string;
+  endTime: string;
+  isActive: boolean;
+  products: FlashSaleProductResponse[];
+}
+
+export async function fetchActiveFlashSales(): Promise<FlashSaleResponse[]> {
+  const res = await fetch(`${API_BASE_URL}/api/public/flashsale/active`, { cache: "no-store" });
+  return ensureOk(res);
+}
+
+export async function createFlashSale(data: { name: string; startTime: string; endTime: string }): Promise<any> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/flashsale/create`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+    credentials: "include",
+  });
+  return ensureOk(res);
+}
+
+export async function addFlashSaleVariant(flashSaleId: number, data: { variantId: number; salePrice: number; quantity: number; maxPerUser: number }): Promise<any> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/flashsale/${flashSaleId}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+    credentials: "include",
+  });
+  
+  if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(errText || res.statusText);
+  }
+  return res.text();
+}
+
+export async function disableFlashSale(flashSaleId: number): Promise<any> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/flashsale/${flashSaleId}`, {
+    method: "PUT",
+    credentials: "include",
+  });
+  
+  if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(errText || res.statusText);
+  }
+  return res.text();
+}
+
+// --- Excel Import/Export ---
+
+export async function adminExportProductsExcel(): Promise<Blob> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/product/export`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error("Không thể xuất file Excel");
+  }
+  return res.blob();
+}
+
+export async function adminImportProductsExcel(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch(`${API_BASE_URL}/api/admin/product/import`, {
+    method: "POST",
+    body: formData,
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Lỗi khi nhập dữ liệu");
+  }
+  return res.text();
+}
+
+export async function adminExportOrdersExcel(): Promise<Blob> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/orders/export`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error("Không thể xuất file báo cáo đơn hàng");
+  }
+  return res.blob();
+}
+
+export async function adminExportSummaryReportExcel(): Promise<Blob> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/reports/export`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    throw new Error("Không thể xuất file báo cáo tổng quan");
+  }
+  return res.blob();
+}
+
+

@@ -5,30 +5,33 @@ import Image from "next/image";
 import Link from "next/link";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
-import { ProductCard } from "@/components/product/product-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { products, formatPrice } from "@/lib/data";
-import { fetchFlashSale } from "@/lib/api";
-import { type Product, getDiscountPercentage } from "@/lib/data";
+import { fetchActiveFlashSales, type FlashSaleResponse, type FlashSaleProductResponse } from "@/lib/api";
+import { formatPrice } from "@/lib/data";
 import {
   Clock,
   Zap,
   Gift,
   Percent,
-  ArrowRight,
-  Sparkles,
-  Tag,
   Flame,
   Copy,
   ChevronRight,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
+function getSoldLabel(sold: number, total: number) {
+  const percent = total > 0 ? (sold / total) * 100 : 0;
+  if (percent >= 100) return "ĐÃ BÁN HẾT";
+  if (percent >= 80) return `CHỈ CÒN ${Math.max(total - sold, 0)}`;
+  if (sold >= 5) return `Đã bán ${sold}`;
+  return "ĐANG BÁN CHẠY";
+}
+
 export default function SalePage() {
-  const [flashProducts, setFlashProducts] = useState<Product[]>([]);
+  const [activeCampaign, setActiveCampaign] = useState<FlashSaleResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState({ hours: 0, minutes: 0, seconds: 0 });
   const [colonVisible, setColonVisible] = useState(true);
@@ -37,10 +40,22 @@ export default function SalePage() {
   useEffect(() => {
     async function loadDeals() {
       try {
-        const data = await fetchFlashSale(20);
-        setFlashProducts(data);
+        const data = await fetchActiveFlashSales();
+        const now = new Date();
+        const validCampaigns = data.filter(c => c.isActive && new Date(c.endTime) > now && new Date(c.startTime) <= now);
+        
+        if (validCampaigns.length > 0) {
+          validCampaigns.sort((a, b) => new Date(a.endTime).getTime() - new Date(b.endTime).getTime());
+          setActiveCampaign(validCampaigns[0]);
+        } else {
+            const upcoming = data.filter(c => c.isActive && new Date(c.startTime) > now);
+            if (upcoming.length > 0) {
+                upcoming.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+                setActiveCampaign(upcoming[0]);
+            }
+        }
       } catch (err) {
-        console.error("Failed to load deals:", err);
+        console.error("Failed to load flash sales:", err);
       } finally {
         setIsLoading(false);
       }
@@ -50,11 +65,14 @@ export default function SalePage() {
 
   // Countdown logic
   useEffect(() => {
+    if (!activeCampaign) return;
     function calcTimeLeft() {
       const now = new Date();
-      const endOfDay = new Date(now);
-      endOfDay.setHours(23, 59, 59, 999);
-      const diff = endOfDay.getTime() - now.getTime();
+      const end = new Date(activeCampaign!.endTime);
+      const start = new Date(activeCampaign!.startTime);
+      const targetTime = now < start ? start : end;
+      
+      const diff = targetTime.getTime() - now.getTime();
       if (diff <= 0) return { hours: 0, minutes: 0, seconds: 0 };
       return {
         hours: Math.floor(diff / (1000 * 60 * 60)),
@@ -62,15 +80,17 @@ export default function SalePage() {
         seconds: Math.floor((diff / 1000) % 60),
       };
     }
+    
     setTimeLeft(calcTimeLeft());
     const timer = setInterval(() => {
       setTimeLeft(calcTimeLeft());
       setColonVisible((v) => !v);
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [activeCampaign]);
 
   const pad = (n: number) => n.toString().padStart(2, "0");
+  const isUpcoming = activeCampaign ? new Date() < new Date(activeCampaign.startTime) : false;
 
   const voucherCodes = [
     {
@@ -121,34 +141,38 @@ export default function SalePage() {
             <div className="max-w-3xl mx-auto text-center text-primary-foreground">
               <span className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-5 py-2 rounded-full text-xs font-black tracking-widest uppercase mb-8 border border-white/20 shadow-lg animate-fade-in">
                 <Flame className="h-4 w-4 text-orange-300" />
-                Mega Sale Event
+                {activeCampaign?.name || "Mega Sale Event"}
               </span>
               <h1 className="font-extrabold text-5xl md:text-7xl lg:text-8xl mb-6 tracking-tighter drop-shadow-2xl animate-fade-up">
-                MEGA <span className="text-white">SALE</span>
+                FLASH <span className="text-white">SALE</span>
               </h1>
               <p className="text-lg md:text-2xl mb-10 text-white/90 font-medium tracking-tight animate-fade-up delay-100">
-                Khám phá hàng nghìn mỹ phẩm chính hãng với mức giá <span className="underline decoration-pink-300 underline-offset-4 decoration-2">ưu đãi đến 50%</span>.
+                Săn ngay ngàn ưu đãi với mức giá <span className="underline decoration-pink-300 underline-offset-4 decoration-2">giảm sốc chưa từng có</span>.
               </p>
 
               {/* Massive Countdown */}
-              <div className="inline-flex items-center gap-3 p-6 rounded-3xl bg-white/15 backdrop-blur-lg border border-white/20 shadow-2xl animate-fade-up delay-200">
-                <div className="flex flex-col items-center gap-2">
-                  <div className="flex items-center gap-2">
-                    <div className="bg-white/30 w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center border border-white/20 shadow-inner">
-                      <span className="text-2xl md:text-3xl font-black">{pad(timeLeft.hours)}</span>
+              {activeCampaign && (
+                <div className="inline-flex items-center gap-3 p-6 rounded-3xl bg-white/15 backdrop-blur-lg border border-white/20 shadow-2xl animate-fade-up delay-200">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="bg-white/30 w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center border border-white/20 shadow-inner">
+                        <span className="text-2xl md:text-3xl font-black">{pad(timeLeft.hours)}</span>
+                      </div>
+                      <span className={cn("text-2xl font-bold transition-opacity", !colonVisible && "opacity-30")}>:</span>
+                      <div className="bg-white/30 w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center border border-white/20 shadow-inner">
+                        <span className="text-2xl md:text-3xl font-black">{pad(timeLeft.minutes)}</span>
+                      </div>
+                      <span className={cn("text-2xl font-bold transition-opacity", !colonVisible && "opacity-30")}>:</span>
+                      <div className="bg-white/30 w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center border border-white/20 shadow-inner">
+                        <span className="text-2xl md:text-3xl font-black">{pad(timeLeft.seconds)}</span>
+                      </div>
                     </div>
-                    <span className={cn("text-2xl font-bold transition-opacity", !colonVisible && "opacity-30")}>:</span>
-                    <div className="bg-white/30 w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center border border-white/20 shadow-inner">
-                      <span className="text-2xl md:text-3xl font-black">{pad(timeLeft.minutes)}</span>
-                    </div>
-                    <span className={cn("text-2xl font-bold transition-opacity", !colonVisible && "opacity-30")}>:</span>
-                    <div className="bg-white/30 w-16 h-16 md:w-20 md:h-20 rounded-2xl flex items-center justify-center border border-white/20 shadow-inner">
-                      <span className="text-2xl md:text-3xl font-black">{pad(timeLeft.seconds)}</span>
-                    </div>
+                    <span className="text-[10px] uppercase font-black tracking-[0.3em] opacity-80 mt-1">
+                      {isUpcoming ? "Bắt đầu sau" : "Kết thúc sau"}
+                    </span>
                   </div>
-                  <span className="text-[10px] uppercase font-black tracking-[0.3em] opacity-80">Kết thúc sau</span>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </section>
@@ -168,7 +192,6 @@ export default function SalePage() {
                 <div key={voucher.code} className="relative group overflow-hidden">
                   {/* The Ticket Card */}
                   <div className="relative bg-card border border-border rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300">
-                    {/* Ticket Circle Cutouts */}
                     <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-background border-r border-border" />
                     <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-background border-l border-border" />
 
@@ -216,57 +239,125 @@ export default function SalePage() {
                 </div>
                 <p className="text-muted-foreground text-lg">Săn hot deal chớp nhoáng với giá cực hời</p>
               </div>
-              <div className="flex items-center gap-3 px-6 py-3 rounded-2xl bg-white shadow-sm border border-border">
-                <Clock className="h-5 w-5 text-primary" />
-                <span className="font-bold text-sm">Kết thúc trong:</span>
-                <span className="font-mono font-black text-primary">{pad(timeLeft.hours)}:{pad(timeLeft.minutes)}:{pad(timeLeft.seconds)}</span>
-              </div>
+              
+              {activeCampaign && (
+                <div className="flex items-center gap-3 px-6 py-3 rounded-2xl bg-white shadow-sm border border-border">
+                  <Clock className="h-5 w-5 text-primary" />
+                  <span className="font-bold text-sm">{isUpcoming ? "Bắt đầu trong:" : "Kết thúc trong:"}</span>
+                  <span className="font-mono font-black text-primary">{pad(timeLeft.hours)}:{pad(timeLeft.minutes)}:{pad(timeLeft.seconds)}</span>
+                </div>
+              )}
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 lg:gap-6">
               {isLoading ? (
                 Array.from({ length: 10 }).map((_, i) => (
-                  <div key={i} className="animate-pulse flex flex-col gap-3">
-                    <div className="aspect-square bg-muted rounded-2xl" />
+                  <div key={i} className="animate-pulse flex flex-col gap-3 p-4 bg-card rounded-2xl">
+                    <div className="aspect-square bg-muted rounded-xl" />
                     <div className="h-4 bg-muted rounded w-3/4" />
                     <div className="h-8 bg-muted rounded-full w-full" />
                   </div>
                 ))
-              ) : flashProducts.length === 0 ? (
-                <div className="col-span-full py-20 text-center text-muted-foreground">
-                  Chương trình đang chuẩn bị...
+              ) : !activeCampaign || activeCampaign.products.length === 0 ? (
+                <div className="col-span-full py-20 text-center text-muted-foreground bg-white rounded-3xl border border-border shadow-sm flex flex-col items-center justify-center gap-4">
+                  <Zap className="h-12 w-12 text-muted" />
+                  <h3 className="text-2xl font-bold">Chưa có sự kiện Flash Sale</h3>
+                  <p>Vui lòng quay lại sau nhé!</p>
                 </div>
               ) : (
-                flashProducts.map((product) => {
-                  const sold = product.totalSold || 0;
-                  const stock = product.inventory?.quantity || 50;
-                  const total = sold + stock;
+                activeCampaign.products.map((product) => {
+                  const discount = product.originalPrice > 0 ? Math.round((1 - product.salePrice / product.originalPrice) * 100) : 0;
+                  const sold = product.soldQuantity || 0;
+                  const total = product.quantity || 1;
                   const soldPercent = Math.min(Math.round((sold / total) * 100), 100);
-                  const isAlmostGone = soldPercent >= 80;
+                  const isAlmostGone = soldPercent >= 80 && soldPercent < 100;
+                  const isSoldOut = soldPercent >= 100;
+                  const label = getSoldLabel(sold, total);
 
                   return (
-                    <div key={product.id} className="relative group">
-                      <ProductCard product={product} />
-                      {/* Special Flash Sale Overlay */}
-                      <div className="mt-4 px-2">
-                        <div className="relative h-6 rounded-full bg-muted overflow-hidden border border-border shadow-inner">
-                          <div
-                            className={cn(
-                              "absolute inset-y-0 left-0 rounded-full transition-all duration-1000 ease-out flex items-center justify-center",
-                              isAlmostGone
-                                ? "bg-gradient-to-r from-rose-500 via-primary to-rose-600 animate-pulse"
-                                : "bg-gradient-to-r from-orange-400 to-rose-500"
-                            )}
-                            style={{ width: `${Math.max(soldPercent, 5)}%` }}
-                          >
-                            <div className="absolute inset-0 opacity-20 bg-[linear-gradient(45deg,rgba(255,255,255,0.2)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.2)_50%,rgba(255,255,255,0.2)_75%,transparent_75%,transparent)] bg-[length:1rem_1rem] animate-[progress-pulse_1s_linear_infinite]" />
+                    <Link
+                      key={product.id}
+                      href={`/products?keyword=${encodeURIComponent(product.productName)}`}
+                      className={`group/card relative flex flex-col bg-card rounded-2xl border border-border/50 overflow-hidden hover:border-primary/30 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 ${isSoldOut ? 'opacity-60 grayscale-[50%] cursor-not-allowed' : ''}`}
+                      onClick={(e) => isSoldOut && e.preventDefault()}
+                    >
+                      {/* Image + discount badge */}
+                      <div className="relative aspect-square overflow-hidden bg-muted/20">
+                        <Image
+                          src={product.image || "/placeholder-product.png"}
+                          alt={product.productName}
+                          fill
+                          className="object-cover group-hover/card:scale-110 transition-transform duration-500"
+                        />
+                        {/* Discount badge */}
+                        {discount > 0 && !isSoldOut && (
+                          <div className="absolute top-2 right-2 flex flex-col items-center">
+                            <div className="relative">
+                              <div className="absolute inset-0 bg-rose-500 rounded-full animate-ping opacity-25" />
+                              <div className="relative bg-gradient-to-br from-rose-500 to-primary text-primary-foreground text-xs font-black px-2.5 py-1 rounded-full shadow-lg border border-white/20">
+                                -{discount}%
+                              </div>
+                            </div>
                           </div>
-                          <span className="absolute inset-0 flex items-center justify-center text-[10px] font-black text-white mix-blend-difference uppercase tracking-tight">
-                            {isAlmostGone ? "⚡ SẮP HÊT" : `Đã bán ${sold}`}
-                          </span>
+                        )}
+                        
+                        {isSoldOut && (
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10 backdrop-blur-[2px]">
+                                <div className="bg-black/70 text-white font-bold text-sm px-4 py-2 border-2 border-white/20 rotate-[-15deg] shadow-2xl rounded-sm tracking-widest">
+                                    ĐÃ BÁN HẾT
+                                </div>
+                            </div>
+                        )}
+                      </div>
+
+                      {/* Info */}
+                      <div className="p-4 flex flex-col flex-grow">
+                        <div className="font-bold text-sm line-clamp-2 mb-2 group-hover/card:text-primary transition-colors min-h-[2.5rem]">
+                          {product.productName}
+                        </div>
+                        
+                        {product.maxPerUser > 0 && (
+                          <div className="text-[10px] text-muted-foreground font-medium mb-2 border border-muted-foreground/30 px-2 py-0.5 rounded w-max">
+                              Tối đa {product.maxPerUser} SP / khách
+                          </div>
+                        )}
+
+                        <div className="mt-auto">
+                          <div className="flex flex-col mb-3">
+                            <span className="text-primary font-black text-lg">
+                              {formatPrice(product.salePrice)}
+                            </span>
+                            {product.originalPrice > product.salePrice && (
+                              <span className="text-muted-foreground text-xs line-through opacity-70">
+                                {formatPrice(product.originalPrice)}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Progress bar */}
+                          <div className="relative h-6 rounded-full bg-muted overflow-hidden border border-border shadow-inner">
+                            <div
+                              className={cn(
+                                "absolute inset-y-0 left-0 rounded-full transition-all duration-1000 ease-out flex items-center justify-center",
+                                isSoldOut ? "bg-gray-400" :
+                                isAlmostGone
+                                  ? "bg-gradient-to-r from-rose-500 via-primary to-rose-600 animate-pulse"
+                                  : "bg-gradient-to-r from-orange-400 to-rose-500"
+                              )}
+                              style={{ width: `${Math.max(soldPercent, 5)}%` }}
+                            >
+                              {/* Animated Stripes */}
+                              {!isSoldOut && (
+                                <div className="absolute inset-0 opacity-20 bg-[linear-gradient(45deg,rgba(255,255,255,0.2)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.2)_50%,rgba(255,255,255,0.2)_75%,transparent_75%,transparent)] bg-[length:1rem_1rem] animate-[progress-pulse_1s_linear_infinite]" />
+                              )}
+                            </div>
+                            <span className="absolute inset-0 flex items-center justify-center text-[10px] font-black text-white mix-blend-difference uppercase tracking-tight">
+                              {isAlmostGone ? "⚡ SẮP HÊT" : label}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    </Link>
                   );
                 })
               )}
@@ -278,7 +369,6 @@ export default function SalePage() {
         <section className="py-20">
           <div className="container mx-auto px-4">
             <div className="grid md:grid-cols-2 gap-10">
-              {/* Skincare Banner */}
               <div className="relative group rounded-[2rem] overflow-hidden min-h-[350px] flex px-10 py-12">
                 <div className="absolute inset-0 bg-gradient-to-br from-primary-light/40 to-pink-100/50 -z-10" />
                 <div className="absolute top-0 right-0 w-1/2 h-full -z-10">
@@ -299,7 +389,6 @@ export default function SalePage() {
                 </div>
               </div>
 
-              {/* Makeup Banner */}
               <div className="relative group rounded-[2rem] overflow-hidden min-h-[350px] flex px-10 py-12">
                 <div className="absolute inset-0 bg-gradient-to-br from-secondary/30 to-orange-100/40 -z-10" />
                 <div className="absolute top-0 right-0 w-1/2 h-full -z-10">
@@ -323,36 +412,13 @@ export default function SalePage() {
           </div>
         </section>
 
-        {/* Full Sale Inventory Section (Paginated potentially, but shown as featured) */}
-        <section className="py-20 border-t border-border/50">
-          <div className="container mx-auto px-4">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
-              <div>
-                <h2 className="text-3xl md:text-4xl font-extrabold tracking-tighter">TẤT CẢ ƯU ĐÃI</h2>
-                <p className="text-muted-foreground text-lg">Đừng bỏ lỡ hàng trăm sản phẩm đang sale khác</p>
-              </div>
-              <Button asChild variant="ghost" className="hover:bg-primary/5 hover:text-primary rounded-xl">
-                <Link href="/products?sale=true" className="flex items-center gap-2">
-                  Xem tất cả kho hàng <ChevronRight className="h-5 w-5" />
-                </Link>
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-              {products.filter(p => (p.compareAtPrice || 0) > p.price).slice(0, 12).map((product, idx) => (
-                <ProductCard key={product.id} product={product} priority={idx < 4} />
-              ))}
-            </div>
-          </div>
-        </section>
-
         {/* Newsletter / CTA */}
         <section className="py-24 bg-gradient-to-br from-primary via-rose-500 to-primary-hover relative overflow-hidden">
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxjaXJjbGUgZmlsbD0iI2ZmZiIgb3BhY2l0eT0iLjA1IiBjeD0iMjAiIGN5PSIyMCIgcj0iMiIvPjwvZz48L3N2Zz4=')] opacity-20" />
           <div className="container mx-auto px-4 relative z-10 text-center text-primary-foreground">
             <div className="max-w-2xl mx-auto">
               <Gift className="h-16 w-16 mx-auto mb-6 opacity-80 animate-bounce" style={{ animationDuration: '3s' }} />
-              <h2 className="text-4xl md:text-5xl font-extrabold mb-6 tracking-tighter">ĐĂNG KÝ NHẬN MEA DEALS</h2>
+              <h2 className="text-4xl md:text-5xl font-extrabold mb-6 tracking-tighter">ĐĂNG KÝ NHẬN MEGA DEALS</h2>
               <p className="text-xl text-primary-foreground/80 mb-10 leading-relaxed font-medium">Bạn sẽ không bao giờ bỏ lỡ các chương trình giảm giá chớp nhoáng và bộ sưu tập phiên bản giới hạn.</p>
 
               <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
@@ -361,7 +427,7 @@ export default function SalePage() {
                   placeholder="Nhập email của bạn..."
                   className="flex-1 px-6 py-4 rounded-2xl bg-white/10 border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 backdrop-blur-md transition-all"
                 />
-                <Button size="lg" variant="secondary" className="px-10 py-7 text-lg rounded-2xl shadow-2xl hover:scale-105 transition-transform">
+                <Button size="lg" variant="secondary" className="px-10 py-7 text-lg rounded-2xl shadow-2xl hover:scale-105 transition-transform text-black bg-white">
                   Đăng ký ngay
                 </Button>
               </div>

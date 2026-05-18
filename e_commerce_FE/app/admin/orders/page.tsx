@@ -32,7 +32,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { adminFetchAllOrders, adminUpdateOrderStatus, type OrderResponse } from "@/lib/api";
+import { adminFetchAllOrders, adminUpdateOrderStatus, adminExportOrdersExcel, type OrderResponse } from "@/lib/api";
 import { toast } from "sonner";
 
 const statusMap: Record<
@@ -61,6 +61,27 @@ export default function AdminOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportOrders = async () => {
+    try {
+      setIsExporting(true);
+      const blob = await adminExportOrdersExcel();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Danh_sach_don_hang_${new Date().toISOString().split("T")[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      toast.success("Xuất báo cáo đơn hàng thành công!");
+    } catch (error) {
+      toast.error("Lỗi khi xuất file Excel đơn hàng");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   useEffect(() => {
     loadOrders();
@@ -116,9 +137,18 @@ export default function AdminOrdersPage() {
             Quản lý và xử lý đơn hàng của khách từ hệ thống
           </p>
         </div>
-        <Button variant="outline">
-          <Download className="mr-2 h-4 w-4" />
-          Xuất báo cáo
+        <Button variant="outline" onClick={handleExportOrders} disabled={isExporting}>
+          {isExporting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Đang xuất...
+            </>
+          ) : (
+            <>
+              <Download className="mr-2 h-4 w-4" />
+              Xuất báo cáo
+            </>
+          )}
         </Button>
       </div>
 

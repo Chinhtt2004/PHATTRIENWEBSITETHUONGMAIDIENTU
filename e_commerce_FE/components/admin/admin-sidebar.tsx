@@ -27,6 +27,7 @@ const navigation = [
   { name: "Đơn hàng", href: "/admin/orders", icon: ShoppingCart },
   { name: "Khách hàng", href: "/admin/customers", icon: Users },
   { name: "Voucher", href: "/admin/vouchers", icon: Tag },
+  { name: "Flash Sale", href: "/admin/promotions/flash-sale", icon: Sparkles },
   { name: "Báo cáo", href: "/admin/reports", icon: BarChart3 },
   { name: "Cài đặt", href: "/admin/settings", icon: Settings },
 ];

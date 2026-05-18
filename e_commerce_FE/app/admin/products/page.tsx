@@ -12,6 +12,8 @@ import {
   Eye,
   Filter,
   Loader2,
+  Download,
+  Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,7 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { fetchProducts, fetchCategories, adminDeleteProduct } from "@/lib/api";
+import { fetchProductsPage, fetchCategories, adminDeleteProduct, adminExportProductsExcel, adminImportProductsExcel } from "@/lib/api";
 import type { Product, Category } from "@/lib/data";
 import { toast } from "sonner";
 import {
@@ -67,29 +69,83 @@ export default function AdminProductsPage() {
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const pageSize = 10;
+
+  // Export/Import states & handlers
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const blob = await adminExportProductsExcel();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Danh_sach_san_pham_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+      toast.success("Xuất file Excel thành công!");
+    } catch (error) {
+      toast.error("Không thể xuất file Excel");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    try {
+      const msg = await adminImportProductsExcel(file);
+      toast.success(msg || "Nhập file Excel thành công!");
+      loadData();
+    } catch (error: any) {
+      toast.error(error.message || "Nhập file Excel thất bại");
+    } finally {
+      setIsImporting(false);
+      e.target.value = "";
+    }
+  };
+
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const filters: any = { size: 100 };
+      const filters: any = { page: currentPage, size: pageSize };
       if (searchQuery) filters.keyword = searchQuery;
-      if (categoryFilter !== "all") filters.categoryId = Number(categoryFilter);
+      if (categoryFilter !== "all") filters.categoryIds = [Number(categoryFilter)];
 
-      const [productsData, categoriesData] = await Promise.all([
-        fetchProducts(filters),
+      const [productsPage, categoriesData] = await Promise.all([
+        fetchProductsPage(filters),
         fetchCategories(),
       ]);
-      setProducts(productsData);
+      setProducts(productsPage.content);
+      setTotalPages(productsPage.totalPages);
+      setTotalElements(productsPage.totalElements);
       setCategories(categoriesData);
     } catch (error) {
       toast.error("Không thể tải dữ liệu sản phẩm");
     } finally {
       setIsLoading(false);
     }
-  }, [searchQuery, categoryFilter]);
+  }, [searchQuery, categoryFilter, currentPage]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Reset page when filter changes
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [searchQuery, categoryFilter]);
 
   const handleDelete = async (id: string) => {
     try {
@@ -127,12 +183,49 @@ export default function AdminProductsPage() {
             Quản lý tất cả sản phẩm trong cửa hàng
           </p>
         </div>
-        <Button className="bg-primary hover:bg-primary-hover text-primary-foreground" asChild>
-          <Link href="/admin/products/new">
-            <Plus className="mr-2 h-4 w-4" />
-            Thêm sản phẩm
-          </Link>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Hidden Import Input */}
+          <label className="cursor-pointer">
+            <input
+              type="file"
+              accept=".xlsx, .xls"
+              className="hidden"
+              onChange={handleImport}
+              disabled={isImporting}
+            />
+            <Button variant="outline" className="flex items-center gap-2" asChild disabled={isImporting}>
+              <span>
+                {isImporting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4" />
+                )}
+                Nhập Excel
+              </span>
+            </Button>
+          </label>
+
+          <Button
+            variant="outline"
+            className="flex items-center gap-2"
+            onClick={handleExport}
+            disabled={isExporting}
+          >
+            {isExporting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+            Xuất Excel
+          </Button>
+
+          <Button className="bg-primary hover:bg-primary-hover text-primary-foreground" asChild>
+            <Link href="/admin/products/new">
+              <Plus className="mr-2 h-4 w-4" />
+              Thêm sản phẩm
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -177,7 +270,7 @@ export default function AdminProductsPage() {
                   <span className="text-sm">
                     Đã chọn {selectedProducts.length} sản phẩm
                   </span>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting}>
                     Xuất Excel
                   </Button>
                   <Button
@@ -324,13 +417,26 @@ export default function AdminProductsPage() {
 
               <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
                 <span>
-                  Đang hiển thị {products.length} sản phẩm
+                  Hiển thị {totalElements === 0 ? 0 : currentPage * pageSize + 1} - {Math.min((currentPage + 1) * pageSize, totalElements)} trên tổng số {totalElements} sản phẩm
                 </span>
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" disabled>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage === 0}
+                    onClick={() => setCurrentPage(prev => prev - 1)}
+                  >
                     Trước
                   </Button>
-                  <Button variant="outline" size="sm" disabled>
+                  <span className="text-sm font-medium text-foreground mx-2">
+                    Trang {currentPage + 1} / {totalPages || 1}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={currentPage >= totalPages - 1}
+                    onClick={() => setCurrentPage(prev => prev + 1)}
+                  >
                     Sau
                   </Button>
                 </div>

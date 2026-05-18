@@ -19,6 +19,7 @@ import java.util.List;
 public class ProductController {
 
     private final ProductService productService;
+    private final com.tuongchinh.Service.ProductImportExportService productImportExportService;
 
     @GetMapping("/public/product")
     public ResponseEntity<Page<ProductResponse>> searchProducts(
@@ -113,5 +114,32 @@ public class ProductController {
     public ResponseEntity<List<ProductResponse>> getFlashSale(
             @RequestParam(defaultValue = "10") int limit) {
         return ResponseEntity.ok(productService.getFlashSale(limit));
+    }
+
+    // ADMIN: Export sản phẩm ra file Excel
+    @GetMapping("/admin/product/export")
+    public ResponseEntity<Void> exportProducts(jakarta.servlet.http.HttpServletResponse response) {
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename=products.xlsx");
+        try {
+            productImportExportService.exportToExcel(response.getOutputStream());
+            response.flushBuffer();
+            return ResponseEntity.ok().build();
+        } catch (java.io.IOException e) {
+            throw new RuntimeException("Không thể xuất file Excel", e);
+        }
+    }
+
+    // ADMIN: Import sản phẩm từ file Excel
+    @PostMapping(value = "/admin/product/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<String> importProducts(@RequestParam("file") MultipartFile file) {
+        try {
+            productImportExportService.importFromExcel(file.getInputStream());
+            return ResponseEntity.ok("Import sản phẩm thành công!");
+        } catch (java.io.IOException e) {
+            return ResponseEntity.badRequest().body("Lỗi khi đọc file Excel: " + e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Lỗi khi xử lý dữ liệu: " + e.getMessage());
+        }
     }
 }
