@@ -59,25 +59,25 @@ const milestones = [
 
 const team = [
   {
-    name: "Nguyễn Thanh Mai",
+    name: "Tướng Thị Chình",
     role: "Founder & CEO",
     image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=300&h=300&fit=crop",
     bio: "10+ năm kinh nghiệm trong ngành làm đẹp",
   },
   {
-    name: "Trần Minh Đức",
+    name: "Nguyễn Khắc Gia Hoàng",
     role: "COO",
     image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&h=300&fit=crop",
     bio: "Chuyên gia quản lý chuỗi cung ứng",
   },
   {
-    name: "Lê Phương Linh",
+    name: "Tướng Thị Chình",
     role: "Beauty Director",
     image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&h=300&fit=crop",
     bio: "Chuyên gia tư vấn làm đẹp quốc tế",
   },
   {
-    name: "Phạm Văn Hùng",
+    name: "Nguyễn Khắc Gia Hoàng",
     role: "CTO",
     image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop",
     bio: "Chuyên gia công nghệ thương mại điện tử",
@@ -136,7 +136,7 @@ export default function AboutPage() {
       <main className="flex-1">
         {/* Hero Section */}
         {(!dbPage || !!heroSec) && (
-          <section 
+          <section
             style={heroSec?.configJson?.backgroundColor ? { backgroundColor: heroSec.configJson.backgroundColor, backgroundImage: "none" } : {}}
             className="relative bg-gradient-to-br from-primary-light via-background to-secondary/30 py-12 lg:py-16"
           >
@@ -154,7 +154,7 @@ export default function AboutPage() {
                 </p>
               </div>
             </div>
-            
+
             {/* Decorative */}
             <div className="absolute top-20 left-10 w-32 h-32 bg-primary/5 rounded-full blur-3xl"></div>
             <div className="absolute bottom-10 right-10 w-40 h-40 bg-secondary/20 rounded-full blur-3xl"></div>
@@ -187,12 +187,12 @@ export default function AboutPage() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div>
                   <h2 className="font-serif text-3xl md:text-4xl font-bold mb-6">
                     {missionSec?.title || "Sứ Mệnh & Tầm Nhìn"}
                   </h2>
-                  
+
                   <div className="space-y-6">
                     <div className="flex gap-4">
                       <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -205,7 +205,7 @@ export default function AboutPage() {
                         </p>
                       </div>
                     </div>
-                    
+
                     <div className="flex gap-4">
                       <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
                         <Sparkles className="h-6 w-6 text-primary" />
@@ -278,9 +278,8 @@ export default function AboutPage() {
                     {milestones.map((milestone, index) => (
                       <div
                         key={index}
-                        className={`flex flex-col md:flex-row gap-4 md:gap-8 ${
-                          index % 2 === 0 ? "md:flex-row-reverse" : ""
-                        }`}
+                        className={`flex flex-col md:flex-row gap-4 md:gap-8 ${index % 2 === 0 ? "md:flex-row-reverse" : ""
+                          }`}
                       >
                         <div className={`flex-1 ${index % 2 === 0 ? "md:text-right" : ""}`}>
                           <div className="bg-card rounded-xl p-6 shadow-sm border">
@@ -289,12 +288,12 @@ export default function AboutPage() {
                             <p className="text-muted-foreground text-sm mt-2">{milestone.description}</p>
                           </div>
                         </div>
-                        
+
                         {/* Center dot */}
                         <div className="hidden md:flex items-center justify-center">
                           <div className="w-4 h-4 rounded-full bg-primary border-4 border-background shadow"></div>
                         </div>
-                        
+
                         <div className="flex-1"></div>
                       </div>
                     ))}
@@ -364,7 +363,7 @@ export default function AboutPage() {
                     </div>
                   ))}
                 </div>
-                
+
                 <div className="mt-8">
                   <Button asChild size="lg">
                     <Link href="/products">
@@ -374,7 +373,7 @@ export default function AboutPage() {
                   </Button>
                 </div>
               </div>
-              
+
               <div className="relative">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-4">

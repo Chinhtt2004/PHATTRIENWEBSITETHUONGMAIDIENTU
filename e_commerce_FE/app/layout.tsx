@@ -7,6 +7,7 @@ import { ChatbotWidget } from "@/components/chatbot/chatbot-widget"
 import { FallingFlowers } from "@/components/ui/falling-flowers"
 import { LetterIntro } from "@/components/ui/letter-intro"
 import { CartProvider } from "@/contexts/cart-context"
+import { MaintenanceGuard } from "@/components/dynamic/MaintenanceGuard"
 import './globals.css'
 
 const inter = Inter({
@@ -66,7 +67,9 @@ export default function RootLayout({
         <LetterIntro />
         <FallingFlowers />
         <CartProvider>
-          {children}
+          <MaintenanceGuard>
+            {children}
+          </MaintenanceGuard>
         </CartProvider>
         <Toaster />
         <ChatbotWidget />

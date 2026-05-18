@@ -1,8 +1,6 @@
 -- Script khởi tạo cấu trúc cây phân cấp Pages & Sections đồng bộ hoàn toàn với Storefront và database
+use ecommerce_cosmetics;
 
--- 1. XÓA DỮ LIỆU CŨ ĐỂ KHỞI TẠO MỚI (TRÁNH TRÙNG LẶP VỊ TRÍ)
-DELETE FROM page_sections;
-DELETE FROM pages;
 
 -- 2. KHỞI TẠO BẢNG DANH SÁCH TRANG (PAGES)
 INSERT INTO pages (id, name, slug, active, created_at, updated_at) 

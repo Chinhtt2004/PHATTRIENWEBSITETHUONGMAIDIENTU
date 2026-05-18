@@ -1,3 +1,7 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { fetchSettings } from "@/lib/api";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -62,6 +66,24 @@ const features = [
 ];
 
 export function Footer() {
+  const [settings, setSettings] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    async function loadSettings() {
+      try {
+        const data = await fetchSettings();
+        const settingsMap = data.reduce((acc, curr) => {
+          acc[curr.key] = curr.value;
+          return acc;
+        }, {} as Record<string, string>);
+        setSettings(settingsMap);
+      } catch (err) {
+        console.error("Failed to load storefront footer settings:", err);
+      }
+    }
+    loadSettings();
+  }, []);
+
   return (
     <footer className="bg-gradient-to-b from-secondary/15 via-muted/40 to-muted/50 border-t border-border">
       {/* Features */}
@@ -87,10 +109,10 @@ export function Footer() {
           {/* Brand & Newsletter */}
           <div className="lg:col-span-2">
             <Link href="/" className="inline-block mb-4">
-              <span className="font-serif text-2xl font-bold text-primary">GlowSkin</span>
+              <span className="font-serif text-2xl font-bold text-primary">{settings["store_name"] || "GlowSkin"}</span>
             </Link>
             <p className="text-muted-foreground text-sm mb-6 max-w-sm">
-              Khám phá vẻ đẹp toàn diện với các sản phẩm mỹ phẩm cao cấp, chính hãng từ các thương hiệu hàng đầu thế giới.
+              {settings["store_description"] || "Khám phá vẻ đẹp toàn diện với các sản phẩm mỹ phẩm cao cấp, chính hãng từ các thương hiệu hàng đầu thế giới."}
             </p>
             
             {/* Newsletter */}
@@ -167,15 +189,15 @@ export function Footer() {
         <div className="flex flex-wrap gap-6 justify-center text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <MapPin className="h-4 w-4 text-primary" />
-            <span>123 Nguyễn Huệ, Quận 1, TP.HCM</span>
+            <span>{settings["store_address"] || "123 Nguyễn Huệ, Quận 1, TP.HCM"}</span>
           </div>
           <div className="flex items-center gap-2">
             <Phone className="h-4 w-4 text-primary" />
-            <span>1900 1234 56</span>
+            <span>{settings["contact_phone"] || "1900 1234 56"}</span>
           </div>
           <div className="flex items-center gap-2">
             <Mail className="h-4 w-4 text-primary" />
-            <span>support@glowskin.vn</span>
+            <span>{settings["contact_email"] || "support@glowskin.vn"}</span>
           </div>
         </div>
       </div>
@@ -183,7 +205,7 @@ export function Footer() {
       {/* Copyright */}
       <div className="container mx-auto px-4 py-4 border-t border-border">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
-          <p>2026 GlowSkin. Tất cả quyền được bảo lưu.</p>
+          <p>© {new Date().getFullYear()} {settings["store_name"] || "GlowSkin"}. Tất cả quyền được bảo lưu.</p>
           <div className="flex items-center gap-4">
             <span>Thanh toán:</span>
             <div className="flex gap-2">

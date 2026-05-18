@@ -60,6 +60,7 @@ import {
   addAddress,
   fetchMyOrders,
   triggerWebhook,
+  fetchSettings,
   type Voucher,
   type VoucherApplyResponse,
   type AddressResponse,
@@ -135,6 +136,7 @@ export function CheckoutContent() {
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [couponCode, setCouponCode] = useState("");
+  const [settings, setSettings] = useState<Record<string, string>>({});
 
   // Form state
   const [formData, setFormData] = useState({
@@ -180,12 +182,13 @@ export function CheckoutContent() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [itemsResult, productsResult, profileResult, promoResult, addressResult] = await Promise.allSettled([
+        const [itemsResult, productsResult, profileResult, promoResult, addressResult, settingsResult] = await Promise.allSettled([
           fetchCartItems(),
           fetchProducts(),
           fetchUserProfile(),
           fetchPublicVouchers(),
-          loadAddresses()
+          loadAddresses(),
+          fetchSettings()
         ]);
 
         if (itemsResult.status === 'fulfilled' && productsResult.status === 'fulfilled') {
@@ -262,6 +265,14 @@ export function CheckoutContent() {
             }));
           }
         }
+
+        if (settingsResult.status === 'fulfilled') {
+          const settingsMap = settingsResult.value.reduce((acc: any, curr: any) => {
+            acc[curr.key] = curr.value;
+            return acc;
+          }, {} as Record<string, string>);
+          setSettings(settingsMap);
+        }
       } catch (error) {
         console.error("Failed to load checkout data:", error);
       } finally {
@@ -273,6 +284,18 @@ export function CheckoutContent() {
 
   const [shippingMethod, setShippingMethod] = useState("standard");
   const [paymentMethod, setPaymentMethod] = useState("cod");
+
+  useEffect(() => {
+    if (Object.keys(settings).length > 0) {
+      if (settings["cod_enabled"] !== "false") {
+        setPaymentMethod("cod");
+      } else if (settings["vnpay_enabled"] !== "false") {
+        setPaymentMethod("vnpay");
+      } else if (settings["momo_enabled"] !== "false") {
+        setPaymentMethod("momo");
+      }
+    }
+  }, [settings]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -835,7 +858,18 @@ export function CheckoutContent() {
                   onValueChange={setPaymentMethod}
                   className="space-y-3"
                 >
-                  {paymentMethods.map((method) => {
+                  {paymentMethods.filter(method => {
+                    if (method.id === "vnpay") {
+                      return settings["vnpay_enabled"] !== "false";
+                    }
+                    if (method.id === "cod") {
+                      return settings["cod_enabled"] !== "false";
+                    }
+                    if (method.id === "momo") {
+                      return settings["momo_enabled"] !== "false";
+                    }
+                    return true;
+                  }).map((method) => {
                     const isSelected = paymentMethod === method.id;
                     const IconComp = method.icon;
                     return (
