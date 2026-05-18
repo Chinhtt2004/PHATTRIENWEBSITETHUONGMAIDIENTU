@@ -39,7 +39,7 @@ public class PageController {
     // GET DETAIL
     // =========================
 
-    @GetMapping("/{slug}")
+    @GetMapping("public/page/{slug}")
     public ResponseEntity<?> getPage(
             @PathVariable String slug
     ) {
@@ -77,12 +77,12 @@ public class PageController {
 
         return ResponseEntity.ok("Deleted");
     }
-//    @GetMapping("pubic/{slug}")
-//    public ResponseEntity<?> getPage(
-//            @PathVariable String slug
-//    ) {
-//        return ResponseEntity.ok(
-//                pageService.getPageBySlug(slug)
-//        );
-//    }
+    @GetMapping("pubic/{slug}")
+    public ResponseEntity<?> getdetailPage(
+            @PathVariable String slug
+    ) {
+        return ResponseEntity.ok(
+                pageService.getPageBySlug(slug)
+        );
+    }
 }

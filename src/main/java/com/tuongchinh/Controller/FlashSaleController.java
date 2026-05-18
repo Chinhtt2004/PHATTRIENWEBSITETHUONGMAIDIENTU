@@ -56,7 +56,6 @@ public class FlashSaleController {
                 @PathVariable Long flashSaleId,
                 @RequestBody CreateFlashSaleRequest request
         ) {
-
                 return flashSaleService.updateFlashSale(
                         flashSaleId,
                         request
