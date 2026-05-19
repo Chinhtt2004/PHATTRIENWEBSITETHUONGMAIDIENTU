@@ -26,6 +26,18 @@ public class CloudinaryService {
         }
     }
 
+    public String uploadBase64Image(String base64String) {
+        try {
+            Map result = cloudinary.uploader().upload(
+                    base64String,
+                    ObjectUtils.asMap("folder", "refunds")
+            );
+            return (String) result.get("secure_url");
+        } catch (IOException e) {
+            throw new RuntimeException("Upload ảnh thất bại: " + e.getMessage());
+        }
+    }
+
     public void deleteImage(String imageUrl) {
         try {
             String publicId = extractPublicId(imageUrl);

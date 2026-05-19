@@ -16,6 +16,10 @@ import {
   MapPin,
   Phone,
   Loader2,
+  AlertCircle,
+  PackagePlus,
+  Camera,
+  Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +28,8 @@ import { Separator } from "@/components/ui/separator";
 import {
   adminFetchOrderById,
   adminUpdateOrderStatus,
+  adminRestockOrderItem,
+  adminConfirmRefund,
   type OrderResponse,
   slugify,
 } from "@/lib/api";
@@ -40,6 +46,8 @@ const statusMap: Record<
   SHIPPED: { label: "Đang giao", variant: "default", icon: Truck },
   DELIVERED: { label: "Đã giao", variant: "default", icon: CheckCircle },
   CANCELLED: { label: "Đã hủy", variant: "destructive", icon: XCircle },
+  FAILED_DELIVERY: { label: "Giao thất bại", variant: "destructive", icon: XCircle },
+  REFUNDED: { label: "Đã hoàn tiền", variant: "outline", icon: CheckCircle },
 };
 
 function formatCurrency(amount: number) {
@@ -55,6 +63,7 @@ export default function OrderDetailPage({
   const [order, setOrder] = useState<OrderResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [refundBase64, setRefundBase64] = useState<string>("");
 
   useEffect(() => {
     async function loadOrder() {
@@ -73,11 +82,41 @@ export default function OrderDetailPage({
   const handleUpdateStatus = async (newStatus: string) => {
     setIsUpdating(true);
     try {
-      const updated = await adminUpdateOrderStatus(Number(id), newStatus);
+      const updated = await adminUpdateOrderStatus({ id: Number(id), status: newStatus });
       setOrder(updated);
       toast.success(`Đã cập nhật trạng thái đơn hàng thành ${statusMap[newStatus].label}`);
     } catch (error) {
       toast.error("Cập nhật trạng thái thất bại");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleRestockItem = async (itemId: number) => {
+    setIsUpdating(true);
+    try {
+      const updated = await adminRestockOrderItem(Number(id), itemId);
+      setOrder(updated);
+      toast.success("Đã hoàn số lượng sản phẩm lại kho thành công");
+    } catch (error) {
+      toast.error("Hoàn kho thất bại");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleConfirmRefund = async () => {
+    if (!refundBase64) {
+      toast.error("Vui lòng tải lên ảnh xác nhận chuyển tiền trước khi xác nhận!");
+      return;
+    }
+    setIsUpdating(true);
+    try {
+      const updated = await adminConfirmRefund(Number(id), refundBase64);
+      setOrder(updated);
+      toast.success("Đã xác nhận hoàn tiền cho khách hàng thành công!");
+    } catch (error) {
+      toast.error("Xác nhận hoàn tiền thất bại");
     } finally {
       setIsUpdating(false);
     }
@@ -188,15 +227,37 @@ export default function OrderDetailPage({
                         </p>
                       )}
                     </div>
-                    <div className="text-right">
-                      <p className="font-medium">{formatCurrency(item.price)}</p>
-                      <p className="text-sm text-muted-foreground">
-                        x{item.quantity}
+                    <div className="flex flex-col items-end gap-2 shrink-0">
+                      <div className="text-right">
+                        <p className="font-medium">{formatCurrency(item.price)}</p>
+                        <p className="text-sm text-muted-foreground">
+                          x{item.quantity}
+                        </p>
+                      </div>
+                      <p className="w-24 text-right font-medium">
+                        {formatCurrency(item.price * item.quantity)}
                       </p>
+                      {(currentStatus === "CANCELLED" || currentStatus === "FAILED_DELIVERY" || currentStatus === "REFUNDED") && (
+                        <div className="mt-2" onClick={(e) => e.preventDefault()}>
+                          {item.isRestocked ? (
+                            <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-green-200">
+                              Đã hoàn kho
+                            </Badge>
+                          ) : (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="h-8 gap-1 border-primary/20 hover:bg-primary/5 text-primary"
+                              onClick={() => handleRestockItem(item.id)}
+                              disabled={isUpdating}
+                            >
+                              <PackagePlus className="h-3.5 w-3.5" />
+                              <span className="text-xs">Nhập lại kho</span>
+                            </Button>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <p className="w-24 text-right font-medium">
-                      {formatCurrency(item.price * item.quantity)}
-                    </p>
                   </Link>
 
                 ))}
@@ -291,15 +352,20 @@ export default function OrderDetailPage({
                   );
                 })}
 
-                {currentStatus === "CANCELLED" && (
+                {(currentStatus === "CANCELLED" || currentStatus === "FAILED_DELIVERY" || currentStatus === "REFUNDED") && (
                    <div className="absolute inset-0 bg-background/60 backdrop-blur-[1px] flex flex-col items-center justify-center gap-2 z-20">
                       <Badge variant="destructive" className="px-6 py-2 text-sm gap-2 shadow-lg animate-in zoom-in">
                         <XCircle className="h-4 w-4" />
-                        ĐƠN HÀNG ĐÃ HỦY
+                        {currentStatus === "CANCELLED" ? "ĐƠN HÀNG ĐÃ HỦY" : currentStatus === "FAILED_DELIVERY" ? "GIAO HÀNG THẤT BẠI" : "ĐƠN HÀNG ĐÃ HOÀN TIỀN"}
                       </Badge>
                       {order.cancelReason && (
                         <p className="text-sm font-medium text-destructive bg-destructive/10 border border-destructive/20 rounded px-3 py-1 animate-in slide-in-from-bottom-2">
                           Lý do: {order.cancelReason}
+                        </p>
+                      )}
+                      {currentStatus === "REFUNDED" && order.refundReason && (
+                        <p className="text-sm font-medium text-destructive bg-destructive/10 border border-destructive/20 rounded px-3 py-1 animate-in slide-in-from-bottom-2">
+                          Lý do hoàn: {order.refundReason}
                         </p>
                       )}
                    </div>
@@ -339,20 +405,115 @@ export default function OrderDetailPage({
                 </>
               )}
               {currentStatus === "SHIPPED" && (
-                <Button 
-                  className="w-full bg-green-600 hover:bg-green-700 text-white"
-                  onClick={() => handleUpdateStatus("DELIVERED")}
-                  disabled={isUpdating}
-                >
-                  <CheckCircle className="mr-2 h-4 w-4" />
-                  Xác nhận đã giao
-                </Button>
+                <div className="flex flex-col gap-2">
+                  <Button 
+                    className="w-full bg-green-600 hover:bg-green-700 text-white"
+                    onClick={() => handleUpdateStatus("DELIVERED")}
+                    disabled={isUpdating}
+                  >
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Xác nhận đã giao
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    className="w-full text-destructive hover:bg-destructive/10 border-destructive"
+                    onClick={() => handleUpdateStatus("FAILED_DELIVERY")}
+                    disabled={isUpdating}
+                  >
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Giao hàng thất bại
+                  </Button>
+                </div>
               )}
-              {(currentStatus === "DELIVERED" || currentStatus === "CANCELLED") && (
+              {(currentStatus === "DELIVERED" || currentStatus === "CANCELLED" || currentStatus === "FAILED_DELIVERY" || currentStatus === "REFUNDED") && (
                 <div className="rounded-lg bg-muted p-4 text-center">
                   <p className="text-sm text-muted-foreground font-medium">
-                    Đơn hàng đã {currentStatus === "DELIVERED" ? "hoàn thành" : "bị hủy"}.
+                    Đơn hàng đã {currentStatus === "DELIVERED" ? "hoàn thành" : currentStatus === "CANCELLED" ? "bị hủy" : currentStatus === "REFUNDED" ? "được hoàn tiền" : "giao thất bại"}.
                   </p>
+                </div>
+              )}
+              {(currentStatus === "FAILED_DELIVERY" || currentStatus === "REFUNDED") && order.isRefundRequested && (
+                <div className={`mt-4 p-4 rounded-xl border space-y-4 ${currentStatus === "REFUNDED" ? "border-green-200 bg-green-50" : "border-amber-200 bg-amber-50"}`}>
+                  <div className={`flex items-center gap-2 font-bold ${currentStatus === "REFUNDED" ? "text-green-600" : "text-amber-600"}`}>
+                    {currentStatus === "REFUNDED" ? <CheckCircle className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
+                    {currentStatus === "REFUNDED" ? "Đã hoàn tiền" : "Yêu cầu hoàn tiền"}
+                  </div>
+                  <div className="text-sm space-y-2">
+                    <p><span className="font-semibold text-muted-foreground">Lý do không nhận:</span> {order.refundReason}</p>
+                    <div>
+                      <span className="font-semibold text-muted-foreground">Thông tin tài khoản:</span> 
+                      <p className="bg-white p-2 mt-1 rounded border whitespace-pre-wrap">{order.refundAccountInfo}</p>
+                    </div>
+                  </div>
+
+                  {currentStatus === "REFUNDED" ? (
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-muted-foreground block">
+                        ẢNH XÁC NHẬN CHUYỂN TIỀN
+                      </label>
+                      {order.refundAttachmentUrl ? (
+                        <div className="relative rounded-lg overflow-hidden border bg-white shadow-sm hover:shadow-md transition-all">
+                          <img 
+                            src={order.refundAttachmentUrl} 
+                            alt="Refund Confirmation" 
+                            className="w-full max-h-48 object-contain mx-auto cursor-zoom-in"
+                            onClick={() => window.open(order.refundAttachmentUrl, "_blank")}
+                          />
+                        </div>
+                      ) : (
+                        <p className="text-sm italic text-muted-foreground">Không có ảnh xác nhận</p>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-muted-foreground block">
+                          ẢNH XÁC NHẬN CHUYỂN TIỀN (BẮT BUỘC)
+                        </label>
+                        <div className="relative border-2 border-dashed border-amber-300 rounded-lg p-4 bg-white/50 text-center hover:bg-white transition-all cursor-pointer">
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                  setRefundBase64(reader.result as string);
+                                };
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                          />
+                          {refundBase64 ? (
+                            <div className="space-y-2">
+                              <img 
+                                src={refundBase64} 
+                                alt="Refund Confirmation Preview" 
+                                className="max-h-32 mx-auto rounded border shadow-sm object-contain" 
+                              />
+                              <p className="text-xs text-amber-600 font-medium">Click hoặc kéo thả để đổi ảnh khác</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-1 py-2">
+                              <Upload className="h-8 w-8 text-amber-500 mx-auto" />
+                              <p className="text-xs font-medium text-muted-foreground">Chọn hoặc kéo thả ảnh minh chứng tại đây</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <Button
+                        className="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                        onClick={handleConfirmRefund}
+                        disabled={isUpdating || !refundBase64}
+                      >
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        Xác nhận đã hoàn tiền
+                      </Button>
+                    </>
+                  )}
                 </div>
               )}
             </CardContent>

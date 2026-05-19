@@ -17,4 +17,5 @@ public class OrderItemDTO {
     private String imageUrl;
     // Thuộc tính biến thể: [{name:"Màu", value:"Đỏ"}, ...]
     private List<ProductResponse.AttributeValueResponse> attributeValues;
+    private Boolean isRestocked;
 }

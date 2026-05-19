@@ -20,4 +20,7 @@ public class OrderItem {
     @ManyToOne
     @JoinColumn(name = "variant_id")
     private ProductVariant variant;
+    
+    @Column(name = "is_restocked")
+    private Boolean isRestocked = false;
 }

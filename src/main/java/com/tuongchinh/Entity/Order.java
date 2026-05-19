@@ -69,6 +69,18 @@ public class Order {
     @Column(name = "cancel_reason")
     private String cancelReason;
 
+    @Column(name = "is_refund_requested")
+    private Boolean isRefundRequested = false;
+
+    @Column(name = "refund_reason")
+    private String refundReason;
+
+    @Column(name = "refund_account_info", columnDefinition = "TEXT")
+    private String refundAccountInfo;
+
+    @Column(name = "refund_attachment_url", columnDefinition = "LONGTEXT")
+    private String refundAttachmentUrl;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

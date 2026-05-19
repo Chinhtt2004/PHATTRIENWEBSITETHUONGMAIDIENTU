@@ -33,6 +33,7 @@ public class OrderService {
     private final PaymentService paymentService;
     private final ProductRepository productRepository;
     private final FlashSaleProductRepository flashSaleProductRepository;
+    private final CloudinaryService cloudinaryService;
 
     @Transactional
     public OrderResponse checkout(Long userId, CheckoutRequest req, HttpServletRequest request) {
@@ -308,6 +309,72 @@ public class OrderService {
         return mapToOrderResponse(orderRepository.save(order));
     }
 
+    @Transactional
+    public OrderResponse requestRefund(Long userId, Long id, String reason, String accountInfo) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        if (!order.getUser().getId().equals(userId)) {
+            throw new RuntimeException("Unauthorized access to order");
+        }
+        if (!"FAILED_DELIVERY".equalsIgnoreCase(order.getOrderStatus())) {
+            throw new RuntimeException("Chỉ đơn hàng giao thất bại mới được yêu cầu hoàn tiền");
+        }
+        if (!"PAID".equalsIgnoreCase(order.getStatus())) {
+            throw new RuntimeException("Chỉ đơn hàng đã thanh toán mới được yêu cầu hoàn tiền");
+        }
+        if (reason == null || reason.trim().isEmpty() || accountInfo == null || accountInfo.trim().isEmpty()) {
+            throw new RuntimeException("Lý do và thông tin tài khoản hoàn tiền là bắt buộc");
+        }
+        order.setIsRefundRequested(true);
+        order.setRefundReason(reason);
+        order.setRefundAccountInfo(accountInfo);
+        return mapToOrderResponse(orderRepository.save(order));
+    }
+
+    @Transactional
+    public OrderResponse restockOrderItem(Long orderId, Long itemId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        if (!"CANCELLED".equalsIgnoreCase(order.getOrderStatus()) && !"FAILED_DELIVERY".equalsIgnoreCase(order.getOrderStatus()) && !"REFUNDED".equalsIgnoreCase(order.getOrderStatus())) {
+            throw new RuntimeException("Chỉ đơn hàng đã hủy hoặc giao thất bại mới được hoàn kho");
+        }
+        OrderItem itemToRestock = order.getItems().stream()
+                .filter(i -> i.getId().equals(itemId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm trong đơn hàng"));
+
+        if (Boolean.TRUE.equals(itemToRestock.getIsRestocked())) {
+            throw new RuntimeException("Sản phẩm này đã được hoàn kho trước đó");
+        }
+
+        ProductVariant variant = itemToRestock.getVariant();
+        if (variant != null) {
+            variant.setStock(variant.getStock() + itemToRestock.getQuantity());
+            productVariantRepository.save(variant);
+        }
+
+        itemToRestock.setIsRestocked(true);
+        return mapToOrderResponse(orderRepository.save(order));
+    }
+
+    @Transactional
+    public OrderResponse refundOrder(Long id, String refundAttachmentUrl) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        if (!"FAILED_DELIVERY".equalsIgnoreCase(order.getOrderStatus()) && !"CANCELLED".equalsIgnoreCase(order.getOrderStatus())) {
+            throw new RuntimeException("Chỉ đơn hàng giao thất bại hoặc đã hủy mới có thể hoàn tiền");
+        }
+        order.setStatus("REFUNDED");
+        order.setOrderStatus("REFUNDED");
+        if (refundAttachmentUrl != null && refundAttachmentUrl.startsWith("data:image")) {
+            String uploadedUrl = cloudinaryService.uploadBase64Image(refundAttachmentUrl);
+            order.setRefundAttachmentUrl(uploadedUrl);
+        } else {
+            order.setRefundAttachmentUrl(refundAttachmentUrl);
+        }
+        return mapToOrderResponse(orderRepository.save(order));
+    }
+
     private OrderResponse mapToOrderResponse(Order order) {
         OrderResponse res = new OrderResponse();
         res.setId(order.getId());
@@ -318,6 +385,10 @@ public class OrderService {
         res.setOrderDate(order.getOrderDate());
         res.setDiscountAmount(order.getDiscountAmount());
         res.setCancelReason(order.getCancelReason());
+        res.setIsRefundRequested(order.getIsRefundRequested());
+        res.setRefundReason(order.getRefundReason());
+        res.setRefundAccountInfo(order.getRefundAccountInfo());
+        res.setRefundAttachmentUrl(order.getRefundAttachmentUrl());
         if (order.getVoucher() != null) {
             res.setVoucherCode(order.getVoucher().getCode());
         }
@@ -333,6 +404,7 @@ public class OrderService {
                 dto.setId(item.getId());
                 dto.setQuantity(item.getQuantity());
                 dto.setPrice(item.getPrice());
+                dto.setIsRestocked(item.getIsRestocked());
                 if (item.getVariant() != null) {
                     ProductVariant v = item.getVariant();
                     dto.setVariantId(v.getId());

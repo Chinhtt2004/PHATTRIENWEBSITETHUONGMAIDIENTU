@@ -46,6 +46,8 @@ export default function OrdersPage() {
         return { label: "Đã giao", color: "bg-success/10 text-success" };
       case "CANCELLED":
         return { label: "Đã hủy", color: "bg-destructive/10 text-destructive" };
+      case "FAILED_DELIVERY":
+        return { label: "Giao hàng thất bại", color: "bg-destructive/10 text-destructive" };
       default:
         return { label: status, color: "bg-muted text-muted-foreground" };
     }
@@ -57,6 +59,11 @@ export default function OrdersPage() {
         return orders.filter((order) => 
             order.orderStatus.toUpperCase() === "SHIPPING" || 
             order.orderStatus.toUpperCase() === "SHIPPED"
+        );
+    }
+    if (status === "failed_delivery") {
+        return orders.filter((order) => 
+            order.orderStatus.toUpperCase() === "FAILED_DELIVERY"
         );
     }
     return orders.filter((order) => order.orderStatus.toUpperCase() === status.toUpperCase());
@@ -183,6 +190,12 @@ export default function OrdersPage() {
             <TabsTrigger value="cancelled">
               Đã hủy ({filterOrders("cancelled").length})
             </TabsTrigger>
+            <TabsTrigger value="failed_delivery">
+              Thất bại ({filterOrders("failed_delivery").length})
+            </TabsTrigger>
+            <TabsTrigger value="refunded">
+              Đã hoàn tiền ({filterOrders("refunded").length})
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="all" className="mt-6">
             <OrderList filteredOrders={filterOrders("all")} />
@@ -198,6 +211,12 @@ export default function OrdersPage() {
           </TabsContent>
           <TabsContent value="cancelled" className="mt-6">
             <OrderList filteredOrders={filterOrders("cancelled")} />
+          </TabsContent>
+          <TabsContent value="failed_delivery" className="mt-6">
+            <OrderList filteredOrders={filterOrders("failed_delivery")} />
+          </TabsContent>
+          <TabsContent value="refunded" className="mt-6">
+            <OrderList filteredOrders={filterOrders("refunded")} />
           </TabsContent>
         </Tabs>
       )}

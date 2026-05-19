@@ -22,5 +22,9 @@ public class OrderResponse {
     private BigDecimal discountAmount;
     private String paymentUrl;
     private String cancelReason;
+    private Boolean isRefundRequested;
+    private String refundReason;
+    private String refundAccountInfo;
+    private String refundAttachmentUrl;
     private List<OrderItemDTO> items;
 }

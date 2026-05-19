@@ -1053,6 +1053,7 @@ export interface OrderItemDTO {
   variantName: string;
   imageUrl: string;
   attributeValues?: OrderItemAttributeValue[];
+  isRestocked?: boolean;
 }
 
 export interface OrderResponse {
@@ -1070,6 +1071,10 @@ export interface OrderResponse {
   voucherCode?: string;
   discountAmount?: number;
   cancelReason?: string;
+  isRefundRequested?: boolean;
+  refundReason?: string;
+  refundAccountInfo?: string;
+  refundAttachmentUrl?: string;
 }
 
 export async function adminFetchAllOrders(): Promise<OrderResponse[]> {
@@ -1088,12 +1093,30 @@ export async function adminFetchOrderById(id: number | string): Promise<OrderRes
   return ensureOk(res);
 }
 
-export async function adminUpdateOrderStatus(id: number, status: string): Promise<OrderResponse> {
+export async function adminUpdateOrderStatus(request: { id: number; status: string }): Promise<OrderResponse> {
   const res = await fetch(`${API_BASE_URL}/api/admin/orders/status`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ id, status }),
+    body: JSON.stringify(request),
+  });
+  return ensureOk(res);
+}
+
+export async function adminRestockOrderItem(orderId: number, itemId: number): Promise<OrderResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/orders/${orderId}/items/${itemId}/restock`, {
+    method: "POST",
+    credentials: "include",
+  });
+  return ensureOk(res);
+}
+
+export async function adminConfirmRefund(id: number, refundAttachmentUrl?: string): Promise<OrderResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/admin/orders/${id}/refund-confirm`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ refundAttachmentUrl: refundAttachmentUrl || "" }),
   });
   return ensureOk(res);
 }
@@ -1165,6 +1188,16 @@ export async function cancelMyOrder(id: number, reason: string): Promise<OrderRe
   const res = await fetch(`${API_BASE_URL}/api/user/orders/${id}/cancel?reason=${encodeURIComponent(reason)}`, {
     method: "PUT",
     credentials: "include",
+  });
+  return ensureOk(res);
+}
+
+export async function requestRefund(id: number, reason: string, accountInfo: string): Promise<OrderResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/user/orders/${id}/refund`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ reason, accountInfo }),
   });
   return ensureOk(res);
 }

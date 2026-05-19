@@ -17,14 +17,14 @@ import {
   ShoppingBag,
   History,
   Star,
-  Info
+  Info,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { formatPrice } from "@/lib/data";
-import { fetchMyOrderDetail, cancelMyOrder, type OrderResponse, slugify } from "@/lib/api";
+import { fetchMyOrderDetail, cancelMyOrder, requestRefund, type OrderResponse, slugify } from "@/lib/api";
 import { toast } from "sonner";
 import Image from "next/image";
 import { ReviewModal } from "@/components/reviews/review-modal";
@@ -39,6 +39,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 
 interface OrderDetailPageProps {
   params: Promise<{
@@ -68,6 +69,14 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
     { id: "too_long", label: "Thời gian giao hàng dự kiến quá lâu" },
     { id: "other", label: "Lý do khác (Vui lòng ghi rõ bên dưới)" },
   ];
+
+  // Refund Dialog State
+  const [refundDialogOpen, setRefundDialogOpen] = useState(false);
+  const [refundReason, setRefundReason] = useState("");
+  const [refundBank, setRefundBank] = useState("");
+  const [refundAccountNo, setRefundAccountNo] = useState("");
+  const [refundAccountName, setRefundAccountName] = useState("");
+  const [isRefunding, setIsRefunding] = useState(false);
 
   // Review Modal State
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
@@ -122,6 +131,27 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
     }
   };
 
+  const submitRefundRequest = async () => {
+    if (!refundReason.trim() || !refundBank.trim() || !refundAccountNo.trim() || !refundAccountName.trim()) {
+      toast.error("Vui lòng điền đầy đủ thông tin hoàn tiền");
+      return;
+    }
+
+    const accountInfo = `Ngân hàng: ${refundBank.trim()}\nSTK: ${refundAccountNo.trim()}\nChủ TK: ${refundAccountName.trim()}`;
+
+    setIsRefunding(true);
+    try {
+      await requestRefund(orderId, refundReason.trim(), accountInfo);
+      toast.success("Đã gửi yêu cầu hoàn tiền thành công");
+      setRefundDialogOpen(false);
+      loadOrderDetail();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Gửi yêu cầu thất bại");
+    } finally {
+      setIsRefunding(false);
+    }
+  };
+
   const openReviewModal = (item: any) => {
     setSelectedItem({
       id: item.id,
@@ -157,6 +187,10 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
         return { label: "Đã giao hàng thành công", color: "bg-success/10 text-success border-success/20", icon: <CheckCircle2 className="h-4 w-4" /> };
       case "CANCELLED":
         return { label: "Đã hủy", color: "bg-destructive/10 text-destructive border-destructive/20", icon: <XCircle className="h-4 w-4" /> };
+      case "FAILED_DELIVERY":
+        return { label: "Giao hàng thất bại", color: "bg-destructive/10 text-destructive border-destructive/20", icon: <AlertCircle className="h-4 w-4" /> };
+      case "REFUNDED":
+        return { label: "Đã hoàn tiền", color: "bg-muted text-muted-foreground border-muted", icon: <CheckCircle2 className="h-4 w-4" /> };
       default:
         return { label: status, color: "bg-muted text-muted-foreground", icon: <AlertCircle className="h-4 w-4" /> };
     }
@@ -202,6 +236,89 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
           </Button>
         )}
       </div>
+
+      {/* Failed Delivery Notice / Refund Section */}
+      {order.orderStatus.toUpperCase() === "REFUNDED" && order.isRefundRequested && (
+        <div className="w-full">
+          <div className="p-4 rounded-xl border border-green-200 bg-green-50 space-y-4 shadow-sm">
+            <div className="flex items-center gap-2 text-green-600 font-bold">
+              <CheckCircle2 className="h-5 w-5" />
+              Yêu cầu hoàn tiền đã hoàn tất
+            </div>
+            <div className="flex flex-col md:flex-row gap-4 items-start justify-between">
+              <div className="text-sm space-y-2 flex-1">
+                <p><span className="font-semibold text-muted-foreground">Số tiền đã hoàn:</span> {formatPrice(order.totalPrice)}</p>
+                <p><span className="font-semibold text-muted-foreground">Tài khoản thụ hưởng:</span> {order.refundAccountInfo}</p>
+                <p className="text-xs text-green-600/80 mt-2">Chúng tôi đã tiến hành hoàn tiền thành công vào tài khoản của bạn. Vui lòng kiểm tra số dư.</p>
+              </div>
+              {order.refundAttachmentUrl && (
+                <div className="w-full md:w-48 shrink-0 space-y-1.5">
+                  <span className="text-xs font-bold text-muted-foreground block">ẢNH XÁC NHẬN CHUYỂN TIỀN:</span>
+                  <div className="relative rounded-lg overflow-hidden border bg-white shadow-sm hover:shadow-md transition-all">
+                    <img 
+                      src={order.refundAttachmentUrl} 
+                      alt="Ảnh xác nhận hoàn tiền" 
+                      className="w-full max-h-40 object-contain mx-auto cursor-zoom-in"
+                      onClick={() => {
+                        window.open(order.refundAttachmentUrl, "_blank");
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {order.orderStatus.toUpperCase() === "FAILED_DELIVERY" && (
+        <div className="w-full">
+          {order.paymentStatus.toUpperCase() !== "PAID" ? (
+            <div className="p-4 rounded-xl border border-destructive/20 bg-destructive/5 space-y-2 shadow-sm">
+              <div className="flex items-center gap-2 text-destructive font-bold">
+                <AlertCircle className="h-5 w-5" />
+                Đơn hàng giao thất bại
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Đơn hàng của bạn chưa được giao thành công. Do đơn hàng này chưa được thanh toán trước (hoặc là đơn COD), bạn không cần gửi yêu cầu hoàn tiền.
+              </p>
+            </div>
+          ) : order.isRefundRequested ? (
+            <div className="p-4 rounded-xl border border-amber-200 bg-amber-50 space-y-3 shadow-sm">
+              <div className="flex items-center gap-2 text-amber-600 font-bold">
+                <AlertCircle className="h-5 w-5" />
+                Đã gửi yêu cầu hoàn tiền
+              </div>
+              <div className="text-sm space-y-2">
+                <p><span className="font-semibold text-muted-foreground">Lý do không nhận:</span> {order.refundReason}</p>
+                <div>
+                  <span className="font-semibold text-muted-foreground">Thông tin tài khoản:</span> 
+                  <p className="bg-white p-2 mt-1 rounded border whitespace-pre-wrap">{order.refundAccountInfo}</p>
+                </div>
+                <p className="text-xs text-amber-600/80 mt-2">Vui lòng chờ chúng tôi xử lý yêu cầu hoàn tiền của bạn.</p>
+              </div>
+            </div>
+          ) : (
+            <div className="p-4 rounded-xl border border-destructive/20 bg-destructive/5 space-y-3 flex flex-col sm:flex-row items-center justify-between shadow-sm">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-destructive font-bold">
+                  <AlertCircle className="h-5 w-5" />
+                  Đơn hàng giao thất bại
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Đơn hàng của bạn chưa được giao thành công. Vui lòng gửi yêu cầu hoàn tiền.
+                </p>
+              </div>
+              <Button 
+                onClick={() => setRefundDialogOpen(true)}
+                className="w-full sm:w-auto bg-destructive hover:bg-destructive/90 text-white shadow-lg shadow-destructive/20 rounded-full shrink-0"
+              >
+                Yêu cầu hoàn tiền
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Main Content - Products List */}
@@ -462,6 +579,78 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
                 </>
               ) : (
                 "Xác nhận hủy đơn"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Refund Modal */}
+      <Dialog open={refundDialogOpen} onOpenChange={setRefundDialogOpen}>
+        <DialogContent className="sm:max-w-md p-6 overflow-hidden rounded-2xl border-none shadow-2xl bg-white">
+          <DialogHeader className="bg-destructive/5 -mx-6 -mt-6 p-6 border-b border-destructive/10">
+            <DialogTitle className="text-xl font-bold font-serif text-destructive flex items-center gap-2">
+              <AlertCircle className="h-6 w-6" />
+              Yêu cầu hoàn tiền đơn hàng #{order.id}
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground mt-1">
+              Vui lòng cung cấp lý do không nhận được hàng và thông tin tài khoản để chúng tôi hoàn tiền.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="refund-reason" className="text-sm font-bold text-muted-foreground">Lý do không nhận hàng <span className="text-destructive">*</span></Label>
+              <Textarea
+                id="refund-reason"
+                placeholder="Ví dụ: Đã đợi quá lâu, không gọi được shipper..."
+                className="resize-none h-20 rounded-xl focus-visible:ring-destructive/20 border-border/50 bg-muted/20"
+                value={refundReason}
+                onChange={(e) => setRefundReason(e.target.value)}
+              />
+            </div>
+            
+            <div className="space-y-3 border-t border-border/50 pt-4">
+              <Label className="text-sm font-bold text-muted-foreground">Thông tin tài khoản nhận tiền <span className="text-destructive">*</span></Label>
+              <div className="space-y-2">
+                <Input
+                  placeholder="Tên ngân hàng (Vd: Vietcombank)"
+                  className="rounded-lg focus-visible:ring-destructive/20"
+                  value={refundBank}
+                  onChange={(e) => setRefundBank(e.target.value)}
+                />
+                <Input
+                  placeholder="Số tài khoản"
+                  className="rounded-lg focus-visible:ring-destructive/20"
+                  value={refundAccountNo}
+                  onChange={(e) => setRefundAccountNo(e.target.value)}
+                />
+                <Input
+                  placeholder="Tên chủ tài khoản"
+                  className="rounded-lg focus-visible:ring-destructive/20 uppercase"
+                  value={refundAccountName}
+                  onChange={(e) => setRefundAccountName(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border/50 -mx-6 -mb-6 p-6 bg-muted/20">
+            <Button variant="ghost" onClick={() => setRefundDialogOpen(false)} className="rounded-full flex-1 hover:bg-muted-hover">
+              Đóng
+            </Button>
+            <Button
+              onClick={submitRefundRequest}
+              disabled={isRefunding || !refundReason.trim() || !refundBank.trim() || !refundAccountNo.trim() || !refundAccountName.trim()}
+              className="rounded-full flex-1 bg-destructive hover:bg-destructive-hover shadow-lg shadow-destructive/20 text-white font-bold transition-all"
+            >
+              {isRefunding ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Đang xử lý...
+                </>
+              ) : (
+                "Gửi yêu cầu"
               )}
             </Button>
           </DialogFooter>

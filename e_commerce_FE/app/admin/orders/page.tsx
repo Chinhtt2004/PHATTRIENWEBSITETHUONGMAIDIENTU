@@ -44,6 +44,8 @@ const statusMap: Record<
   SHIPPED: { label: "Đang giao", variant: "default" },
   DELIVERED: { label: "Đã giao", variant: "default" },
   CANCELLED: { label: "Đã hủy", variant: "destructive" },
+  FAILED_DELIVERY: { label: "Giao thất bại", variant: "destructive" },
+  REFUNDED: { label: "Đã hoàn tiền", variant: "outline" },
 };
 
 const paymentStatusMap: Record<string, { label: string; color: string }> = {
@@ -124,6 +126,8 @@ export default function AdminOrdersPage() {
     SHIPPED: orders.filter((o) => o.orderStatus === "SHIPPED").length,
     DELIVERED: orders.filter((o) => o.orderStatus === "DELIVERED").length,
     CANCELLED: orders.filter((o) => o.orderStatus === "CANCELLED").length,
+    FAILED_DELIVERY: orders.filter((o) => o.orderStatus === "FAILED_DELIVERY").length,
+    REFUNDED: orders.filter((o) => o.orderStatus === "REFUNDED").length,
   };
 
   return (
@@ -173,6 +177,12 @@ export default function AdminOrdersPage() {
           </TabsTrigger>
           <TabsTrigger value="CANCELLED">
             Đã hủy ({orderCounts.CANCELLED})
+          </TabsTrigger>
+          <TabsTrigger value="FAILED_DELIVERY">
+            Thất bại ({orderCounts.FAILED_DELIVERY})
+          </TabsTrigger>
+          <TabsTrigger value="REFUNDED">
+            Đã hoàn tiền ({orderCounts.REFUNDED})
           </TabsTrigger>
         </TabsList>
       </Tabs>

@@ -67,6 +67,19 @@ public class OrderController {
         return ResponseEntity.ok(orderService.cancelOrder(userId, id, reason));
     }
 
+    // POST /api/user/orders/{id}/refund
+    @PostMapping("/user/orders/{id}/refund")
+    public ResponseEntity<OrderResponse> requestRefund(
+            HttpServletRequest request,
+            @PathVariable Long id,
+            @RequestBody java.util.Map<String, String> body) {
+        String token = userService.extractToken(request);
+        Long userId = jwtService.extractUserId(token);
+        String reason = body.get("reason");
+        String accountInfo = body.get("accountInfo");
+        return ResponseEntity.ok(orderService.requestRefund(userId, id, reason, accountInfo));
+    }
+
     // =====================
     // ADMIN ENDPOINTS
     // =====================
@@ -90,6 +103,23 @@ public class OrderController {
     public ResponseEntity<OrderResponse> updateStatus(
             @RequestBody OrderUptateStatusRequest request) {
         return ResponseEntity.ok(orderService.updateOrderStatus(request));
+    }
+
+    // POST /api/admin/orders/{orderId}/items/{itemId}/restock
+    @PostMapping("/admin/orders/{orderId}/items/{itemId}/restock")
+    public ResponseEntity<OrderResponse> restockOrderItem(
+            @PathVariable Long orderId,
+            @PathVariable Long itemId) {
+        return ResponseEntity.ok(orderService.restockOrderItem(orderId, itemId));
+    }
+
+    // POST /api/admin/orders/{id}/refund-confirm
+    @PostMapping("/admin/orders/{id}/refund-confirm")
+    public ResponseEntity<OrderResponse> confirmRefund(
+            @PathVariable Long id,
+            @RequestBody java.util.Map<String, String> payload) {
+        String refundAttachmentUrl = payload.get("refundAttachmentUrl");
+        return ResponseEntity.ok(orderService.refundOrder(id, refundAttachmentUrl));
     }
 
     @GetMapping("/admin/orders/export")
