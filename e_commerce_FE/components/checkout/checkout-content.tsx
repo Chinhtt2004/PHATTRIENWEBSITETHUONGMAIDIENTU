@@ -656,7 +656,7 @@ export function CheckoutContent() {
                     <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
                   </div>
 
-                  {userAddresses.length > 0 && (
+                  {userAddresses.length > 0 ? (
                     <div className="mt-3 p-3 rounded-xl bg-gradient-to-br from-primary-light/10 to-transparent border border-primary/5 space-y-2">
                       <div className="flex items-center justify-between mb-1">
                         <Label className="text-[10px] font-bold text-primary flex items-center gap-1.5 uppercase tracking-widest opacity-80">
@@ -699,6 +699,22 @@ export function CheckoutContent() {
                           ))}
                         </SelectContent>
                       </Select>
+                    </div>
+                  ) : (
+                    <div className="mt-3 p-3 rounded-xl bg-gradient-to-br from-primary-light/10 to-transparent border border-primary/5 flex items-center justify-between shadow-sm">
+                      <div className="space-y-0.5">
+                        <p className="text-xs font-bold text-primary">Địa chỉ của bạn</p>
+                        <p className="text-[11px] text-muted-foreground">Lưu địa chỉ để thanh toán nhanh hơn cho lần sau</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-full border-primary/20 hover:bg-primary/5 text-primary text-xs font-bold h-8 gap-1"
+                        onClick={() => setIsAddAddressDialogOpen(true)}
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        Thêm mới
+                      </Button>
                     </div>
                   )}
                 </div>
