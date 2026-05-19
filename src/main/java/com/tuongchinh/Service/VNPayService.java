@@ -1,4 +1,5 @@
 package com.tuongchinh.Service;
+
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,14 +32,22 @@ public class VNPayService {
     public String createPaymentUrl(Long orderId, BigDecimal amount, HttpServletRequest request) throws Exception {
         // === 1. Chuẩn bị thông tin thanh toán ===
         String vnp_TxnRef = String.valueOf(orderId); // mã tham chiếu đơn hàng, duy nhất
-        String vnp_OrderInfo ="Thanh toan don hang"+orderId;
+        String vnp_OrderInfo = "ThanhToanDonHang_" + orderId;
         // VNPay yêu cầu số nguyên, nhân 100
         String vnp_Amount = amount.multiply(new BigDecimal(100))
                 .setScale(0, RoundingMode.DOWN)
                 .toPlainString();
 
         String vnp_IpAddr = request.getRemoteAddr();
-        String vnp_CreateDate = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
+        if ("0:0:0:0:0:0:0:1".equals(vnp_IpAddr)) {
+            vnp_IpAddr = "127.0.0.1";
+        }
+
+        Calendar cld = Calendar.getInstance(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
+        String vnp_CreateDate = formatter.format(cld.getTime());
+        cld.add(Calendar.MINUTE, 15);
+        String vnp_ExpireDate = formatter.format(cld.getTime());
 
         // === 2. Tạo map param ===
         Map<String, String> params = new HashMap<>();
@@ -54,6 +63,7 @@ public class VNPayService {
         params.put("vnp_ReturnUrl", returnUrl);
         params.put("vnp_IpAddr", vnp_IpAddr);
         params.put("vnp_CreateDate", vnp_CreateDate);
+        params.put("vnp_ExpireDate", vnp_ExpireDate);
 
         // === 3. Sắp xếp param theo key ===
         List<String> fieldNames = new ArrayList<>(params.keySet());
@@ -62,25 +72,24 @@ public class VNPayService {
         // === 4. Tạo hashData & queryString ===
         StringBuilder hashData = new StringBuilder();
         StringBuilder query = new StringBuilder();
-        for (int i = 0; i < fieldNames.size(); i++) {
-            String fieldName = fieldNames.get(i);
+        for (String fieldName : fieldNames) {
             String value = params.get(fieldName);
 
             if (value != null && !value.isEmpty()) {
-                // hashData: chỉ encode value (UTF-8)
-                hashData.append(fieldName)
-                        .append("=")
-                        .append(URLEncoder.encode(value, StandardCharsets.UTF_8));
-
-                // query: encode name + value
-                query.append(URLEncoder.encode(fieldName, StandardCharsets.UTF_8))
-                        .append("=")
-                        .append(URLEncoder.encode(value, StandardCharsets.UTF_8));
-
-                if (i < fieldNames.size() - 1) {
+                if (hashData.length() > 0) {
                     hashData.append("&");
                     query.append("&");
                 }
+
+                // hashData: chỉ encode value
+                hashData.append(fieldName)
+                        .append("=")
+                        .append(URLEncoder.encode(value, StandardCharsets.US_ASCII.toString()));
+
+                // query: encode name + value
+                query.append(URLEncoder.encode(fieldName, StandardCharsets.UTF_8.toString()))
+                        .append("=")
+                        .append(URLEncoder.encode(value, StandardCharsets.UTF_8.toString()));
             }
         }
 
@@ -102,7 +111,8 @@ public class VNPayService {
         StringBuilder hash = new StringBuilder();
         for (byte b : bytes) {
             String hex = Integer.toHexString(0xff & b);
-            if (hex.length() == 1) hash.append('0');
+            if (hex.length() == 1)
+                hash.append('0');
             hash.append(hex);
         }
         return hash.toString();
@@ -113,27 +123,23 @@ public class VNPayService {
 
         String vnp_SecureHash = params.get("vnp_SecureHash");
 
-        // remove hash khỏi params
-        params.remove("vnp_SecureHash");
-        params.remove("vnp_SecureHashType");
-
         List<String> fieldNames = new ArrayList<>(params.keySet());
+        fieldNames.remove("vnp_SecureHash");
+        fieldNames.remove("vnp_SecureHashType");
         Collections.sort(fieldNames);
 
         StringBuilder hashData = new StringBuilder();
 
-        for (int i = 0; i < fieldNames.size(); i++) {
-            String fieldName = fieldNames.get(i);
+        for (String fieldName : fieldNames) {
             String value = params.get(fieldName);
 
             if (value != null && !value.isEmpty()) {
-                hashData.append(fieldName)
-                        .append("=")
-                        .append(URLEncoder.encode(value, StandardCharsets.UTF_8));
-
-                if (i < fieldNames.size() - 1) {
+                if (hashData.length() > 0) {
                     hashData.append("&");
                 }
+                hashData.append(fieldName)
+                        .append("=")
+                        .append(URLEncoder.encode(value, StandardCharsets.US_ASCII.toString()));
             }
         }
 
