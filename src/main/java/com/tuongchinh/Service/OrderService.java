@@ -77,20 +77,9 @@ public class OrderService {
                                 + " (SKU: " + variant.getSku() + ") out of stock");
             }
 
-            variant.setStock(variant.getStock() - item.getQuantity());
-            productVariantRepository.save(variant);
-
             // Dùng getEffectivePrice() → ưu tiên discountPrice nếu có
             BigDecimal price = variant.getEffectivePrice();
             total = total.add(price.multiply(BigDecimal.valueOf(item.getQuantity())));
-
-            // Tăng soldQuantity cho Flash Sale nếu có
-            java.util.Optional<FlashSaleProduct> activeFlashSale = flashSaleProductRepository.findActiveByVariantId(variant.getId());
-            if (activeFlashSale.isPresent()) {
-                FlashSaleProduct fsp = activeFlashSale.get();
-                fsp.setSoldQuantity(fsp.getSoldQuantity() + item.getQuantity());
-                flashSaleProductRepository.save(fsp);
-            }
         }
 
         // 4. Áp voucher (nếu có)
@@ -178,7 +167,10 @@ public class OrderService {
             usage.setUsedAt(LocalDateTime.now());
             voucherUsageRepository.save(usage);
         }
-        cartItemRepository.deleteAll(cartItems);
+
+        if ("COD".equalsIgnoreCase(req.getPaymentMethod())) {
+            processSuccessfulOrder(order);
+        }
 
         String paymentResult;
         try {
@@ -199,6 +191,38 @@ public class OrderService {
         return response;
     }
 
+    @Transactional
+    public void processSuccessfulOrder(Order order) {
+        if (order.getItems() != null) {
+            for (OrderItem item : order.getItems()) {
+                ProductVariant variant = item.getVariant();
+                if (variant != null) {
+                    if (variant.getStock() < item.getQuantity()) {
+                        throw new RuntimeException("Product " + variant.getProduct().getName() + " is out of stock!");
+                    }
+                    variant.setStock(variant.getStock() - item.getQuantity());
+                    productVariantRepository.save(variant);
+
+                    // Update flash sale
+                    java.util.Optional<FlashSaleProduct> activeFlashSale = flashSaleProductRepository.findActiveByVariantId(variant.getId());
+                    if (activeFlashSale.isPresent()) {
+                        FlashSaleProduct fsp = activeFlashSale.get();
+                        fsp.setSoldQuantity(fsp.getSoldQuantity() + item.getQuantity());
+                        flashSaleProductRepository.save(fsp);
+                    }
+                }
+            }
+        }
+
+        // Clear cart items for this order
+        if (order.getItems() != null) {
+            List<Long> variantIds = order.getItems().stream()
+                    .map(item -> item.getVariant().getId())
+                    .collect(Collectors.toList());
+            cartItemRepository.deleteByCartUserIdAndVariantIdIn(order.getUser().getId(), variantIds);
+        }
+    }
+
     public List<OrderResponse> getAllOrders() {
         return orderRepository.findAllByOrderByOrderDateDesc().stream()
                 .map(this::mapToOrderResponse)
@@ -207,6 +231,7 @@ public class OrderService {
 
     public List<OrderResponse> getOrdersByUser(Long userId) {
         return orderRepository.findByUserIdOrderByOrderDateDesc(userId).stream()
+                .filter(order -> !"FAILED".equalsIgnoreCase(order.getOrderStatus()))
                 .map(this::mapToOrderResponse)
                 .collect(Collectors.toList());
     }
@@ -238,7 +263,6 @@ public class OrderService {
                 // update variant
                 int vSold = (variant.getTotalSold() == null) ? 0 : variant.getTotalSold();
                 variant.setTotalSold(vSold + quantity);
-                variant.setStock(variant.getStock()-item.getQuantity());
                 productVariantRepository.save(variant);
 
                 // update product
@@ -267,7 +291,7 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderResponse cancelOrder(Long userId, Long id) {
+    public OrderResponse cancelOrder(Long userId, Long id, String reason) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
         if (!order.getUser().getId().equals(userId)) {
@@ -276,7 +300,11 @@ public class OrderService {
         if (!"PENDING".equalsIgnoreCase(order.getOrderStatus())) {
             throw new RuntimeException("Only pending orders can be cancelled");
         }
+        if (reason == null || reason.trim().isEmpty()) {
+            throw new RuntimeException("Lý do hủy đơn là bắt buộc");
+        }
         order.setOrderStatus("CANCELLED");
+        order.setCancelReason(reason);
         return mapToOrderResponse(orderRepository.save(order));
     }
 
@@ -289,6 +317,7 @@ public class OrderService {
         res.setTotalPrice(order.getTotalAmount());
         res.setOrderDate(order.getOrderDate());
         res.setDiscountAmount(order.getDiscountAmount());
+        res.setCancelReason(order.getCancelReason());
         if (order.getVoucher() != null) {
             res.setVoucherCode(order.getVoucher().getCode());
         }

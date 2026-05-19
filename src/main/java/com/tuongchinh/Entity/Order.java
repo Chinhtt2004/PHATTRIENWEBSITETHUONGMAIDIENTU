@@ -65,6 +65,10 @@ public class Order {
 
     @Column(name = "is_sold_count_updated")
     private Boolean isSoldCountUpdated = false;
+
+    @Column(name = "cancel_reason")
+    private String cancelReason;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

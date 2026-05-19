@@ -1069,6 +1069,7 @@ export interface OrderResponse {
   paymentUrl?: string;
   voucherCode?: string;
   discountAmount?: number;
+  cancelReason?: string;
 }
 
 export async function adminFetchAllOrders(): Promise<OrderResponse[]> {
@@ -1160,8 +1161,8 @@ export async function fetchMyOrderDetail(id: number): Promise<OrderResponse> {
   return ensureOk(res);
 }
 
-export async function cancelMyOrder(id: number): Promise<OrderResponse> {
-  const res = await fetch(`${API_BASE_URL}/api/user/orders/${id}/cancel`, {
+export async function cancelMyOrder(id: number, reason: string): Promise<OrderResponse> {
+  const res = await fetch(`${API_BASE_URL}/api/user/orders/${id}/cancel?reason=${encodeURIComponent(reason)}`, {
     method: "PUT",
     credentials: "include",
   });

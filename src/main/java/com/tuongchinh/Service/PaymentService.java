@@ -73,12 +73,13 @@ public class PaymentService {
             order.setStatus("PAID");
             order.setOrderStatus("PROCESSING"); // "PROCESSING" is recognized by Frontend
             // order.setPaymentTransactionId(params.get("vnp_TransactionNo"));
+            orderService.processSuccessfulOrder(order);
             orderService.updateSoldCount(order);
             orderRepository.save(order);
             return "SUCCESS";
         } else {
             // order.setPaymentStatus("FAILED");
-            order.setOrderStatus("PENDING");
+            order.setOrderStatus("FAILED");
 
             orderRepository.save(order);
             return "FAILED";

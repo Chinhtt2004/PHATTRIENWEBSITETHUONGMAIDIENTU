@@ -57,13 +57,14 @@ public class OrderController {
     }
 
     // PUT /api/user/orders/{id}/cancel
-    @PutMapping("/user/orders/cancel/{id}")
+    @PutMapping("/user/orders/{id}/cancel")
     public ResponseEntity<OrderResponse> cancelOrder(
             HttpServletRequest request,
-            @PathVariable Long id) {
+            @PathVariable Long id,
+            @RequestParam String reason) {
         String token = userService.extractToken(request);
         Long userId = jwtService.extractUserId(token);
-        return ResponseEntity.ok(orderService.cancelOrder(userId, id));
+        return ResponseEntity.ok(orderService.cancelOrder(userId, id, reason));
     }
 
     // =====================

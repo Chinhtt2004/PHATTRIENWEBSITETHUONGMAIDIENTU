@@ -292,11 +292,16 @@ export default function OrderDetailPage({
                 })}
 
                 {currentStatus === "CANCELLED" && (
-                   <div className="absolute inset-0 bg-background/60 backdrop-blur-[1px] flex items-center justify-center z-20">
+                   <div className="absolute inset-0 bg-background/60 backdrop-blur-[1px] flex flex-col items-center justify-center gap-2 z-20">
                       <Badge variant="destructive" className="px-6 py-2 text-sm gap-2 shadow-lg animate-in zoom-in">
                         <XCircle className="h-4 w-4" />
                         ĐƠN HÀNG ĐÃ HỦY
                       </Badge>
+                      {order.cancelReason && (
+                        <p className="text-sm font-medium text-destructive bg-destructive/10 border border-destructive/20 rounded px-3 py-1 animate-in slide-in-from-bottom-2">
+                          Lý do: {order.cancelReason}
+                        </p>
+                      )}
                    </div>
                 )}
               </div>

@@ -21,5 +21,6 @@ public class OrderResponse {
     private String voucherCode;
     private BigDecimal discountAmount;
     private String paymentUrl;
+    private String cancelReason;
     private List<OrderItemDTO> items;
 }

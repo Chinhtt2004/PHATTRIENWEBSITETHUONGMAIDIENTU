@@ -28,6 +28,17 @@ import { fetchMyOrderDetail, cancelMyOrder, type OrderResponse, slugify } from "
 import { toast } from "sonner";
 import Image from "next/image";
 import { ReviewModal } from "@/components/reviews/review-modal";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 interface OrderDetailPageProps {
   params: Promise<{
@@ -43,6 +54,20 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
   const [order, setOrder] = useState<OrderResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCancelling, setIsCancelling] = useState(false);
+
+  // Cancellation Dialog State
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancellationReason, setCancellationReason] = useState("");
+  const [customCancellationReason, setCustomCancellationReason] = useState("");
+
+  const CANCELLATION_OPTIONS = [
+    { id: "change_mind", label: "Thay đổi ý định mua hàng / Không còn nhu cầu" },
+    { id: "wrong_address", label: "Nhập sai địa chỉ giao hàng hoặc số điện thoại" },
+    { id: "wrong_product", label: "Muốn thay đổi sản phẩm/phân loại hoặc số lượng" },
+    { id: "better_price", label: "Tìm thấy giá rẻ hơn ở cửa hàng khác" },
+    { id: "too_long", label: "Thời gian giao hàng dự kiến quá lâu" },
+    { id: "other", label: "Lý do khác (Vui lòng ghi rõ bên dưới)" },
+  ];
 
   // Review Modal State
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
@@ -71,12 +96,24 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
   };
 
   const handleCancelOrder = async () => {
-    if (!confirm("Bạn có chắc chắn muốn hủy đơn hàng này không?")) return;
+    setCancelDialogOpen(true);
+  };
+
+  const submitCancelOrder = async () => {
+    let reason = cancellationReason;
+    if (reason.includes("Lý do khác")) {
+      if (!customCancellationReason.trim()) {
+        toast.error("Vui lòng ghi rõ lý do khác!");
+        return;
+      }
+      reason = `Khác: ${customCancellationReason.trim()}`;
+    }
 
     setIsCancelling(true);
     try {
-      await cancelMyOrder(orderId);
+      await cancelMyOrder(orderId, reason);
       toast.success("Đã hủy đơn hàng thành công");
+      setCancelDialogOpen(false);
       loadOrderDetail();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Hủy đơn hàng thất bại");
@@ -248,6 +285,11 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
                   <div className="relative">
                     <div className="absolute -left-6 top-1 h-3 w-3 rounded-full border-2 border-white ring-4 ring-destructive/20 bg-destructive"></div>
                     <p className="text-sm font-bold text-destructive">Đơn hàng đã hủy</p>
+                    {order.cancelReason && (
+                      <p className="text-xs text-muted-foreground mt-1 font-medium bg-destructive/5 px-2 py-1 rounded border border-destructive/10 inline-block">
+                        Lý do: {order.cancelReason}
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <>
@@ -364,6 +406,67 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
           variantName={selectedItem.variant}
         />
       )}
+
+      {/* Cancel Order Modal */}
+      <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <DialogContent className="sm:max-w-md p-6 overflow-hidden rounded-2xl border-none shadow-2xl bg-white">
+          <DialogHeader className="bg-destructive/5 -mx-6 -mt-6 p-6 border-b border-destructive/10">
+            <DialogTitle className="text-xl font-bold font-serif text-destructive flex items-center gap-2">
+              <XCircle className="h-6 w-6" />
+              Hủy đơn hàng #{order.id}
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground mt-1">
+              Vui lòng chọn lý do hủy đơn hàng của bạn. Điều này giúp chúng tôi cải thiện dịch vụ tốt hơn.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-4 space-y-4">
+            <RadioGroup value={cancellationReason} onValueChange={setCancellationReason} className="space-y-3">
+              {CANCELLATION_OPTIONS.map((option) => (
+                <div key={option.id} className="flex items-center gap-3 space-x-2">
+                  <RadioGroupItem value={option.label} id={option.id} className="border-muted hover:border-destructive" />
+                  <Label htmlFor={option.id} className="text-sm font-medium cursor-pointer leading-none text-foreground hover:text-destructive transition-colors">
+                    {option.label}
+                  </Label>
+                </div>
+              ))}
+            </RadioGroup>
+
+            {cancellationReason.includes("Lý do khác") && (
+              <div className="space-y-2 pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                <Label htmlFor="custom-reason" className="text-sm font-bold text-muted-foreground">Chi tiết lý do khác:</Label>
+                <Textarea
+                  id="custom-reason"
+                  placeholder="Vui lòng nhập lý do cụ thể..."
+                  className="resize-none h-20 rounded-xl focus-visible:ring-destructive/20 border-border/50 bg-muted/20"
+                  value={customCancellationReason}
+                  onChange={(e) => setCustomCancellationReason(e.target.value)}
+                />
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-border/50 -mx-6 -mb-6 p-6 bg-muted/20">
+            <Button variant="ghost" onClick={() => setCancelDialogOpen(false)} className="rounded-full flex-1 hover:bg-muted-hover">
+              Đóng
+            </Button>
+            <Button
+              onClick={submitCancelOrder}
+              disabled={isCancelling || !cancellationReason || (cancellationReason.includes("Lý do khác") && !customCancellationReason.trim())}
+              className="rounded-full flex-1 bg-destructive hover:bg-destructive-hover shadow-lg shadow-destructive/20 text-white font-bold transition-all"
+            >
+              {isCancelling ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Đang xử lý...
+                </>
+              ) : (
+                "Xác nhận hủy đơn"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
