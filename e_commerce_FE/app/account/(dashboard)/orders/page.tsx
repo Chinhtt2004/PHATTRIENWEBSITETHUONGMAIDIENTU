@@ -36,7 +36,8 @@ export default function OrdersPage() {
   const getStatusInfo = (status: string) => {
     switch (status.toUpperCase()) {
       case "PENDING":
-        return { label: "Chờ xử lý", color: "bg-warning/10 text-warning" };
+      case "PROCESSING":
+        return { label: "Đang xử lý", color: "bg-warning/10 text-warning" };
       case "CONFIRMED":
         return { label: "Đã xác nhận", color: "bg-info/10 text-info" };
       case "SHIPPING":
@@ -48,6 +49,8 @@ export default function OrdersPage() {
         return { label: "Đã hủy", color: "bg-destructive/10 text-destructive" };
       case "FAILED_DELIVERY":
         return { label: "Giao hàng thất bại", color: "bg-destructive/10 text-destructive" };
+      case "REFUNDED":
+        return { label: "Đã hoàn tiền", color: "bg-green-100 text-green-700" };
       default:
         return { label: status, color: "bg-muted text-muted-foreground" };
     }

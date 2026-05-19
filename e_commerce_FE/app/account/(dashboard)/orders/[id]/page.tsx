@@ -132,16 +132,41 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
   };
 
   const submitRefundRequest = async () => {
-    if (!refundReason.trim() || !refundBank.trim() || !refundAccountNo.trim() || !refundAccountName.trim()) {
+    const trimmedReason = refundReason.trim();
+    const trimmedBank = refundBank.trim();
+    const trimmedAccountNo = refundAccountNo.trim();
+    const trimmedAccountName = refundAccountName.trim();
+
+    if (!trimmedReason || !trimmedBank || !trimmedAccountNo || !trimmedAccountName) {
       toast.error("Vui lòng điền đầy đủ thông tin hoàn tiền");
       return;
     }
 
-    const accountInfo = `Ngân hàng: ${refundBank.trim()}\nSTK: ${refundAccountNo.trim()}\nChủ TK: ${refundAccountName.trim()}`;
+    if (trimmedReason.length < 10) {
+      toast.error("Lý do hoàn tiền phải có ít nhất 10 ký tự");
+      return;
+    }
+
+    if (trimmedBank.length < 2) {
+      toast.error("Tên ngân hàng không hợp lệ");
+      return;
+    }
+
+    if (!/^\d{6,20}$/.test(trimmedAccountNo)) {
+      toast.error("Số tài khoản phải là chữ số và dài từ 6 đến 20 ký tự");
+      return;
+    }
+
+    if (!/^[A-Z\s]{3,50}$/.test(trimmedAccountName)) {
+      toast.error("Tên chủ tài khoản phải viết hoa không dấu (ví dụ: NGUYEN VAN A) và dài từ 3 đến 50 ký tự");
+      return;
+    }
+
+    const accountInfo = `Ngân hàng: ${trimmedBank}\nSTK: ${trimmedAccountNo}\nChủ TK: ${trimmedAccountName}`;
 
     setIsRefunding(true);
     try {
-      await requestRefund(orderId, refundReason.trim(), accountInfo);
+      await requestRefund(orderId, trimmedReason, accountInfo);
       toast.success("Đã gửi yêu cầu hoàn tiền thành công");
       setRefundDialogOpen(false);
       loadOrderDetail();
@@ -176,7 +201,8 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
   const getStatusInfo = (status: string) => {
     switch (status.toUpperCase()) {
       case "PENDING":
-        return { label: "Chờ xử lý", color: "bg-warning/10 text-warning border-warning/20", icon: <Clock className="h-4 w-4" /> };
+      case "PROCESSING":
+        return { label: "Đang xử lý", color: "bg-warning/10 text-warning border-warning/20", icon: <Clock className="h-4 w-4" /> };
       case "CONFIRMED":
         return { label: "Đã xác nhận", color: "bg-info/10 text-info border-info/20", icon: <CheckCircle2 className="h-4 w-4" /> };
       case "SHIPPED":
@@ -623,13 +649,13 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
                   placeholder="Số tài khoản"
                   className="rounded-lg focus-visible:ring-destructive/20"
                   value={refundAccountNo}
-                  onChange={(e) => setRefundAccountNo(e.target.value)}
+                  onChange={(e) => setRefundAccountNo(e.target.value.replace(/\D/g, ""))}
                 />
                 <Input
-                  placeholder="Tên chủ tài khoản"
+                  placeholder="Tên chủ tài khoản (Viết hoa không dấu)"
                   className="rounded-lg focus-visible:ring-destructive/20 uppercase"
                   value={refundAccountName}
-                  onChange={(e) => setRefundAccountName(e.target.value)}
+                  onChange={(e) => setRefundAccountName(e.target.value.toUpperCase().replace(/[^A-Z\s]/g, ""))}
                 />
               </div>
             </div>
