@@ -203,6 +203,12 @@ public class FlashSaleService {
                                         item.getVariant().getId()
                                 );
 
+                                p.setProductId(
+                                        item.getVariant()
+                                                .getProduct()
+                                                .getId()
+                                );
+
                                 p.setProductName(
                                         item.getVariant()
                                                 .getProduct()
@@ -351,6 +357,12 @@ public class FlashSaleService {
 
                             p.setVariantId(
                                     item.getVariant().getId()
+                            );
+
+                            p.setProductId(
+                                    item.getVariant()
+                                            .getProduct()
+                                            .getId()
                             );
 
                             p.setProductName(

@@ -19,11 +19,17 @@ collection = client.get_or_create_collection(
 
 def index_products(products):
     """
-    products: list of dicts with 'id', 'name', 'description'
+    products: list of dicts with 'id', 'name', 'description', 'category', 'brand'
     """
     ids = [str(p['id']) for p in products]
-    documents = [f"Product: {p['name']}. Description: {p['description']}" for p in products]
-    metadatas = [{"id": p['id'], "name": p['name']} for p in products]
+    documents = []
+    metadatas = []
+    for p in products:
+        brand = p.get('brand') or 'Không có'
+        category = p.get('category') or 'Chưa phân loại'
+        content = f"Tên sản phẩm: {p['name']}. Thương hiệu: {brand}. Danh mục: {category}. Mô tả: {p['description']}"
+        documents.append(content)
+        metadatas.append({"id": p['id'], "name": p['name'], "brand": brand, "category": category})
     
     collection.add(
         ids=ids,
@@ -31,15 +37,17 @@ def index_products(products):
         metadatas=metadatas
     )
 
-def update_single_product(product_id, name, description):
+def update_single_product(product_id, name, description, category=None, brand=None):
     """
     Updates or inserts a single product in the vector store.
     """
-    content = f"Product: {name}. Description: {description}"
+    brand_val = brand or 'Không có'
+    category_val = category or 'Chưa phân loại'
+    content = f"Tên sản phẩm: {name}. Thương hiệu: {brand_val}. Danh mục: {category_val}. Mô tả: {description}"
     collection.upsert(
         ids=[str(product_id)],
         documents=[content],
-        metadatas=[{"id": product_id, "name": name}]
+        metadatas=[{"id": product_id, "name": name, "brand": brand_val, "category": category_val}]
     )
 
 def delete_single_product(product_id):

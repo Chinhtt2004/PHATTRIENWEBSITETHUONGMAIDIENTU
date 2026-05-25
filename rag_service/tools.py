@@ -1,5 +1,6 @@
 import os
 import requests
+import concurrent.futures
 from typing import List
 from vector_store import search_products
 from context_var import request_token
@@ -7,47 +8,54 @@ from context_var import request_token
 # Spring Boot API Config
 BASE_API_URL = os.getenv("BASE_API_URL", "http://localhost:8081/api/public")
 
+def fetch_single_product(pid: str) -> str:
+    try:
+        response = requests.get(f"{BASE_API_URL}/product/{pid}", timeout=3)
+        if response.status_code == 200:
+            p = response.json()
+            # Cập nhật theo cấu trúc mới của ProductResponse DTO (chứa priceMin và variants)
+            price = p.get('priceMin') or p.get('price') or 0
+            
+            # Tính tổng tồn kho từ các variants
+            stock = 0
+            if p.get('variants') and isinstance(p.get('variants'), list):
+                stock = sum(v.get('stock', 0) for v in p['variants'] if isinstance(v, dict))
+            elif 'stockQuantity' in p:
+                stock = p.get('stockQuantity') or 0
+            
+            cat_name = p.get('categoryName') or (p.get('category', {}).get('name') if isinstance(p.get('category'), dict) else 'Chưa phân loại')
+            brand_name = p.get('brandName') or 'Không có'
+            
+            details = (
+                f"- ID: {p.get('id')}\n"
+                f"  Tên: {p.get('name')}\n"
+                f"  Mô tả: {p.get('description')}\n"
+                f"  Giá (từ): {price:,.0f} VND\n"
+                f"  Thương hiệu: {brand_name}\n"
+                f"  Tồn kho: {stock}\n"
+                f"  Danh mục: {cat_name}"
+            )
+            return details
+        else:
+            print(f"Error fetching product {pid}: {response.status_code}")
+            return None
+    except Exception as e:
+        print(f"Error fetching product {pid}: {e}")
+        return None
+
 def fetch_product_details(product_ids: List[str]) -> str:
     """
-    Calls Spring Boot API to get full details for each product ID.
+    Calls Spring Boot API concurrently to get full details for each product ID.
     """
     context_parts = []
-    for pid in product_ids:
-        try:
-            response = requests.get(f"{BASE_API_URL}/product/{pid}", timeout=2)
-            if response.status_code == 200:
-                p = response.json()
-                # Cập nhật theo cấu trúc mới của ProductResponse DTO (chứa priceMin và variants)
-                price = p.get('priceMin') or p.get('price') or 0
-                
-                # Tính tổng tồn kho từ các variants
-                stock = 0
-                if p.get('variants') and isinstance(p.get('variants'), list):
-                    stock = sum(v.get('stock', 0) for v in p['variants'] if isinstance(v, dict))
-                elif 'stockQuantity' in p:
-                    stock = p.get('stockQuantity') or 0
-                
-                cat_name = p.get('categoryName') or (p.get('category', {}).get('name') if isinstance(p.get('category'), dict) else 'Chưa phân loại')
-                brand_name = p.get('brandName') or 'Không có'
-                
-                details = (
-                    f"- ID: {p.get('id')}\n"
-                    f"  Tên: {p.get('name')}\n"
-                    f"  Mô tả: {p.get('description')}\n"
-                    f"  Giá (từ): {price:,.0f} VND\n"
-                    f"  Thương hiệu: {brand_name}\n"
-                    f"  Tồn kho: {stock}\n"
-                    f"  Danh mục: {cat_name}"
-                )
-                context_parts.append(details)
-                print(details)
-            else:
-                print(f"Error fetching product {pid}: {response.status_code}; Continue...")
-                continue
-        except Exception as e:
-            print(f"Error fetching product {pid}: {e}")
-            continue
-    
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        results = list(executor.map(fetch_single_product, product_ids))
+        
+    for res in results:
+        if res:
+            context_parts.append(res)
+            print(res)
+            
     return "\n\n".join(context_parts) if context_parts else "Không tìm thấy thông tin chi tiết sản phẩm."
 
 def search_products_by_keyword(query: str, limit: int = 5) -> str:
@@ -58,6 +66,7 @@ def search_products_by_keyword(query: str, limit: int = 5) -> str:
         query: Nhu cầu hoặc từ khóa tìm kiếm (Ví dụ: "kem chống nắng", "son dưỡng")
         limit: Số lượng sản phẩm trả về (mặc định 5)
     """
+    print(f"🔧 [TOOL CALL] search_products_by_keyword | query: '{query}', limit: {limit}")
     try:
         search_results = search_products(query, n_results=limit)
         product_ids = search_results["ids"][0] if search_results and "ids" in search_results else []
@@ -74,6 +83,7 @@ def get_best_selling_products(limit: int = 5) -> str:
     Args:
         limit: Số lượng sản phẩm trả về (mặc định 5)
     """
+    print(f"🔧 [TOOL CALL] get_best_selling_products | limit: {limit}")
     try:
         response = requests.get(f"{BASE_API_URL}/product/best-sellers?limit={limit}", timeout=5)
         if response.status_code == 200:
@@ -92,13 +102,37 @@ def get_flash_sale_products(limit: int = 5) -> str:
     Args:
         limit: Số lượng sản phẩm trả về (mặc định 5)
     """
+    print(f"🔧 [TOOL CALL] get_flash_sale_products | limit: {limit}")
     try:
-        response = requests.get(f"{BASE_API_URL}/product/flash-sale?limit={limit}", timeout=5)
+        response = requests.get(f"{BASE_API_URL}/flashsale/active", timeout=5)
         if response.status_code == 200:
-            products = response.json()
-            if not products:
+            flash_sales = response.json()
+            if not flash_sales:
                 return "Hiện tại không có chương trình Flash Sale."
-            return fetch_product_details([str(p['id']) for p in products])
+            
+            context_parts = []
+            for fs in flash_sales:
+                products = fs.get('products', [])
+                if not products:
+                    continue
+                
+                parts = [f"🔥 CHƯƠNG TRÌNH: {fs.get('name')}"]
+                for p in products[:limit]:
+                    original = p.get('originalPrice') or 0
+                    sale = p.get('salePrice') or 0
+                    parts.append(
+                        f"  - Tên SP: {p.get('productName')}\n"
+                        f"    ID Sản phẩm: {p.get('productId')} (Dùng ID này trong thẻ PRODUCTS)\n"
+                        f"    Giá gốc: {original:,.0f} VND\n"
+                        f"    Giá SALE: {sale:,.0f} VND\n"
+                        f"    Đã bán: {p.get('soldQuantity', 0)} / {p.get('quantity', 0)}"
+                    )
+                context_parts.append("\n".join(parts))
+                
+            if not context_parts:
+                return "Hiện tại không có sản phẩm nào trong chương trình Flash Sale."
+                
+            return "\n\n".join(context_parts)
         return "Lỗi khi lấy dữ liệu Flash Sale từ hệ thống."
     except Exception as e:
         return f"Lỗi hệ thống: {str(e)}"
@@ -109,6 +143,7 @@ def check_order_status(order_id: int) -> str:
     """
     Tra cứu trạng thái đơn hàng của người dùng. Trả về thông tin trạng thái, ngày đặt và tổng tiền.
     """
+    print(f"🔧 [TOOL CALL] check_order_status | order_id: {order_id}")
     token = request_token.get()
     if not token:
         return "Để kiểm tra trạng thái đơn hàng, bạn vui lòng Đăng nhập vào website trước nhé!"
@@ -131,6 +166,7 @@ def check_user_cart() -> str:
     """
     Tra cứu danh sách sản phẩm hiện có trong giỏ hàng của người dùng.
     """
+    print(f"🔧 [TOOL CALL] check_user_cart")
     token = request_token.get()
     if not token:
         return "Bạn vui lòng Đăng nhập trên website để xem giỏ hàng của mình nhé!"
@@ -158,6 +194,7 @@ def get_product_reviews(product_id: int) -> str:
     Lấy đánh giá, nhận xét (feedback) của khách hàng khác về một sản phẩm thông qua ID.
     Trước khi gọi, nếu người dùng đưa tên sản phẩm, hãy thử dùng tool search_products_by_keyword lấy được ID của sản phẩm trước.
     """
+    print(f"🔧 [TOOL CALL] get_product_reviews | product_id: {product_id}")
     try:
         res = requests.get(f"{BASE_API_URL}/review/{product_id}?size=3", timeout=5)
         if res.status_code == 200:
@@ -175,6 +212,7 @@ def get_store_policies() -> str:
     """
     Lấy thông tin chính sách của cửa hàng: bảo hành, đổi trả, phí giao hàng (ship), hàng chính hãng.
     """
+    print(f"🔧 [TOOL CALL] get_store_policies")
     return (
         "Dưới đây là chính sách của GlowSkin:\n"
         "- Đổi trả miễn phí trong vòng 7 ngày đối với lỗi nhà sản xuất hoặc gây kích ứng da nặng.\n"
@@ -187,6 +225,7 @@ def recommend_skincare_routine(skin_type: str) -> str:
     """
     Tư vấn quy trình (routine) chăm sóc da cơ bản dựa trên tình trạng da khách hàng (VD: Da dầu, da mụn, da khô, da nhạy cảm...).
     """
+    print(f"🔧 [TOOL CALL] recommend_skincare_routine | skin_type: '{skin_type}'")
     skin = skin_type.lower()
     if "dầu" in skin or "mụn" in skin:
         return (

@@ -9,6 +9,7 @@ public class FlashSaleProductResponse {
 
     private Long id;
     private Long variantId;
+    private Long productId;
     private String productName;
     private BigDecimal originalPrice;
     private BigDecimal salePrice;

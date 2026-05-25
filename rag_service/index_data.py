@@ -16,7 +16,18 @@ def sync_products():
         page_products = response.json()["content"]
         if page_products == []:
             break
-        products.extend(page_products)
+        
+        for p in page_products:
+            cat_name = p.get('categoryName') or (p.get('category', {}).get('name') if isinstance(p.get('category'), dict) else None)
+            brand_name = p.get('brandName') or None
+            
+            products.append({
+                "id": p.get("id"),
+                "name": p.get("name"),
+                "description": p.get("description"),
+                "category": cat_name,
+                "brand": brand_name
+            })
     
     # products = [
     #     {"id": 1, "name": "iPhone 15 Pro", "description": "Màn hình OLED 6.1 inch, chip A17 Pro"},
