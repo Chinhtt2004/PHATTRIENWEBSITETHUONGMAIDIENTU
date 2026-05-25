@@ -17,8 +17,54 @@ import {
   Gift,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { LucideIcon } from "lucide-react";
 
-const slides = [
+// Map tên icon (string từ DB) → Lucide component
+const iconMap: Record<string, LucideIcon> = {
+  Droplets,
+  Sun,
+  Sparkles,
+  Heart,
+  Flower2,
+  Palette,
+  ShieldCheck,
+  Gift,
+};
+
+interface Slide {
+  id: number;
+  title: string;
+  subtitle: string;
+  cta: string;
+  href: string;
+  image: string;
+  gradient: string;
+  accent?: string;
+  decorations?: string[];
+}
+
+interface SideBanner {
+  title: string;
+  subtitle: string;
+  href: string;
+  image: string;
+  gradient: string;
+  accent?: string;
+}
+
+interface QuickLinkData {
+  iconName: string;
+  label: string;
+  href: string;
+}
+
+interface PromotionalSlideProps {
+  slides?: Slide[];
+  sideBanners?: SideBanner[];
+  quickLinks?: QuickLinkData[];
+}
+
+const defaultSlides: Slide[] = [
   {
     id: 1,
     title: "Flash Sale Mùa Hè",
@@ -69,7 +115,7 @@ const slides = [
   },
 ];
 
-const sideBanners = [
+const defaultSideBanners: SideBanner[] = [
   {
     title: "Mua 2 Tặng 1",
     subtitle: "Mặt nạ & Serum",
@@ -90,18 +136,18 @@ const sideBanners = [
   },
 ];
 
-const quickLinks = [
-  { icon: Droplets, label: "Chăm sóc da", href: "/category/cham-soc-da" },
-  { icon: Sun, label: "Chống nắng", href: "/category/chong-nang" },
-  { icon: Sparkles, label: "Làm sạch", href: "/category/lam-sach" },
-  { icon: Heart, label: "Trang điểm", href: "/category/trang-diem" },
-  { icon: Flower2, label: "Chăm sóc tóc", href: "/category/cham-soc-toc" },
-  { icon: Palette, label: "Cơ thể", href: "/category/cham-soc-co-the" },
-  { icon: ShieldCheck, label: "Sản phẩm", href: "/products" },
-  { icon: Gift, label: "Voucher", href: "/vouchers" },
+const defaultQuickLinks: QuickLinkData[] = [
+  { iconName: "Droplets", label: "Chăm sóc da", href: "/category/cham-soc-da" },
+  { iconName: "Sun", label: "Chống nắng", href: "/category/chong-nang" },
+  { iconName: "Sparkles", label: "Làm sạch", href: "/category/lam-sach" },
+  { iconName: "Heart", label: "Trang điểm", href: "/category/trang-diem" },
+  { iconName: "Flower2", label: "Chăm sóc tóc", href: "/category/cham-soc-toc" },
+  { iconName: "Palette", label: "Cơ thể", href: "/category/cham-soc-co-the" },
+  { iconName: "ShieldCheck", label: "Sản phẩm", href: "/products" },
+  { iconName: "Gift", label: "Voucher", href: "/vouchers" },
 ];
 
-export function PromotionalSlide() {
+export function PromotionalSlide({ slides = defaultSlides, sideBanners = defaultSideBanners, quickLinks = defaultQuickLinks }: PromotionalSlideProps) {
   const [current, setCurrent] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
 
@@ -273,7 +319,7 @@ export function PromotionalSlide() {
         {/* Quick link icons */}
         <div className="mt-4 grid grid-cols-4 sm:grid-cols-8 gap-2">
           {quickLinks.map((item) => {
-            const Icon = item.icon;
+            const Icon = iconMap[item.iconName] || ShieldCheck;
             return (
               <Link
                 key={item.label}

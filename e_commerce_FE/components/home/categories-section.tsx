@@ -10,16 +10,64 @@ import {
   CarouselItem,
   type CarouselApi,
 } from "@/components/ui/carousel";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import Autoplay from "embla-carousel-autoplay";
 import { fetchCategories } from "@/lib/api";
 
-export function CategoriesSection() {
+type CategoriesSectionProps = {
+  title?: string;
+  description?: string;
+  categoryIds?: Array<string | number>;
+  limit?: number | string | null;
+  showProductCount?: boolean;
+  showNavigation?: boolean;
+  showDots?: boolean;
+  autoplay?: boolean;
+  autoplayDelay?: number | string | null;
+  onlyRootCategories?: boolean;
+};
+
+export function CategoriesSection({
+  title = "Danh muc san pham",
+  description = "Kham pha cac danh muc san pham dang co tren website.",
+  categoryIds = [],
+  limit,
+  showProductCount = true,
+  showNavigation = true,
+  showDots = true,
+  autoplay = true,
+  autoplayDelay = 3000,
+  onlyRootCategories = false,
+}: CategoriesSectionProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
+
+  const selectedCategoryIds = useMemo(
+    () => new Set(categoryIds.map((id) => String(id)).filter(Boolean)),
+    [categoryIds]
+  );
+  const parsedLimit = Number(limit);
+  const categoryLimit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : undefined;
+  const parsedAutoplayDelay = Number(autoplayDelay);
+  const safeAutoplayDelay =
+    Number.isFinite(parsedAutoplayDelay) && parsedAutoplayDelay >= 500 ? parsedAutoplayDelay : 3000;
+
+  const visibleCategories = useMemo(() => {
+    let items = categories;
+
+    if (onlyRootCategories) {
+      items = items.filter((category) => !category.parentId);
+    }
+
+    if (selectedCategoryIds.size > 0) {
+      items = items.filter((category) => selectedCategoryIds.has(category.id));
+    }
+
+    return categoryLimit ? items.slice(0, categoryLimit) : items;
+  }, [categories, categoryLimit, onlyRootCategories, selectedCategoryIds]);
 
   useEffect(() => {
     let cancelled = false;
@@ -31,10 +79,18 @@ export function CategoriesSection() {
 
   useEffect(() => {
     if (!api) return;
-    setCount(api.scrollSnapList().length);
-    setCurrent(api.selectedScrollSnap());
-    api.on("select", () => setCurrent(api.selectedScrollSnap()));
-  }, [api]);
+    const updateCarouselState = () => {
+      setCount(api.scrollSnapList().length);
+      setCurrent(api.selectedScrollSnap());
+    };
+    updateCarouselState();
+    api.on("select", updateCarouselState);
+    api.on("reInit", updateCarouselState);
+    return () => {
+      api.off("select", updateCarouselState);
+      api.off("reInit", updateCarouselState);
+    };
+  }, [api, visibleCategories.length]);
 
   const scrollPrev = useCallback(() => api?.scrollPrev(), [api]);
   const scrollNext = useCallback(() => api?.scrollNext(), [api]);
@@ -50,14 +106,16 @@ export function CategoriesSection() {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
           <div>
             <h2 className="font-serif text-3xl md:text-4xl font-bold mb-2">
-              Danh Mục Sản Phẩm
+              {title}
             </h2>
-            <p className="text-muted-foreground max-w-2xl">
-              Khám phá các danh mục sản phẩm đa dạng, từ chăm sóc da đến trang điểm,
-              giúp bạn tìm được sản phẩm phù hợp nhất.
-            </p>
+            {description && (
+              <p className="text-muted-foreground max-w-2xl">
+                {description}
+              </p>
+            )}
           </div>
           {/* Navigation Arrows */}
+          {showNavigation && (
           <div className="flex items-center gap-2 self-start sm:self-auto">
             <button
               onClick={scrollPrev}
@@ -74,6 +132,7 @@ export function CategoriesSection() {
               <ChevronRight className="h-5 w-5" />
             </button>
           </div>
+          )}
         </div>
 
         {/* Categories Carousel */}
@@ -83,13 +142,13 @@ export function CategoriesSection() {
             align: "start",
             loop: true,
           }}
-          plugins={[
-            Autoplay({ delay: 3000, stopOnInteraction: false, stopOnMouseEnter: true }),
-          ]}
+          plugins={autoplay ? [
+            Autoplay({ delay: safeAutoplayDelay, stopOnInteraction: false, stopOnMouseEnter: true }),
+          ] : []}
           className="w-full"
         >
           <CarouselContent className="-ml-4">
-            {categories.map((category, index) => (
+            {visibleCategories.map((category, index) => (
               <CarouselItem
                 key={category.id}
                 className="pl-4 basis-1/2 md:basis-1/3 lg:basis-1/4 xl:basis-1/5"
@@ -116,10 +175,12 @@ export function CategoriesSection() {
                     <h3 className="font-medium text-white text-lg mb-1 group-hover:text-primary-light transition-colors">
                       {category.name}
                     </h3>
-                    <p className="text-white/80 text-sm flex items-center gap-1">
-                      {category.productCount} sản phẩm
-                      <ArrowRight className="h-4 w-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-                    </p>
+                    {showProductCount && (
+                      <p className="text-white/80 text-sm flex items-center gap-1">
+                        {category.productCount} san pham
+                        <ArrowRight className="h-4 w-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                      </p>
+                    )}
                   </div>
                 </Link>
               </CarouselItem>
@@ -128,6 +189,7 @@ export function CategoriesSection() {
         </Carousel>
 
         {/* Dots */}
+        {showDots && count > 1 && (
         <div className="flex justify-center gap-1.5 mt-6">
           {Array.from({ length: count }).map((_, index) => (
             <button
@@ -141,6 +203,7 @@ export function CategoriesSection() {
             />
           ))}
         </div>
+        )}
       </div>
     </section>
   );
