@@ -1591,6 +1591,19 @@ export async function adminUpdatePageSection(id: number, data: CreatePageSection
   return ensureOk(res);
 }
 
+export async function adminUploadSectionImage(file: File): Promise<{ url: string }> {
+  const formData = new FormData();
+  formData.append("image", file);
+
+  const res = await fetch(`${API_BASE_URL}/api/admin/section/upload-image`, {
+    method: "POST",
+    body: formData,
+    credentials: "include",
+  });
+
+  return ensureOk(res);
+}
+
 export async function adminDeletePageSection(id: number): Promise<string> {
   const res = await fetch(`${API_BASE_URL}/api/admin/${id}`, {
     method: "DELETE",

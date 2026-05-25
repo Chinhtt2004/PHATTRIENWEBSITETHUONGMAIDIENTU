@@ -20,13 +20,22 @@ import {
 } from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
 import { cn } from "@/lib/utils";
+import { fetchSettings } from "@/lib/api";
+
+interface BannerItem {
+  image: string;
+  title: string;
+  subtitle: string;
+  href: string;
+}
 
 interface AdBannerProps {
   variant?: "top" | "inline";
+  banners?: BannerItem[];
 }
 
 /* ── Main promotional banners (top carousel) ── */
-const promoBanners = [
+const fallbackPromoBanners: BannerItem[] = [
   {
     image:
       "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=1200&h=500&fit=crop",
@@ -58,7 +67,7 @@ const promoBanners = [
 ];
 
 /* ── Brand items (bottom carousel row) ── */
-const brands = [
+const fallbackBrands = [
   {
     name: "La Roche-Posay",
     image:
@@ -145,8 +154,51 @@ const brands = [
   },
 ];
 
-export function AdBanner({ variant = "inline" }: AdBannerProps) {
+export function AdBanner({ variant = "inline", banners }: AdBannerProps) {
   const [isVisible, setIsVisible] = useState(true);
+  const [topBannerShow] = useState(false);
+  const [topBannerTextLeft] = useState("");
+  const [topBannerTextRight] = useState("");
+  const [topBannerLinkText] = useState("");
+  const [topBannerLinkUrl] = useState("/sale");
+  const [dynamicBrands, setDynamicBrands] = useState<any[]>(fallbackBrands);
+  const [dynamicPromoBanners, setDynamicPromoBanners] = useState<BannerItem[]>(fallbackPromoBanners);
+
+  useEffect(() => {
+    async function loadSettings() {
+      try {
+        const data = await fetchSettings();
+        const settingsMap = data.reduce((acc, curr) => {
+          acc[curr.key] = curr.value;
+          return acc;
+        }, {} as Record<string, string>);
+
+        if (settingsMap["brands_list_json"]) {
+          try {
+            const parsed = JSON.parse(settingsMap["brands_list_json"]);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setDynamicBrands(parsed);
+            }
+          } catch (e) {
+            console.error("Failed to parse dynamic brands json", e);
+          }
+        }
+        if (settingsMap["promo_banners_json"]) {
+          try {
+            const parsed = JSON.parse(settingsMap["promo_banners_json"]);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setDynamicPromoBanners(parsed);
+            }
+          } catch (e) {
+            console.error("Failed to parse dynamic promo banners json", e);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load storefront banner settings:", err);
+      }
+    }
+    loadSettings();
+  }, []);
 
   /* ── Main banner carousel state ── */
   const [bannerApi, setBannerApi] = useState<CarouselApi>();
@@ -201,7 +253,9 @@ export function AdBanner({ variant = "inline" }: AdBannerProps) {
     []
   );
 
-  if (!isVisible && variant === "top") return null;
+  const activeBanners = banners && banners.length > 0 ? banners : dynamicPromoBanners;
+
+  if ((!isVisible || !topBannerShow) && variant === "top") return null;
 
   /* ═══════ TOP VARIANT ═══════ */
   if (variant === "top") {
@@ -220,7 +274,7 @@ export function AdBanner({ variant = "inline" }: AdBannerProps) {
             <div className="flex items-center gap-2">
               <Truck className="h-4 w-4" />
               <span className="font-medium">
-                Miễn phí vận chuyển cho đơn hàng từ 500K
+                {topBannerTextLeft}
               </span>
             </div>
             <span className="hidden sm:inline text-primary-foreground/40">
@@ -229,14 +283,14 @@ export function AdBanner({ variant = "inline" }: AdBannerProps) {
             <div className="hidden sm:flex items-center gap-2">
               <Sparkles className="h-4 w-4" />
               <span className="font-medium">
-                Giảm thêm 10% cho thành viên mới
+                {topBannerTextRight}
               </span>
             </div>
             <Link
-              href="/sale"
+              href={topBannerLinkUrl}
               className="ml-2 inline-flex items-center gap-1 rounded-full bg-white/20 px-3 py-0.5 font-semibold backdrop-blur-sm hover:bg-white/30 transition-colors"
             >
-              Xem ngay
+              {topBannerLinkText}
               <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
@@ -301,7 +355,7 @@ export function AdBanner({ variant = "inline" }: AdBannerProps) {
               className="w-full"
             >
               <CarouselContent>
-                {promoBanners.map((banner, i) => (
+                {activeBanners.map((banner, i) => (
                   <CarouselItem key={i}>
                     <Link href={banner.href} className="block">
                       <div className="relative w-full aspect-[2.4/1] overflow-hidden bg-primary-light">
@@ -383,7 +437,7 @@ export function AdBanner({ variant = "inline" }: AdBannerProps) {
               className="flex overflow-x-auto scroll-smooth"
               style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
             >
-              {brands.map((brand, i) => (
+              {dynamicBrands.map((brand, i) => (
                 <Link
                   key={i}
                   href={brand.href}

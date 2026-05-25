@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { type Category, formatPrice } from "@/lib/data";
-import { fetchCategories, fetchUserProfile, logoutUser, type UserProfileResponse, fetchProducts } from "@/lib/api";
+import { fetchCategories, fetchUserProfile, logoutUser, type UserProfileResponse, fetchProducts, fetchSettings } from "@/lib/api";
 import { useCart } from "@/contexts/cart-context";
 import { toast } from "sonner";
 import { useRouter, usePathname } from "next/navigation";
@@ -43,7 +43,20 @@ import {
 } from "@/components/ui/accordion";
 import { buildCategoryTree, cn } from "@/lib/utils";
 
-const navigation = [
+type HeaderNavItem = {
+  name: string;
+  href: string;
+  highlight?: boolean;
+};
+
+export type HeaderConfig = {
+  logoText?: string;
+  topBarText?: string;
+  showTopBar?: boolean;
+  navigation?: HeaderNavItem[];
+};
+
+const defaultNavigation: HeaderNavItem[] = [
   { name: "Trang chủ", href: "/", highlight: false },
   { name: "Sản phẩm", href: "/products", highlight: false },
   { name: "Sale", href: "/sale", highlight: true },
@@ -52,10 +65,11 @@ const navigation = [
   { name: "Liên hệ", href: "/contact", highlight: false },
 ];
 
-export function Header() {
+export function Header({ config }: { config?: HeaderConfig }) {
   const router = useRouter();
   const pathname = usePathname();
   const [categories, setCategories] = useState<Category[]>([]);
+  const [settings, setSettings] = useState<Record<string, string>>({});
   const [user, setUser] = useState<UserProfileResponse | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -64,10 +78,35 @@ export function Header() {
   const { cartItems, isLoading: isLoadingCart, loadCart, removeItem, updateQuantity } = useCart();
   const cartItemCount = cartItems.length;
 
+  const parsedNavigation = useMemo(() => {
+    if (!settings["header_navigation_json"]) return defaultNavigation;
+    try {
+      const navigation = JSON.parse(settings["header_navigation_json"]);
+      return Array.isArray(navigation) && navigation.length ? navigation : defaultNavigation;
+    } catch {
+      return defaultNavigation;
+    }
+  }, [settings]);
+
+  const logoText = config?.logoText || settings["header_logo_text"] || "GlowSkin";
+  const topBarText = config?.topBarText || settings["header_top_bar_text"] || "Mien phi van chuyen cho don hang tu 500.000d | Doi tra trong 30 ngay";
+  const showTopBar = config?.showTopBar ?? settings["header_show_top_bar"] !== "false";
+  const navigation = config?.navigation?.length ? config.navigation : parsedNavigation;
   const categoryTree = buildCategoryTree(categories);
 
   useEffect(() => {
     async function loadData() {
+      try {
+        const settingsData = await fetchSettings();
+        const settingsMap = settingsData.reduce((acc, curr) => {
+          acc[curr.key] = curr.value;
+          return acc;
+        }, {} as Record<string, string>);
+        setSettings(settingsMap);
+      } catch (error) {
+        console.error("Failed to fetch header settings:", error);
+      }
+
       // Fetch categories independently as they should be public
       try {
         const categoriesData = await fetchCategories();
@@ -173,8 +212,8 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       {/* Top bar - promotional message */}
-      <div className="bg-gradient-to-r from-primary via-rose-400/90 to-primary-hover text-primary-foreground text-center py-2 text-sm">
-        <p>Miễn phí vận chuyển cho đơn hàng từ 500.000đ | Đổi trả trong 30 ngày</p>
+      <div className={cn("bg-gradient-to-r from-primary via-rose-400/90 to-primary-hover text-primary-foreground text-center py-2 text-sm", !showTopBar && "hidden")}>
+        <p>{topBarText}</p>
       </div>
 
       <div className="container mx-auto px-4">
@@ -192,7 +231,7 @@ export function Header() {
 
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <span className="font-serif text-2xl font-bold text-primary">GlowSkin</span>
+            <span className="font-serif text-2xl font-bold text-primary">{logoText}</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -598,7 +637,7 @@ export function Header() {
       <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
         <SheetContent side="left" className="w-80">
           <SheetHeader>
-            <SheetTitle className="font-serif text-primary">GlowSkin</SheetTitle>
+            <SheetTitle className="font-serif text-primary">{logoText}</SheetTitle>
           </SheetHeader>
           <nav className="mt-8 flex flex-col gap-4">
             {navigation.map((item) => (
