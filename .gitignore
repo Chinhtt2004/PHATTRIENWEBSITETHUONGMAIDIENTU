@@ -71,3 +71,7 @@ Desktop.ini
 ### Logs ###
 logs/
 *.log
+
+.github/
+.repomixignore
+repomix-output.xml
