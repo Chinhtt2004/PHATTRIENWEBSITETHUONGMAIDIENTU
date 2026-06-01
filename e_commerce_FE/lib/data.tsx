@@ -695,7 +695,7 @@ export const brands = [
 export const testimonials = [
   {
     id: "test_001",
-    name: "Nguyen Thi Lan",
+    name: "Nguyễn Thị Lan",
     avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop",
     rating: 5,
     content: "Sản phẩm rất tuyệt vời! Da tôi sáng lên rõ rệt sau 2 tuần sử dụng Serum Vitamin C. Sẽ mua thêm.",
@@ -704,7 +704,7 @@ export const testimonials = [
   },
   {
     id: "test_002",
-    name: "Tran Minh Huong",
+    name: "Trần Minh Hương",
     avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop",
     rating: 5,
     content: "Kem dưỡng ẩm này thật sự hiệu quả. Da khô của tôi bây giờ đã căng mọng và mềm mại hơn nhiều.",
@@ -713,7 +713,7 @@ export const testimonials = [
   },
   {
     id: "test_003",
-    name: "Le Phuong Trang",
+    name: "Lê Phương Trang",
     avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop",
     rating: 4,
     content: "Giao hàng nhanh, đóng gói cẩn thận. Son lên màu rất đẹp và bền màu cả ngày.",

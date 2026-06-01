@@ -30,7 +30,7 @@ type BlogPostItem = {
 };
 
 function BrandCarousel({
-  title = "Thuong hieu doi tac dong hanh",
+  title = "Thương hiệu đối tác đồng hành",
   brands,
 }: {
   title?: string;
@@ -68,8 +68,8 @@ function BrandCarousel({
 }
 
 function RecentBlogPosts({
-  title = "Goc lam dep va chia se",
-  description = "Cap nhat xu huong lam dep va bi quyet cham soc da moi nhat.",
+  title = "Góc làm đẹp và chia sẻ",
+  description = "Cập nhật xu hướng làm đẹp và bí quyết chăm sóc da mới nhất.",
   posts,
 }: {
   title?: string;
@@ -78,25 +78,25 @@ function RecentBlogPosts({
 }) {
   const defaultPosts: BlogPostItem[] = [
     {
-      title: "Bi quyet so huu lan da cang bong",
-      excerpt: "Tim hieu quy trinh duong da don gian giup cap am sau va cai thien ve ngoai rang ro.",
+      title: "Bí quyết sở hữu làn da căng bóng",
+      excerpt: "Tìm hiểu quy trình dưỡng da đơn giản giúp cấp ẩm sâu và cải thiện vẻ ngoài rạng rỡ.",
       image: "https://images.unsplash.com/photo-1556228578-0d85b1a4d571?q=80&w=600",
-      date: "18 Thang 5, 2026",
-      readTime: "5 phut doc",
+      date: "18 Tháng 5, 2026",
+      readTime: "5 phút đọc",
     },
     {
-      title: "Top kem chong nang phu hop mua he",
-      excerpt: "Danh gia cac dong kem chong nang nhe mat, de dung va phu hop voi thoi tiet nong am.",
+      title: "Top kem chống nắng phù hợp mùa hè",
+      excerpt: "Đánh giá các dòng kem chống nắng nhẹ mặt, dễ dùng và phù hợp với thời tiết nóng ẩm.",
       image: "https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?q=80&w=600",
-      date: "15 Thang 5, 2026",
-      readTime: "4 phut doc",
+      date: "15 Tháng 5, 2026",
+      readTime: "4 phút đọc",
     },
     {
-      title: "Niacinamide trong cham soc da",
-      excerpt: "Hoat chat pho bien giup ho tro lam deu mau da va cai thien be mat da khi dung dung cach.",
+      title: "Niacinamide trong chăm sóc da",
+      excerpt: "Hoạt chất phổ biến giúp hỗ trợ làm đều màu da và cải thiện bề mặt da khi dùng đúng cách.",
       image: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?q=80&w=600",
-      date: "10 Thang 5, 2026",
-      readTime: "6 phut doc",
+      date: "10 Tháng 5, 2026",
+      readTime: "6 phút đọc",
     },
   ];
   const items = posts && posts.length > 0 ? posts : defaultPosts;
@@ -154,7 +154,7 @@ export function DynamicPage({ slug, showHeader = true, showFooter = true }: Dyna
         setPage(data);
         setError(null);
       } catch (err: any) {
-        setError(err.message || "Khong the tai trang");
+        setError(err.message || "Không thể tải trang");
       } finally {
         setLoading(false);
       }
@@ -173,8 +173,8 @@ export function DynamicPage({ slug, showHeader = true, showFooter = true }: Dyna
   if (error || !page) {
     return (
       <div className="flex h-[50vh] items-center justify-center flex-col gap-4">
-        <h1 className="text-3xl font-bold font-serif text-red-500">Trang khong hoat dong hoac khong ton tai</h1>
-        <p className="text-muted-foreground">{error || "Trang ban dang tim kiem khong ton tai."}</p>
+        <h1 className="text-3xl font-bold font-serif text-red-500">Trang không hoạt động hoặc không tồn tại</h1>
+        <p className="text-muted-foreground">{error || "Trang bạn đang tìm kiếm không tồn tại."}</p>
       </div>
     );
   }
@@ -253,7 +253,7 @@ export function DynamicPage({ slug, showHeader = true, showFooter = true }: Dyna
             return (
               <FeaturedProducts
                 key={section.id}
-                title={section.title || "San pham"}
+                title={section.title || "Sản phẩm"}
                 filter={section.configJson?.filter || "new"}
               />
             );
@@ -312,7 +312,7 @@ export function DynamicPage({ slug, showHeader = true, showFooter = true }: Dyna
             return (
               <div key={section.id} className="container mx-auto py-6 px-4">
                 <div className="p-4 bg-red-50 text-red-500 border border-red-200 rounded text-center font-mono">
-                  Khong tim thay handler cho loai Component: {section.type}
+                  Không tìm thấy handler cho loại Component: {section.type}
                 </div>
               </div>
             );

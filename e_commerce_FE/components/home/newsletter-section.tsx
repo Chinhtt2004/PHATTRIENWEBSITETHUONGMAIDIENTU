@@ -17,13 +17,13 @@ type NewsletterSectionProps = {
 };
 
 export function NewsletterSection({
-  title = "Nhan uu dai doc quyen",
-  description = "Dang ky nhan ban tin de cap nhat uu dai va xu huong lam dep moi nhat.",
-  placeholder = "Nhap email cua ban",
-  buttonLabel = "Dang ky",
-  privacyNote = "Chung toi ton trong quyen rieng tu cua ban. Huy dang ky bat cu luc nao.",
-  successTitle = "Dang ky thanh cong!",
-  successDescription = "Cam on ban da dang ky nhan tin tu GlowSkin.",
+  title = "Nhận ưu đãi độc quyền",
+  description = "Đăng ký nhận bản tin để cập nhật ưu đãi và xu hướng làm đẹp mới nhất.",
+  placeholder = "Nhập email của bạn",
+  buttonLabel = "Đăng ký",
+  privacyNote = "Chúng tôi tôn trọng quyền riêng tư của bạn. Hủy đăng ký bất cứ lúc nào.",
+  successTitle = "Đăng ký thành công!",
+  successDescription = "Cảm ơn bạn đã đăng ký nhận tin từ GlowSkin.",
 }: NewsletterSectionProps) {
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -82,7 +82,7 @@ export function NewsletterSection({
               disabled={isSubmitting}
             >
               {isSubmitting ? (
-                "Dang xu ly..."
+                "Đang xử lý..."
               ) : (
                 <>
                   {buttonLabel}

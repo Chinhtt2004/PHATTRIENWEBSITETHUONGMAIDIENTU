@@ -89,7 +89,7 @@ export function Header({ config }: { config?: HeaderConfig }) {
   }, [settings]);
 
   const logoText = config?.logoText || settings["header_logo_text"] || "GlowSkin";
-  const topBarText = config?.topBarText || settings["header_top_bar_text"] || "Mien phi van chuyen cho don hang tu 500.000d | Doi tra trong 30 ngay";
+  const topBarText = config?.topBarText || settings["header_top_bar_text"] || "Miễn phí vận chuyển cho đơn hàng từ 500.000đ | Đổi trả trong 30 ngày";
   const showTopBar = config?.showTopBar ?? settings["header_show_top_bar"] !== "false";
   const navigation = config?.navigation?.length ? config.navigation : parsedNavigation;
   const categoryTree = buildCategoryTree(categories);

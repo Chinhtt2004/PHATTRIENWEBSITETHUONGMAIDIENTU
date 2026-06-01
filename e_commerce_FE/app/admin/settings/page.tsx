@@ -146,48 +146,48 @@ type FooterFeatureItem = {
 };
 
 const fallbackHeaderNavigation: HeaderNavigationItem[] = [
-  { name: "Trang chu", href: "/", highlight: false },
-  { name: "San pham", href: "/products", highlight: false },
+  { name: "Trang chủ", href: "/", highlight: false },
+  { name: "Sản phẩm", href: "/products", highlight: false },
   { name: "Sale", href: "/sale", highlight: true },
   { name: "Voucher", href: "/vouchers", highlight: false },
-  { name: "Ve chung toi", href: "/about", highlight: false },
-  { name: "Lien he", href: "/contact", highlight: false },
+  { name: "Về chúng tôi", href: "/about", highlight: false },
+  { name: "Liên hệ", href: "/contact", highlight: false },
 ];
 
 const fallbackFooterLinks: Record<string, FooterColumnConfig> = {
   shop: {
-    title: "Mua sam",
+    title: "Mua sắm",
     links: [
-      { name: "Tat ca san pham", href: "/products" },
-      { name: "Cham soc da", href: "/category/cham-soc-da" },
-      { name: "Trang diem", href: "/category/trang-diem" },
-      { name: "San pham moi", href: "/products?filter=new" },
+      { name: "Tất cả sản phẩm", href: "/products" },
+      { name: "Chăm sóc da", href: "/category/cham-soc-da" },
+      { name: "Trang điểm", href: "/category/trang-diem" },
+      { name: "Sản phẩm mới", href: "/products?filter=new" },
     ],
   },
   support: {
-    title: "Ho tro",
+    title: "Hỗ trợ",
     links: [
-      { name: "Huong dan mua hang", href: "/help/how-to-buy" },
-      { name: "Van chuyen", href: "/help/shipping" },
-      { name: "Doi tra va hoan tien", href: "/help/returns" },
-      { name: "Lien he", href: "/contact" },
+      { name: "Hướng dẫn mua hàng", href: "/help/how-to-buy" },
+      { name: "Vận chuyển", href: "/help/shipping" },
+      { name: "Đổi trả và hoàn tiền", href: "/help/returns" },
+      { name: "Liên hệ", href: "/contact" },
     ],
   },
   company: {
-    title: "Ve chung toi",
+    title: "Về chúng tôi",
     links: [
-      { name: "Gioi thieu", href: "/about" },
-      { name: "Dieu khoan su dung", href: "/terms" },
-      { name: "Chinh sach bao mat", href: "/privacy" },
+      { name: "Giới thiệu", href: "/about" },
+      { name: "Điều khoản sử dụng", href: "/terms" },
+      { name: "Chính sách bảo mật", href: "/privacy" },
     ],
   },
 };
 
 const fallbackFooterFeatures: FooterFeatureItem[] = [
-  { iconName: "Truck", title: "Mien phi van chuyen", description: "Don hang tu 500.000d" },
-  { iconName: "RotateCcw", title: "Doi tra 30 ngay", description: "Khong can ly do" },
-  { iconName: "Shield", title: "Chinh hang 100%", description: "Cam ket chat luong" },
-  { iconName: "CreditCard", title: "Thanh toan an toan", description: "Bao mat tuyet doi" },
+  { iconName: "Truck", title: "Miễn phí vận chuyển", description: "Đơn hàng từ 500.000đ" },
+  { iconName: "RotateCcw", title: "Đổi trả 30 ngày", description: "Không cần lý do" },
+  { iconName: "Shield", title: "Chính hãng 100%", description: "Cam kết chất lượng" },
+  { iconName: "CreditCard", title: "Thanh toán an toàn", description: "Bảo mật tuyệt đối" },
 ];
 
 const footerFeatureIconOptions = ["Truck", "RotateCcw", "Shield", "CreditCard"];
@@ -283,13 +283,13 @@ export default function AdminSettingsPage() {
       // Set defaults for banner/brand settings if they don't exist
       if (!settingsMap["header_logo_text"]) settingsMap["header_logo_text"] = settingsMap["store_name"] || "GlowSkin";
       if (settingsMap["header_show_top_bar"] === undefined) settingsMap["header_show_top_bar"] = "true";
-      if (!settingsMap["header_top_bar_text"]) settingsMap["header_top_bar_text"] = "Mien phi van chuyen cho don hang tu 500.000d | Doi tra trong 30 ngay";
+      if (!settingsMap["header_top_bar_text"]) settingsMap["header_top_bar_text"] = "Miễn phí vận chuyển cho đơn hàng từ 500.000đ | Đổi trả trong 30 ngày";
       if (!settingsMap["header_navigation_json"]) settingsMap["header_navigation_json"] = JSON.stringify(fallbackHeaderNavigation, null, 2);
       if (settingsMap["footer_show_newsletter"] === undefined) settingsMap["footer_show_newsletter"] = "true";
-      if (!settingsMap["footer_newsletter_title"]) settingsMap["footer_newsletter_title"] = "Dang ky nhan tin";
-      if (!settingsMap["footer_newsletter_description"]) settingsMap["footer_newsletter_description"] = "Nhan uu dai doc quyen va cap nhat xu huong lam dep moi nhat.";
-      if (!settingsMap["footer_newsletter_placeholder"]) settingsMap["footer_newsletter_placeholder"] = "Email cua ban";
-      if (!settingsMap["footer_newsletter_button"]) settingsMap["footer_newsletter_button"] = "Dang ky";
+      if (!settingsMap["footer_newsletter_title"]) settingsMap["footer_newsletter_title"] = "Đăng ký nhận tin";
+      if (!settingsMap["footer_newsletter_description"]) settingsMap["footer_newsletter_description"] = "Nhận ưu đãi độc quyền và cập nhật xu hướng làm đẹp mới nhất.";
+      if (!settingsMap["footer_newsletter_placeholder"]) settingsMap["footer_newsletter_placeholder"] = "Email của bạn";
+      if (!settingsMap["footer_newsletter_button"]) settingsMap["footer_newsletter_button"] = "Đăng ký";
       if (!settingsMap["social_facebook_url"]) settingsMap["social_facebook_url"] = "https://facebook.com";
       if (!settingsMap["social_instagram_url"]) settingsMap["social_instagram_url"] = "https://instagram.com";
       if (!settingsMap["social_youtube_url"]) settingsMap["social_youtube_url"] = "https://youtube.com";
@@ -380,8 +380,8 @@ export default function AdminSettingsPage() {
     updateFooterLinks({
       ...footerLinks,
       [key]: {
-        title: "Cot moi",
-        links: [{ name: "Lien ket moi", href: "/" }],
+        title: "Cột mới",
+        links: [{ name: "Liên kết mới", href: "/" }],
       },
     });
   };
@@ -437,7 +437,7 @@ export default function AdminSettingsPage() {
       await Promise.all(savePromises);
       toast.success("Đã lưu tất cả thay đổi");
     } catch (error) {
-      toast.error(error instanceof SyntaxError ? "JSON header/footer khong hop le" : "Lưu cấu hình thất bại");
+      toast.error(error instanceof SyntaxError ? "JSON header/footer không hợp lệ" : "Lưu cấu hình thất bại");
     } finally {
       setIsSaving(false);
     }
@@ -624,15 +624,15 @@ export default function AdminSettingsPage() {
         <TabsContent value="header" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Cau hinh Header</CardTitle>
+              <CardTitle className="text-lg">Cấu hình Header</CardTitle>
               <CardDescription>
-                Dieu khien logo, thanh thong bao va menu hien thi tren storefront.
+                Điều khiển logo, thanh thông báo và menu hiển thị trên storefront.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="headerLogoText">Ten logo</Label>
+                  <Label htmlFor="headerLogoText">Tên logo</Label>
                   <Input
                     id="headerLogoText"
                     value={settings["header_logo_text"] || ""}
@@ -642,9 +642,9 @@ export default function AdminSettingsPage() {
                 </div>
                 <div className="flex items-center justify-between rounded-lg border p-4">
                   <div>
-                    <Label>Hien thi top bar</Label>
+                    <Label>Hiển thị top bar</Label>
                     <p className="text-sm text-muted-foreground">
-                      Bat/tat dong thong bao tren cung cua Header.
+                      Bật/tắt dòng thông báo trên cùng của Header.
                     </p>
                   </div>
                   <Switch
@@ -655,12 +655,12 @@ export default function AdminSettingsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="headerTopBarText">Noi dung top bar</Label>
+                <Label htmlFor="headerTopBarText">Nội dung top bar</Label>
                 <Input
                   id="headerTopBarText"
                   value={settings["header_top_bar_text"] || ""}
                   onChange={(e) => handleInputChange("header_top_bar_text", e.target.value)}
-                  placeholder="Mien phi van chuyen cho don hang tu 500.000d"
+                  placeholder="Miễn phí vận chuyển cho đơn hàng từ 500.000đ"
                   disabled={settings["header_show_top_bar"] === "false"}
                 />
               </div>
@@ -672,7 +672,7 @@ export default function AdminSettingsPage() {
               <div>
                 <CardTitle className="text-lg">Menu dieu huong</CardTitle>
                 <CardDescription>
-                  Sap xep, them bot va danh dau menu noi bat tren Header.
+                  Sắp xếp, thêm bớt và đánh dấu menu nổi bật trên Header.
                 </CardDescription>
               </div>
               <Badge variant="secondary">{headerNavigation.length} menu</Badge>
@@ -681,7 +681,7 @@ export default function AdminSettingsPage() {
               {headerNavigation.map((item, index) => (
                 <div key={`${item.name}-${item.href}-${index}`} className="grid gap-3 rounded-lg border bg-muted/10 p-3 lg:grid-cols-[1fr_1fr_auto_auto]">
                   <div className="space-y-2">
-                    <Label className="text-xs">Ten menu</Label>
+                    <Label className="text-xs">Tên menu</Label>
                     <Input
                       value={item.name}
                       onChange={(e) => {
@@ -689,11 +689,11 @@ export default function AdminSettingsPage() {
                         next[index] = { ...item, name: e.target.value };
                         updateHeaderNavigation(next);
                       }}
-                      placeholder="San pham"
+                      placeholder="Sản phẩm"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs">Duong dan</Label>
+                    <Label className="text-xs">Đường dẫn</Label>
                     <Input
                       value={item.href}
                       onChange={(e) => {
@@ -713,7 +713,7 @@ export default function AdminSettingsPage() {
                         updateHeaderNavigation(next);
                       }}
                     />
-                    <span className="text-xs text-muted-foreground">Noi bat</span>
+                    <span className="text-xs text-muted-foreground">Nổi bật</span>
                   </div>
                   <div className="flex items-end justify-end gap-1">
                     <Button
@@ -722,7 +722,7 @@ export default function AdminSettingsPage() {
                       size="icon"
                       onClick={() => moveHeaderItem(index, -1)}
                       disabled={index === 0}
-                      aria-label="Dua menu len"
+                      aria-label="Đưa menu lên"
                     >
                       <ArrowUp className="h-4 w-4" />
                     </Button>
@@ -732,7 +732,7 @@ export default function AdminSettingsPage() {
                       size="icon"
                       onClick={() => moveHeaderItem(index, 1)}
                       disabled={index === headerNavigation.length - 1}
-                      aria-label="Dua menu xuong"
+                      aria-label="Đưa menu xuống"
                     >
                       <ArrowDown className="h-4 w-4" />
                     </Button>
@@ -742,7 +742,7 @@ export default function AdminSettingsPage() {
                       size="icon"
                       className="text-destructive hover:text-destructive"
                       onClick={() => updateHeaderNavigation(headerNavigation.filter((_, itemIndex) => itemIndex !== index))}
-                      aria-label="Xoa menu"
+                      aria-label="Xóa menu"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -754,16 +754,16 @@ export default function AdminSettingsPage() {
                 type="button"
                 variant="outline"
                 className="w-full"
-                onClick={() => updateHeaderNavigation([...headerNavigation, { name: "Menu moi", href: "/", highlight: false }])}
+                onClick={() => updateHeaderNavigation([...headerNavigation, { name: "Menu mới", href: "/", highlight: false }])}
               >
                 <Plus className="mr-2 h-4 w-4" />
-                Them menu
+                Thêm menu
               </Button>
 
               <Separator />
 
               <div className="space-y-2">
-                <Label htmlFor="headerNavigationJson">JSON menu nang cao</Label>
+                <Label htmlFor="headerNavigationJson">JSON menu nâng cao</Label>
                 <Textarea
                   id="headerNavigationJson"
                   className="h-40 font-mono text-xs"
@@ -778,15 +778,15 @@ export default function AdminSettingsPage() {
         <TabsContent value="footer" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Thong tin Footer</CardTitle>
+              <CardTitle className="text-lg">Thông tin Footer</CardTitle>
               <CardDescription>
-                Cac thong tin nay duoc Footer storefront doc truc tiep tu settings.
+                Các thông tin này được Footer storefront đọc trực tiếp từ settings.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="footerStoreName">Ten cua hang</Label>
+                  <Label htmlFor="footerStoreName">Tên cửa hàng</Label>
                   <Input
                     id="footerStoreName"
                     value={settings["store_name"] || ""}
@@ -795,7 +795,7 @@ export default function AdminSettingsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="footerPaymentMethods">Phuong thuc thanh toan</Label>
+                  <Label htmlFor="footerPaymentMethods">Phương thức thanh toán</Label>
                   <Input
                     id="footerPaymentMethods"
                     value={settings["footer_payment_methods"] || ""}
@@ -807,7 +807,7 @@ export default function AdminSettingsPage() {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="footerContactEmail">Email lien he</Label>
+                  <Label htmlFor="footerContactEmail">Email liên hệ</Label>
                   <Input
                     id="footerContactEmail"
                     type="email"
@@ -817,7 +817,7 @@ export default function AdminSettingsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="footerContactPhone">So dien thoai</Label>
+                  <Label htmlFor="footerContactPhone">Số điện thoại</Label>
                   <Input
                     id="footerContactPhone"
                     value={settings["contact_phone"] || ""}
@@ -828,7 +828,7 @@ export default function AdminSettingsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="footerStoreAddress">Dia chi</Label>
+                <Label htmlFor="footerStoreAddress">Địa chỉ</Label>
                 <Textarea
                   id="footerStoreAddress"
                   value={settings["store_address"] || ""}
@@ -838,7 +838,7 @@ export default function AdminSettingsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="footerStoreDescription">Mo ta cua hang</Label>
+                <Label htmlFor="footerStoreDescription">Mô tả cửa hàng</Label>
                 <Textarea
                   id="footerStoreDescription"
                   value={settings["store_description"] || ""}
@@ -851,14 +851,14 @@ export default function AdminSettingsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Newsletter va mang xa hoi</CardTitle>
+              <CardTitle className="text-lg">Newsletter và mạng xã hội</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between rounded-lg border p-4">
                 <div>
-                  <Label>Hien thi newsletter</Label>
+                  <Label>Hiển thị newsletter</Label>
                   <p className="text-sm text-muted-foreground">
-                    Bat/tat form dang ky email trong Footer.
+                    Bật/tắt form đăng ký email trong Footer.
                   </p>
                 </div>
                 <Switch
@@ -869,7 +869,7 @@ export default function AdminSettingsPage() {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="footerNewsletterTitle">Tieu de newsletter</Label>
+                  <Label htmlFor="footerNewsletterTitle">Tiêu đề newsletter</Label>
                   <Input
                     id="footerNewsletterTitle"
                     value={settings["footer_newsletter_title"] || ""}
@@ -878,7 +878,7 @@ export default function AdminSettingsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="footerNewsletterButton">Nut dang ky</Label>
+                  <Label htmlFor="footerNewsletterButton">Nút đăng ký</Label>
                   <Input
                     id="footerNewsletterButton"
                     value={settings["footer_newsletter_button"] || ""}
@@ -889,7 +889,7 @@ export default function AdminSettingsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="footerNewsletterDescription">Mo ta newsletter</Label>
+                <Label htmlFor="footerNewsletterDescription">Mô tả newsletter</Label>
                 <Textarea
                   id="footerNewsletterDescription"
                   value={settings["footer_newsletter_description"] || ""}
@@ -946,19 +946,19 @@ export default function AdminSettingsPage() {
           <Card>
             <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <CardTitle className="text-lg">Cot link Footer</CardTitle>
+                <CardTitle className="text-lg">Cột link Footer</CardTitle>
                 <CardDescription>
-                  Quan ly cac nhom link hien thi o ben phai Footer.
+                  Quản lý các nhóm link hiển thị ở bên phải Footer.
                 </CardDescription>
               </div>
-              <Badge variant="secondary">{Object.keys(footerLinks).length} cot</Badge>
+              <Badge variant="secondary">{Object.keys(footerLinks).length} cột</Badge>
             </CardHeader>
             <CardContent className="space-y-4">
               {Object.entries(footerLinks).map(([columnKey, column]) => (
                 <div key={columnKey} className="rounded-lg border bg-muted/10 p-4">
                   <div className="mb-4 flex items-center justify-between gap-3">
                     <div className="space-y-1">
-                      <Label className="text-xs">Tieu de cot</Label>
+                      <Label className="text-xs">Tiêu đề cột</Label>
                       <Input
                         value={column.title}
                         onChange={(e) => {
@@ -967,7 +967,7 @@ export default function AdminSettingsPage() {
                             [columnKey]: { ...column, title: e.target.value },
                           });
                         }}
-                        placeholder="Ho tro"
+                        placeholder="Hỗ trợ"
                       />
                     </div>
                     <Button
@@ -980,7 +980,7 @@ export default function AdminSettingsPage() {
                         delete next[columnKey];
                         updateFooterLinks(next);
                       }}
-                      aria-label="Xoa cot footer"
+                      aria-label="Xóa cột footer"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -1000,7 +1000,7 @@ export default function AdminSettingsPage() {
                               [columnKey]: { ...column, links: nextLinks },
                             });
                           }}
-                          placeholder="Ten link"
+                          placeholder="Tên link"
                         />
                         <Input
                           value={link.href}
@@ -1029,7 +1029,7 @@ export default function AdminSettingsPage() {
                               },
                             });
                           }}
-                          aria-label="Xoa link footer"
+                          aria-label="Xóa link footer"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -1047,20 +1047,20 @@ export default function AdminSettingsPage() {
                         ...footerLinks,
                         [columnKey]: {
                           ...column,
-                          links: [...column.links, { name: "Lien ket moi", href: "/" }],
+                          links: [...column.links, { name: "Liên kết mới", href: "/" }],
                         },
                       });
                     }}
                   >
                     <Plus className="mr-2 h-4 w-4" />
-                    Them link
+                    Thêm link
                   </Button>
                 </div>
               ))}
 
               <Button type="button" variant="outline" className="w-full" onClick={addFooterColumn}>
                 <Plus className="mr-2 h-4 w-4" />
-                Them cot link
+                Thêm cột link
               </Button>
             </CardContent>
           </Card>
@@ -1068,12 +1068,12 @@ export default function AdminSettingsPage() {
           <Card>
             <CardHeader className="gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <CardTitle className="text-lg">Thanh loi ich Footer</CardTitle>
+                <CardTitle className="text-lg">Thanh lợi ích Footer</CardTitle>
                 <CardDescription>
-                  Cac cam ket dich vu hien thi o hang dau cua Footer.
+                  Các cam kết dịch vụ hiển thị ở hàng đầu của Footer.
                 </CardDescription>
               </div>
-              <Badge variant="secondary">{footerFeatures.length} muc</Badge>
+              <Badge variant="secondary">{footerFeatures.length} mục</Badge>
             </CardHeader>
             <CardContent className="space-y-3">
               {footerFeatures.map((feature, index) => (
@@ -1104,7 +1104,7 @@ export default function AdminSettingsPage() {
                       next[index] = { ...feature, title: e.target.value };
                       updateFooterFeatures(next);
                     }}
-                    placeholder="Mien phi van chuyen"
+                    placeholder="Miễn phí vận chuyển"
                   />
                   <Input
                     value={feature.description}
@@ -1113,7 +1113,7 @@ export default function AdminSettingsPage() {
                       next[index] = { ...feature, description: e.target.value };
                       updateFooterFeatures(next);
                     }}
-                    placeholder="Don hang tu 500.000d"
+                    placeholder="Đơn hàng từ 500.000đ"
                   />
                   <div className="flex justify-end gap-1">
                     <Button
@@ -1122,7 +1122,7 @@ export default function AdminSettingsPage() {
                       size="icon"
                       onClick={() => moveFooterFeature(index, -1)}
                       disabled={index === 0}
-                      aria-label="Dua muc len"
+                      aria-label="Đưa mục lên"
                     >
                       <ArrowUp className="h-4 w-4" />
                     </Button>
@@ -1132,7 +1132,7 @@ export default function AdminSettingsPage() {
                       size="icon"
                       onClick={() => moveFooterFeature(index, 1)}
                       disabled={index === footerFeatures.length - 1}
-                      aria-label="Dua muc xuong"
+                      aria-label="Đưa mục xuống"
                     >
                       <ArrowDown className="h-4 w-4" />
                     </Button>
@@ -1142,7 +1142,7 @@ export default function AdminSettingsPage() {
                       size="icon"
                       className="text-destructive hover:text-destructive"
                       onClick={() => updateFooterFeatures(footerFeatures.filter((_, itemIndex) => itemIndex !== index))}
-                      aria-label="Xoa muc loi ich"
+                      aria-label="Xóa mục lợi ích"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -1154,19 +1154,19 @@ export default function AdminSettingsPage() {
                 type="button"
                 variant="outline"
                 className="w-full"
-                onClick={() => updateFooterFeatures([...footerFeatures, { iconName: "Truck", title: "Loi ich moi", description: "Mo ta ngan" }])}
+                onClick={() => updateFooterFeatures([...footerFeatures, { iconName: "Truck", title: "Lợi ích mới", description: "Mô tả ngắn" }])}
               >
                 <Plus className="mr-2 h-4 w-4" />
-                Them loi ich
+                Thêm lợi ích
               </Button>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">JSON nang cao</CardTitle>
+              <CardTitle className="text-lg">JSON nâng cao</CardTitle>
               <CardDescription>
-                Dung khi can copy/paste cau hinh Footer tu nguon khac.
+                Dùng khi cần copy/paste cấu hình Footer từ nguồn khác.
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 lg:grid-cols-2">

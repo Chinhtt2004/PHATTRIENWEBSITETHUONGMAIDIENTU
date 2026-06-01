@@ -107,94 +107,94 @@ interface BlogPostItem {
 }
 
 const defaultHeaderNavItems: HeaderNavItem[] = [
-  { name: "Trang chu", href: "/", highlight: false },
-  { name: "San pham", href: "/products", highlight: false },
+  { name: "Trang chủ", href: "/", highlight: false },
+  { name: "Sản phẩm", href: "/products", highlight: false },
   { name: "Sale", href: "/sale", highlight: true },
   { name: "Voucher", href: "/vouchers", highlight: false },
-  { name: "Ve chung toi", href: "/about", highlight: false },
-  { name: "Lien he", href: "/contact", highlight: false },
+  { name: "Về chúng tôi", href: "/about", highlight: false },
+  { name: "Liên hệ", href: "/contact", highlight: false },
 ];
 
 const defaultFooterLinksData: Record<string, FooterColumnItem> = {
   shop: {
-    title: "Mua sam",
+    title: "Mua sắm",
     links: [
-      { name: "Tat ca san pham", href: "/products" },
-      { name: "Cham soc da", href: "/category/cham-soc-da" },
-      { name: "Trang diem", href: "/category/trang-diem" },
-      { name: "Chong nang", href: "/category/chong-nang" },
+      { name: "Tất cả sản phẩm", href: "/products" },
+      { name: "Chăm sóc da", href: "/category/cham-soc-da" },
+      { name: "Trang điểm", href: "/category/trang-diem" },
+      { name: "Chống nắng", href: "/category/chong-nang" },
     ],
   },
   support: {
-    title: "Ho tro",
+    title: "Hỗ trợ",
     links: [
-      { name: "Huong dan mua hang", href: "/help/how-to-buy" },
-      { name: "Van chuyen", href: "/help/shipping" },
-      { name: "Lien he", href: "/contact" },
+      { name: "Hướng dẫn mua hàng", href: "/help/how-to-buy" },
+      { name: "Vận chuyển", href: "/help/shipping" },
+      { name: "Liên hệ", href: "/contact" },
     ],
   },
   company: {
-    title: "Ve chung toi",
+    title: "Về chúng tôi",
     links: [
-      { name: "Gioi thieu", href: "/about" },
-      { name: "Chinh sach bao mat", href: "/privacy" },
+      { name: "Giới thiệu", href: "/about" },
+      { name: "Chính sách bảo mật", href: "/privacy" },
     ],
   },
 };
 
 const defaultFooterFeaturesData: FooterFeatureItem[] = [
-  { iconName: "Truck", title: "Mien phi van chuyen", description: "Don hang tu 500.000d" },
-  { iconName: "RotateCcw", title: "Doi tra 30 ngay", description: "Khong can ly do" },
-  { iconName: "Shield", title: "Chinh hang 100%", description: "Cam ket chat luong" },
-  { iconName: "CreditCard", title: "Thanh toan an toan", description: "Bao mat tuyet doi" },
+  { iconName: "Truck", title: "Miễn phí vận chuyển", description: "Đơn hàng từ 500.000đ" },
+  { iconName: "RotateCcw", title: "Đổi trả 30 ngày", description: "Không cần lý do" },
+  { iconName: "Shield", title: "Chính hãng 100%", description: "Cam kết chất lượng" },
+  { iconName: "CreditCard", title: "Thanh toán an toàn", description: "Bảo mật tuyệt đối" },
 ];
 
-const defaultCategoriesSectionTitle = "Danh muc san pham";
+const defaultCategoriesSectionTitle = "Danh mục sản phẩm";
 const defaultCategoriesSectionDescription =
-  "Kham pha cac danh muc san pham dang co tren website.";
+  "Khám phá các danh mục sản phẩm đang có trên website.";
 
-const defaultTestimonialsTitle = "Khach hang noi gi ve chung toi";
+const defaultTestimonialsTitle = "Khách hàng nói gì về chúng tôi";
 const defaultTestimonialsDescription =
-  "Nhung danh gia thuc te tu khach hang da mua sam tai cua hang.";
+  "Những đánh giá thực tế từ khách hàng đã mua sắm tại cửa hàng.";
 const defaultTestimonialItems: TestimonialItem[] = [
   {
     id: "test_001",
-    name: "Nguyen Thi Lan",
+    name: "Nguyễn Thị Lan",
     avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop",
     rating: 5,
-    content: "San pham rat tot, giao hang nhanh va dong goi can than.",
+    content: "Sản phẩm rất tốt, giao hàng nhanh và đóng gói cẩn thận.",
     product: "Serum Vitamin C 20%",
   },
   {
     id: "test_002",
-    name: "Tran Minh Huong",
+    name: "Trần Minh Hương",
     avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop",
     rating: 5,
-    content: "Tu van ro rang, san pham dung mo ta va rat hop voi da cua toi.",
-    product: "Kem duong am Hyaluronic Acid",
+    content: "Tư vấn rõ ràng, sản phẩm đúng mô tả và rất hợp với da của tôi.",
+    product: "Kem dưỡng ẩm Hyaluronic Acid",
   },
   {
     id: "test_003",
-    name: "Le Phuong Trang",
+    name: "Lê Phương Trang",
     avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop",
     rating: 4,
-    content: "Trai nghiem mua hang tot, se tiep tuc ung ho cua hang.",
-    product: "Son moi li Velvet",
+    content: "Trải nghiệm mua hàng tốt, sẽ tiếp tục ủng hộ cửa hàng.",
+    product: "Son môi lì Velvet",
   },
 ];
 
-const defaultNewsletterTitle = "Nhan uu dai doc quyen";
+const defaultNewsletterTitle = "Nhận ưu đãi độc quyền";
 const defaultNewsletterDescription =
-  "Dang ky nhan ban tin de cap nhat uu dai va xu huong lam dep moi nhat.";
-const defaultNewsletterPlaceholder = "Nhap email cua ban";
-const defaultNewsletterButton = "Dang ky";
+  "Đăng ký nhận bản tin để cập nhật ưu đãi và xu hướng làm đẹp mới nhất.";
+const defaultNewsletterPlaceholder = "Nhập email của bạn";
+const defaultNewsletterButton = "Đăng ký";
 const defaultNewsletterPrivacyNote =
-  "Chung toi ton trong quyen rieng tu cua ban. Huy dang ky bat cu luc nao.";
-const defaultNewsletterSuccessTitle = "Dang ky thanh cong!";
+  "Chúng tôi tôn trọng quyền riêng tư của bạn. Hủy đăng ký bất cứ lúc nào.";
+const defaultNewsletterSuccessTitle = "Đăng ký thành công!";
 const defaultNewsletterSuccessDescription =
-  "Cam on ban da dang ky nhan tin tu GlowSkin.";
+  "Cảm ơn bạn đã đăng ký nhận tin từ GlowSkin.";
 
-const defaultBrandCarouselTitle = "Thuong hieu doi tac dong hanh";
+const defaultBrandCarouselTitle = "Thương hiệu đối tác đồng hành";
 const defaultBrandItems: BrandCarouselItem[] = [
   { name: "Lancome", logo: "https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?w=120&auto=format&fit=crop&q=60" },
   { name: "Estee Lauder", logo: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=120&auto=format&fit=crop&q=60" },
@@ -204,30 +204,30 @@ const defaultBrandItems: BrandCarouselItem[] = [
   { name: "L'Oreal", logo: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=120&auto=format&fit=crop&q=60" },
 ];
 
-const defaultBlogTitle = "Goc lam dep va chia se";
+const defaultBlogTitle = "Góc làm đẹp và chia sẻ";
 const defaultBlogDescription =
-  "Cap nhat xu huong lam dep va bi quyet cham soc da moi nhat.";
+  "Cập nhật xu hướng làm đẹp và bí quyết chăm sóc da mới nhất.";
 const defaultBlogPosts: BlogPostItem[] = [
   {
-    title: "Bi quyet so huu lan da cang bong",
-    excerpt: "Tim hieu quy trinh duong da don gian giup cap am sau va cai thien ve ngoai rang ro.",
+    title: "Bí quyết sở hữu làn da căng bóng",
+    excerpt: "Tìm hiểu quy trình dưỡng da đơn giản giúp cấp ẩm sâu và cải thiện vẻ ngoài rạng rỡ.",
     image: "https://images.unsplash.com/photo-1556228578-0d85b1a4d571?q=80&w=600",
-    date: "18 Thang 5, 2026",
-    readTime: "5 phut doc",
+    date: "18 Tháng 5, 2026",
+    readTime: "5 phút đọc",
   },
   {
-    title: "Top kem chong nang phu hop mua he",
-    excerpt: "Danh gia cac dong kem chong nang nhe mat, de dung va phu hop voi thoi tiet nong am.",
+    title: "Top kem chống nắng phù hợp mùa hè",
+    excerpt: "Đánh giá các dòng kem chống nắng nhẹ mặt, dễ dùng và phù hợp với thời tiết nóng ẩm.",
     image: "https://images.unsplash.com/photo-1608248597279-f99d160bfcbc?q=80&w=600",
-    date: "15 Thang 5, 2026",
-    readTime: "4 phut doc",
+    date: "15 Tháng 5, 2026",
+    readTime: "4 phút đọc",
   },
   {
-    title: "Niacinamide trong cham soc da",
-    excerpt: "Hoat chat pho bien giup ho tro lam deu mau da va cai thien be mat da khi dung dung cach.",
+    title: "Niacinamide trong chăm sóc da",
+    excerpt: "Hoạt chất phổ biến giúp hỗ trợ làm đều màu da và cải thiện bề mặt da khi dùng đúng cách.",
     image: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?q=80&w=600",
-    date: "10 Thang 5, 2026",
-    readTime: "6 phut doc",
+    date: "10 Tháng 5, 2026",
+    readTime: "6 phút đọc",
   },
 ];
 
@@ -332,17 +332,17 @@ function SortableTableRow({
         )}
         {json.testimonials && Array.isArray(json.testimonials) && (
           <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
-            Testimonials: {json.testimonials.length} muc
+            Testimonials: {json.testimonials.length} mục
           </Badge>
         )}
         {json.brands && Array.isArray(json.brands) && (
           <Badge variant="outline" className="bg-cyan-50 text-cyan-700 border-cyan-200">
-            Brands: {json.brands.length} muc
+            Brands: {json.brands.length} mục
           </Badge>
         )}
         {json.posts && Array.isArray(json.posts) && (
           <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">
-            Posts: {json.posts.length} muc
+            Posts: {json.posts.length} mục
           </Badge>
         )}
         {json.placeholder && (
@@ -425,19 +425,19 @@ export default function PageSectionManager() {
     heroSecondaryCtaLink: "",
     heroImage: "",
     headerLogoText: "GlowSkin",
-    headerTopBarText: "Mien phi van chuyen cho don hang tu 500.000d | Doi tra trong 30 ngay",
+    headerTopBarText: "Miễn phí vận chuyển cho đơn hàng từ 500.000đ | Đổi trả trong 30 ngày",
     headerShowTopBar: true,
     headerNavItems: defaultHeaderNavItems as HeaderNavItem[],
     footerStoreName: "GlowSkin",
-    footerStoreDescription: "Kham pha ve dep toan dien voi cac san pham my pham cao cap, chinh hang.",
-    footerStoreAddress: "123 Nguyen Hue, Quan 1, TP.HCM",
+    footerStoreDescription: "Khám phá vẻ đẹp toàn diện với các sản phẩm mỹ phẩm cao cấp, chính hãng.",
+    footerStoreAddress: "123 Nguyễn Huệ, Quận 1, TP.HCM",
     footerContactPhone: "1900 1234 56",
     footerContactEmail: "support@glowskin.vn",
     footerShowNewsletter: true,
-    footerNewsletterTitle: "Dang ky nhan tin",
-    footerNewsletterDescription: "Nhan uu dai doc quyen va cap nhat xu huong lam dep moi nhat.",
-    footerNewsletterPlaceholder: "Email cua ban",
-    footerNewsletterButton: "Dang ky",
+    footerNewsletterTitle: "Đăng ký nhận tin",
+    footerNewsletterDescription: "Nhận ưu đãi độc quyền và cập nhật xu hướng làm đẹp mới nhất.",
+    footerNewsletterPlaceholder: "Email của bạn",
+    footerNewsletterButton: "Đăng ký",
     footerSocialFacebookUrl: "https://facebook.com",
     footerSocialInstagramUrl: "https://instagram.com",
     footerSocialYoutubeUrl: "https://youtube.com",
@@ -620,7 +620,7 @@ export default function PageSectionManager() {
       const data = await fetchCategories();
       setAvailableCategories(data);
     } catch (err: any) {
-      toast.error(err.message || "Khong the tai danh muc san pham.");
+      toast.error(err.message || "Không thể tải danh mục sản phẩm.");
     } finally {
       setCategoriesLoading(false);
     }
@@ -711,19 +711,19 @@ export default function PageSectionManager() {
         heroSecondaryCtaLink: section.configJson?.secondaryCtaLink || "",
         heroImage: section.configJson?.image || "",
         headerLogoText: section.configJson?.logoText || "GlowSkin",
-        headerTopBarText: section.configJson?.topBarText || "Mien phi van chuyen cho don hang tu 500.000d | Doi tra trong 30 ngay",
+        headerTopBarText: section.configJson?.topBarText || "Miễn phí vận chuyển cho đơn hàng từ 500.000đ | Đổi trả trong 30 ngày",
         headerShowTopBar: section.configJson?.showTopBar !== false,
         headerNavItems: Array.isArray(section.configJson?.navigation) ? section.configJson.navigation : defaultHeaderNavItems,
         footerStoreName: section.configJson?.storeName || "GlowSkin",
-        footerStoreDescription: section.configJson?.storeDescription || "Kham pha ve dep toan dien voi cac san pham my pham cao cap, chinh hang.",
-        footerStoreAddress: section.configJson?.storeAddress || "123 Nguyen Hue, Quan 1, TP.HCM",
+        footerStoreDescription: section.configJson?.storeDescription || "Khám phá vẻ đẹp toàn diện với các sản phẩm mỹ phẩm cao cấp, chính hãng.",
+        footerStoreAddress: section.configJson?.storeAddress || "123 Nguyễn Huệ, Quận 1, TP.HCM",
         footerContactPhone: section.configJson?.contactPhone || "1900 1234 56",
         footerContactEmail: section.configJson?.contactEmail || "support@glowskin.vn",
         footerShowNewsletter: section.configJson?.showNewsletter !== false,
-        footerNewsletterTitle: section.configJson?.newsletterTitle || "Dang ky nhan tin",
-        footerNewsletterDescription: section.configJson?.newsletterDescription || "Nhan uu dai doc quyen va cap nhat xu huong lam dep moi nhat.",
-        footerNewsletterPlaceholder: section.configJson?.newsletterPlaceholder || "Email cua ban",
-        footerNewsletterButton: section.configJson?.newsletterButton || "Dang ky",
+        footerNewsletterTitle: section.configJson?.newsletterTitle || "Đăng ký nhận tin",
+        footerNewsletterDescription: section.configJson?.newsletterDescription || "Nhận ưu đãi độc quyền và cập nhật xu hướng làm đẹp mới nhất.",
+        footerNewsletterPlaceholder: section.configJson?.newsletterPlaceholder || "Email của bạn",
+        footerNewsletterButton: section.configJson?.newsletterButton || "Đăng ký",
         footerSocialFacebookUrl: section.configJson?.socialFacebookUrl || "https://facebook.com",
         footerSocialInstagramUrl: section.configJson?.socialInstagramUrl || "https://instagram.com",
         footerSocialYoutubeUrl: section.configJson?.socialYoutubeUrl || "https://youtube.com",
@@ -775,19 +775,19 @@ export default function PageSectionManager() {
         heroSecondaryCtaLink: "",
         heroImage: "",
         headerLogoText: "GlowSkin",
-        headerTopBarText: "Mien phi van chuyen cho don hang tu 500.000d | Doi tra trong 30 ngay",
+        headerTopBarText: "Miễn phí vận chuyển cho đơn hàng từ 500.000đ | Đổi trả trong 30 ngày",
         headerShowTopBar: true,
         headerNavItems: defaultHeaderNavItems,
         footerStoreName: "GlowSkin",
-        footerStoreDescription: "Kham pha ve dep toan dien voi cac san pham my pham cao cap, chinh hang.",
-        footerStoreAddress: "123 Nguyen Hue, Quan 1, TP.HCM",
+        footerStoreDescription: "Khám phá vẻ đẹp toàn diện với các sản phẩm mỹ phẩm cao cấp, chính hãng.",
+        footerStoreAddress: "123 Nguyễn Huệ, Quận 1, TP.HCM",
         footerContactPhone: "1900 1234 56",
         footerContactEmail: "support@glowskin.vn",
         footerShowNewsletter: true,
-        footerNewsletterTitle: "Dang ky nhan tin",
-        footerNewsletterDescription: "Nhan uu dai doc quyen va cap nhat xu huong lam dep moi nhat.",
-        footerNewsletterPlaceholder: "Email cua ban",
-        footerNewsletterButton: "Dang ky",
+        footerNewsletterTitle: "Đăng ký nhận tin",
+        footerNewsletterDescription: "Nhận ưu đãi độc quyền và cập nhật xu hướng làm đẹp mới nhất.",
+        footerNewsletterPlaceholder: "Email của bạn",
+        footerNewsletterButton: "Đăng ký",
         footerSocialFacebookUrl: "https://facebook.com",
         footerSocialInstagramUrl: "https://instagram.com",
         footerSocialYoutubeUrl: "https://youtube.com",
@@ -862,12 +862,12 @@ export default function PageSectionManager() {
       const autoplayDelay = delayText ? Number.parseInt(delayText, 10) : 3000;
 
       if (limitText && (!Number.isFinite(limit) || Number(limit) < 1)) {
-        setJsonError("Gioi han danh muc phai la so lon hon 0.");
+        setJsonError("Giới hạn danh mục phải là số lớn hơn 0.");
         return;
       }
 
       if (!Number.isFinite(autoplayDelay) || autoplayDelay < 500) {
-        setJsonError("Thoi gian autoplay phai lon hon hoac bang 500ms.");
+        setJsonError("Thời gian autoplay phải lớn hơn hoặc bằng 500ms.");
         return;
       }
 
@@ -896,7 +896,7 @@ export default function PageSectionManager() {
         .filter(item => item.name && item.content);
 
       if (validTestimonials.length === 0) {
-        setJsonError("Vui long nhap it nhat 1 danh gia co ten va noi dung.");
+        setJsonError("Vui lòng nhập ít nhất 1 đánh giá có tên và nội dung.");
         return;
       }
 
@@ -924,7 +924,7 @@ export default function PageSectionManager() {
         .filter(item => item.name && item.logo);
 
       if (validBrands.length === 0) {
-        setJsonError("Vui long nhap it nhat 1 thuong hieu co ten va logo.");
+        setJsonError("Vui lòng nhập ít nhất 1 thương hiệu có tên và logo.");
         return;
       }
 
@@ -944,7 +944,7 @@ export default function PageSectionManager() {
         .filter(item => item.title && item.excerpt);
 
       if (validPosts.length === 0) {
-        setJsonError("Vui long nhap it nhat 1 bai viet co tieu de va mo ta.");
+        setJsonError("Vui lòng nhập ít nhất 1 bài viết có tiêu đề và mô tả.");
         return;
       }
 
@@ -973,7 +973,7 @@ export default function PageSectionManager() {
         links = JSON.parse(formData.footerLinksJsonStr);
         features = JSON.parse(formData.footerFeaturesJsonStr);
       } catch (err: any) {
-        setJsonError("Lá»—i cÃº phÃ¡p JSON footer: " + err.message);
+        setJsonError("Lỗi cú pháp JSON footer: " + err.message);
         return;
       }
       parsedConfig = {
@@ -1091,9 +1091,9 @@ export default function PageSectionManager() {
         ...prev,
         testimonialItems: prev.testimonialItems.map((item, idx) => idx === index ? { ...item, avatar: result.url } : item)
       }));
-      toast.success("Avatar danh gia da duoc tai len.");
+      toast.success("Avatar đánh giá đã được tải lên.");
     } catch (err: any) {
-      toast.error(err.message || "Khong the tai avatar len.");
+      toast.error(err.message || "Không thể tải avatar lên.");
     } finally {
       setUploadingTestimonialIndex(null);
     }
@@ -1108,9 +1108,9 @@ export default function PageSectionManager() {
         ...prev,
         brandItems: prev.brandItems.map((item, idx) => idx === index ? { ...item, logo: result.url } : item)
       }));
-      toast.success("Logo thuong hieu da duoc tai len.");
+      toast.success("Logo thương hiệu đã được tải lên.");
     } catch (err: any) {
-      toast.error(err.message || "Khong the tai logo len.");
+      toast.error(err.message || "Không thể tải logo lên.");
     } finally {
       setUploadingBrandIndex(null);
     }
@@ -1125,9 +1125,9 @@ export default function PageSectionManager() {
         ...prev,
         blogPosts: prev.blogPosts.map((item, idx) => idx === index ? { ...item, image: result.url } : item)
       }));
-      toast.success("Anh bai viet da duoc tai len.");
+      toast.success("Ảnh bài viết đã được tải lên.");
     } catch (err: any) {
-      toast.error(err.message || "Khong the tai anh bai viet len.");
+      toast.error(err.message || "Không thể tải ảnh bài viết lên.");
     } finally {
       setUploadingBlogPostIndex(null);
     }
@@ -1306,15 +1306,15 @@ export default function PageSectionManager() {
                   {isBannerType(formData.type)
                     ? "Banner items"
                     : isCategoriesType(formData.type)
-                      ? "Cau hinh danh muc"
+                      ? "Cấu hình danh mục"
                       : isTestimonialsType(formData.type)
-                        ? "Cau hinh testimonials"
+                        ? "Cấu hình testimonials"
                         : isNewsletterType(formData.type)
-                          ? "Cau hinh newsletter"
+                          ? "Cấu hình newsletter"
                           : isBrandCarouselType(formData.type)
-                            ? "Cau hinh brand carousel"
+                            ? "Cấu hình brand carousel"
                             : isRecentBlogPostsType(formData.type)
-                              ? "Cau hinh bai viet"
+                              ? "Cấu hình bài viết"
                       : "Cấu hình JSON (configJson)"}
                 </Label>
                 <div className="flex items-center gap-2">
@@ -2023,24 +2023,24 @@ export default function PageSectionManager() {
               ) : isCategoriesType(formData.type) ? (
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Mo ta section</Label>
+                    <Label>Mô tả section</Label>
                     <Textarea
                       rows={3}
                       value={formData.categoryDescription}
                       onChange={(e) => setFormData({ ...formData, categoryDescription: e.target.value })}
-                      placeholder="Mo ta ngan hien thi duoi tieu de"
+                      placeholder="Mô tả ngắn hiển thị dưới tiêu đề"
                     />
                   </div>
 
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label>Gioi han so danh muc</Label>
+                      <Label>Giới hạn số danh mục</Label>
                       <Input
                         type="number"
                         min="1"
                         value={formData.categoryLimit}
                         onChange={(e) => setFormData({ ...formData, categoryLimit: e.target.value })}
-                        placeholder="Bo trong de hien thi tat ca"
+                        placeholder="Bỏ trống để hiển thị tất cả"
                       />
                     </div>
                     <div className="space-y-2">
@@ -2058,35 +2058,35 @@ export default function PageSectionManager() {
 
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="flex items-center justify-between rounded-lg border p-3">
-                      <Label>Chi hien thi danh muc goc</Label>
+                      <Label>Chỉ hiển thị danh mục gốc</Label>
                       <Switch
                         checked={formData.categoryOnlyRoot}
                         onCheckedChange={(checked) => setFormData({ ...formData, categoryOnlyRoot: checked })}
                       />
                     </div>
                     <div className="flex items-center justify-between rounded-lg border p-3">
-                      <Label>Hien thi so san pham</Label>
+                      <Label>Hiển thị số sản phẩm</Label>
                       <Switch
                         checked={formData.categoryShowProductCount}
                         onCheckedChange={(checked) => setFormData({ ...formData, categoryShowProductCount: checked })}
                       />
                     </div>
                     <div className="flex items-center justify-between rounded-lg border p-3">
-                      <Label>Hien thi nut dieu huong</Label>
+                      <Label>Hiển thị nút điều hướng</Label>
                       <Switch
                         checked={formData.categoryShowNavigation}
                         onCheckedChange={(checked) => setFormData({ ...formData, categoryShowNavigation: checked })}
                       />
                     </div>
                     <div className="flex items-center justify-between rounded-lg border p-3">
-                      <Label>Hien thi dots</Label>
+                      <Label>Hiển thị dots</Label>
                       <Switch
                         checked={formData.categoryShowDots}
                         onCheckedChange={(checked) => setFormData({ ...formData, categoryShowDots: checked })}
                       />
                     </div>
                     <div className="flex items-center justify-between rounded-lg border p-3">
-                      <Label>Tu dong chay carousel</Label>
+                      <Label>Tự động chạy carousel</Label>
                       <Switch
                         checked={formData.categoryAutoplay}
                         onCheckedChange={(checked) => setFormData({ ...formData, categoryAutoplay: checked })}
@@ -2096,7 +2096,7 @@ export default function PageSectionManager() {
 
                   <div className="space-y-3">
                     <div className="flex items-center justify-between gap-3">
-                      <Label>Danh muc hien thi ({formData.categoryIds.length} da chon)</Label>
+                      <Label>Danh mục hiển thị ({formData.categoryIds.length} đã chọn)</Label>
                       <div className="flex gap-2">
                         <Button
                           type="button"
@@ -2108,7 +2108,7 @@ export default function PageSectionManager() {
                           }))}
                           disabled={categoriesLoading || availableCategories.length === 0}
                         >
-                          Chon tat ca
+                          Chọn tất cả
                         </Button>
                         <Button
                           type="button"
@@ -2116,7 +2116,7 @@ export default function PageSectionManager() {
                           size="sm"
                           onClick={() => setFormData(prev => ({ ...prev, categoryIds: [] }))}
                         >
-                          Bo chon
+                          Bỏ chọn
                         </Button>
                       </div>
                     </div>
@@ -2124,11 +2124,11 @@ export default function PageSectionManager() {
                       {categoriesLoading ? (
                         <div className="flex items-center justify-center py-8 text-sm text-muted-foreground">
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Dang tai danh muc...
+                          Đang tải danh mục...
                         </div>
                       ) : availableCategories.length === 0 ? (
                         <div className="py-8 text-center text-sm text-muted-foreground">
-                          Chua co danh muc de chon.
+                          Chưa có danh mục để chọn.
                         </div>
                       ) : (
                         <div className="space-y-2">
@@ -2165,14 +2165,14 @@ export default function PageSectionManager() {
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Bo chon tat ca de section tu dong hien thi moi danh muc dang co trong database.
+                      Bỏ chọn tất cả để section tự động hiển thị mọi danh mục đang có trong database.
                     </p>
                   </div>
                 </div>
               ) : isTestimonialsType(formData.type) ? (
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Mo ta section</Label>
+                    <Label>Mô tả section</Label>
                     <Textarea
                       rows={3}
                       value={formData.testimonialsDescription}
@@ -2183,7 +2183,7 @@ export default function PageSectionManager() {
                   {formData.testimonialItems.map((item, idx) => (
                     <div key={idx} className="space-y-3 rounded-lg border bg-muted/10 p-3">
                       <div className="flex items-center justify-between">
-                        <div className="text-sm font-medium">Danh gia #{idx + 1}</div>
+                        <div className="text-sm font-medium">Đánh giá #{idx + 1}</div>
                         <Button
                           type="button"
                           variant="ghost"
@@ -2194,12 +2194,12 @@ export default function PageSectionManager() {
                             testimonialItems: prev.testimonialItems.filter((_, i) => i !== idx)
                           }))}
                         >
-                          Xoa
+                          Xóa
                         </Button>
                       </div>
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="space-y-1">
-                          <Label className="text-xs">Ten khach hang</Label>
+                          <Label className="text-xs">Tên khách hàng</Label>
                           <Input
                             value={item.name}
                             onChange={(e) => {
@@ -2212,7 +2212,7 @@ export default function PageSectionManager() {
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-xs">San pham / ghi chu</Label>
+                          <Label className="text-xs">Sản phẩm / ghi chú</Label>
                           <Input
                             value={item.product}
                             onChange={(e) => {
@@ -2226,7 +2226,7 @@ export default function PageSectionManager() {
                         </div>
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs">Noi dung danh gia</Label>
+                        <Label className="text-xs">Nội dung đánh giá</Label>
                         <Textarea
                           rows={3}
                           value={item.content}
@@ -2278,7 +2278,7 @@ export default function PageSectionManager() {
                               if (file) handleUploadTestimonialAvatar(idx, file);
                             }}
                           />
-                          {uploadingTestimonialIndex === idx && <p className="text-xs text-muted-foreground">Dang tai avatar...</p>}
+                          {uploadingTestimonialIndex === idx && <p className="text-xs text-muted-foreground">Đang tải avatar...</p>}
                         </div>
                       </div>
                       {item.avatar && (
@@ -2298,13 +2298,13 @@ export default function PageSectionManager() {
                       ]
                     }))}
                   >
-                    + Them danh gia
+                    + Thêm đánh giá
                   </Button>
                 </div>
               ) : isNewsletterType(formData.type) ? (
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Mo ta</Label>
+                    <Label>Mô tả</Label>
                     <Textarea
                       rows={3}
                       value={formData.newsletterDescription}
@@ -2320,7 +2320,7 @@ export default function PageSectionManager() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Nut dang ky</Label>
+                      <Label>Nút đăng ký</Label>
                       <Input
                         value={formData.newsletterButton}
                         onChange={(e) => setFormData({ ...formData, newsletterButton: e.target.value })}
@@ -2328,7 +2328,7 @@ export default function PageSectionManager() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Ghi chu rieng tu</Label>
+                    <Label>Ghi chú riêng tư</Label>
                     <Textarea
                       rows={2}
                       value={formData.newsletterPrivacyNote}
@@ -2337,14 +2337,14 @@ export default function PageSectionManager() {
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label>Toast thanh cong</Label>
+                      <Label>Toast thành công</Label>
                       <Input
                         value={formData.newsletterSuccessTitle}
                         onChange={(e) => setFormData({ ...formData, newsletterSuccessTitle: e.target.value })}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Mo ta toast</Label>
+                      <Label>Mô tả toast</Label>
                       <Input
                         value={formData.newsletterSuccessDescription}
                         onChange={(e) => setFormData({ ...formData, newsletterSuccessDescription: e.target.value })}
@@ -2357,7 +2357,7 @@ export default function PageSectionManager() {
                   {formData.brandItems.map((item, idx) => (
                     <div key={idx} className="space-y-3 rounded-lg border bg-muted/10 p-3">
                       <div className="flex items-center justify-between">
-                        <div className="text-sm font-medium">Thuong hieu #{idx + 1}</div>
+                        <div className="text-sm font-medium">Thương hiệu #{idx + 1}</div>
                         <Button
                           type="button"
                           variant="ghost"
@@ -2368,12 +2368,12 @@ export default function PageSectionManager() {
                             brandItems: prev.brandItems.filter((_, i) => i !== idx)
                           }))}
                         >
-                          Xoa
+                          Xóa
                         </Button>
                       </div>
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="space-y-1">
-                          <Label className="text-xs">Ten thuong hieu</Label>
+                          <Label className="text-xs">Tên thương hiệu</Label>
                           <Input
                             value={item.name}
                             onChange={(e) => {
@@ -2407,7 +2407,7 @@ export default function PageSectionManager() {
                               if (file) handleUploadBrandLogo(idx, file);
                             }}
                           />
-                          {uploadingBrandIndex === idx && <p className="text-xs text-muted-foreground">Dang tai logo...</p>}
+                          {uploadingBrandIndex === idx && <p className="text-xs text-muted-foreground">Đang tải logo...</p>}
                         </div>
                       </div>
                       {item.logo && (
@@ -2424,13 +2424,13 @@ export default function PageSectionManager() {
                       brandItems: [...prev.brandItems, { name: "", logo: "" }]
                     }))}
                   >
-                    + Them thuong hieu
+                    + Thêm thương hiệu
                   </Button>
                 </div>
               ) : isRecentBlogPostsType(formData.type) ? (
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Mo ta section</Label>
+                    <Label>Mô tả section</Label>
                     <Textarea
                       rows={3}
                       value={formData.blogDescription}
@@ -2441,7 +2441,7 @@ export default function PageSectionManager() {
                   {formData.blogPosts.map((item, idx) => (
                     <div key={idx} className="space-y-3 rounded-lg border bg-muted/10 p-3">
                       <div className="flex items-center justify-between">
-                        <div className="text-sm font-medium">Bai viet #{idx + 1}</div>
+                        <div className="text-sm font-medium">Bài viết #{idx + 1}</div>
                         <Button
                           type="button"
                           variant="ghost"
@@ -2452,11 +2452,11 @@ export default function PageSectionManager() {
                             blogPosts: prev.blogPosts.filter((_, i) => i !== idx)
                           }))}
                         >
-                          Xoa
+                          Xóa
                         </Button>
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs">Tieu de</Label>
+                        <Label className="text-xs">Tiêu đề</Label>
                         <Input
                           value={item.title}
                           onChange={(e) => {
@@ -2469,7 +2469,7 @@ export default function PageSectionManager() {
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs">Mo ta ngan</Label>
+                        <Label className="text-xs">Mô tả ngắn</Label>
                         <Textarea
                           rows={3}
                           value={item.excerpt}
@@ -2484,7 +2484,7 @@ export default function PageSectionManager() {
                       </div>
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="space-y-1">
-                          <Label className="text-xs">Ngay hien thi</Label>
+                          <Label className="text-xs">Ngày hiển thị</Label>
                           <Input
                             value={item.date}
                             onChange={(e) => {
@@ -2497,7 +2497,7 @@ export default function PageSectionManager() {
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-xs">Thoi gian doc</Label>
+                          <Label className="text-xs">Thời gian đọc</Label>
                           <Input
                             value={item.readTime}
                             onChange={(e) => {
@@ -2511,7 +2511,7 @@ export default function PageSectionManager() {
                         </div>
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs">Anh bai viet URL</Label>
+                        <Label className="text-xs">Ảnh bài viết URL</Label>
                         <Input
                           value={item.image}
                           onChange={(e) => {
@@ -2532,7 +2532,7 @@ export default function PageSectionManager() {
                             if (file) handleUploadBlogPostImage(idx, file);
                           }}
                         />
-                        {uploadingBlogPostIndex === idx && <p className="text-xs text-muted-foreground">Dang tai anh...</p>}
+                        {uploadingBlogPostIndex === idx && <p className="text-xs text-muted-foreground">Đang tải ảnh...</p>}
                       </div>
                       {item.image && (
                         <img src={item.image} alt="blog post preview" className="h-24 w-full rounded-md object-cover border" />
@@ -2548,14 +2548,14 @@ export default function PageSectionManager() {
                       blogPosts: [...prev.blogPosts, { title: "", excerpt: "", image: "", date: "", readTime: "" }]
                     }))}
                   >
-                    + Them bai viet
+                    + Thêm bài viết
                   </Button>
                 </div>
               ) : isHeaderType(formData.type) ? (
                 <div className="space-y-4">
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label>Ten logo</Label>
+                      <Label>Tên logo</Label>
                       <Input
                         value={formData.headerLogoText}
                         onChange={(e) => setFormData({ ...formData, headerLogoText: e.target.value })}
@@ -2563,17 +2563,17 @@ export default function PageSectionManager() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Thong bao top bar</Label>
+                      <Label>Thông báo top bar</Label>
                       <Input
                         value={formData.headerTopBarText}
                         onChange={(e) => setFormData({ ...formData, headerTopBarText: e.target.value })}
-                        placeholder="Mien phi van chuyen..."
+                        placeholder="Miễn phí vận chuyển..."
                       />
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between rounded-lg border p-3">
-                    <Label>Hien thi top bar</Label>
+                    <Label>Hiển thị top bar</Label>
                     <Switch
                       checked={formData.headerShowTopBar}
                       onCheckedChange={(checked) => setFormData({ ...formData, headerShowTopBar: checked })}
@@ -2582,7 +2582,7 @@ export default function PageSectionManager() {
 
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label>Menu dieu huong</Label>
+                      <Label>Menu điều hướng</Label>
                       <Button
                         type="button"
                         variant="outline"
@@ -2592,14 +2592,14 @@ export default function PageSectionManager() {
                           headerNavItems: [...prev.headerNavItems, { name: "", href: "/", highlight: false }]
                         }))}
                       >
-                        Them menu
+                        Thêm menu
                       </Button>
                     </div>
 
                     {formData.headerNavItems.map((item, idx) => (
                       <div key={idx} className="grid gap-3 rounded-lg border bg-muted/10 p-3 sm:grid-cols-[1fr_1fr_auto_auto]">
                         <div className="space-y-1">
-                          <Label className="text-xs">Ten menu</Label>
+                          <Label className="text-xs">Tên menu</Label>
                           <Input
                             value={item.name}
                             onChange={(e) => {
@@ -2609,11 +2609,11 @@ export default function PageSectionManager() {
                                 headerNavItems: prev.headerNavItems.map((nav, i) => i === idx ? { ...nav, name: value } : nav)
                               }));
                             }}
-                            placeholder="San pham"
+                            placeholder="Sản phẩm"
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-xs">Duong dan</Label>
+                          <Label className="text-xs">Đường dẫn</Label>
                           <Input
                             value={item.href}
                             onChange={(e) => {
@@ -2636,7 +2636,7 @@ export default function PageSectionManager() {
                               }));
                             }}
                           />
-                          <span className="text-xs text-muted-foreground">Noi bat</span>
+                          <span className="text-xs text-muted-foreground">Nổi bật</span>
                         </div>
                         <div className="flex items-end">
                           <Button
@@ -2649,7 +2649,7 @@ export default function PageSectionManager() {
                               headerNavItems: prev.headerNavItems.filter((_, i) => i !== idx)
                             }))}
                           >
-                            Xoa
+                            Xóa
                           </Button>
                         </div>
                       </div>
@@ -2660,42 +2660,42 @@ export default function PageSectionManager() {
                 <div className="space-y-4">
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label>Ten cua hang</Label>
+                      <Label>Tên cửa hàng</Label>
                       <Input value={formData.footerStoreName} onChange={(e) => setFormData({ ...formData, footerStoreName: e.target.value })} />
                     </div>
                     <div className="space-y-2">
-                      <Label>Email lien he</Label>
+                      <Label>Email liên hệ</Label>
                       <Input value={formData.footerContactEmail} onChange={(e) => setFormData({ ...formData, footerContactEmail: e.target.value })} />
                     </div>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label>So dien thoai</Label>
+                      <Label>Số điện thoại</Label>
                       <Input value={formData.footerContactPhone} onChange={(e) => setFormData({ ...formData, footerContactPhone: e.target.value })} />
                     </div>
                     <div className="space-y-2">
-                      <Label>Phuong thuc thanh toan</Label>
+                      <Label>Phương thức thanh toán</Label>
                       <Input value={formData.footerPaymentMethods} onChange={(e) => setFormData({ ...formData, footerPaymentMethods: e.target.value })} placeholder="VISA,MC,MoMo,VNP" />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Dia chi</Label>
+                    <Label>Địa chỉ</Label>
                     <Textarea rows={2} value={formData.footerStoreAddress} onChange={(e) => setFormData({ ...formData, footerStoreAddress: e.target.value })} />
                   </div>
                   <div className="space-y-2">
-                    <Label>Mo ta footer</Label>
+                    <Label>Mô tả footer</Label>
                     <Textarea rows={3} value={formData.footerStoreDescription} onChange={(e) => setFormData({ ...formData, footerStoreDescription: e.target.value })} />
                   </div>
                   <div className="rounded-lg border p-3 space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label>Hien thi newsletter</Label>
+                      <Label>Hiển thị newsletter</Label>
                       <Switch checked={formData.footerShowNewsletter} onCheckedChange={(checked) => setFormData({ ...formData, footerShowNewsletter: checked })} />
                     </div>
-                    <Input value={formData.footerNewsletterTitle} onChange={(e) => setFormData({ ...formData, footerNewsletterTitle: e.target.value })} placeholder="Tieu de newsletter" />
-                    <Textarea rows={2} value={formData.footerNewsletterDescription} onChange={(e) => setFormData({ ...formData, footerNewsletterDescription: e.target.value })} placeholder="Mo ta newsletter" />
+                    <Input value={formData.footerNewsletterTitle} onChange={(e) => setFormData({ ...formData, footerNewsletterTitle: e.target.value })} placeholder="Tiêu đề newsletter" />
+                    <Textarea rows={2} value={formData.footerNewsletterDescription} onChange={(e) => setFormData({ ...formData, footerNewsletterDescription: e.target.value })} placeholder="Mô tả newsletter" />
                     <div className="grid gap-3 sm:grid-cols-2">
                       <Input value={formData.footerNewsletterPlaceholder} onChange={(e) => setFormData({ ...formData, footerNewsletterPlaceholder: e.target.value })} placeholder="Placeholder email" />
-                      <Input value={formData.footerNewsletterButton} onChange={(e) => setFormData({ ...formData, footerNewsletterButton: e.target.value })} placeholder="Nut dang ky" />
+                      <Input value={formData.footerNewsletterButton} onChange={(e) => setFormData({ ...formData, footerNewsletterButton: e.target.value })} placeholder="Nút đăng ký" />
                     </div>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-3">
@@ -2704,11 +2704,11 @@ export default function PageSectionManager() {
                     <Input value={formData.footerSocialYoutubeUrl} onChange={(e) => setFormData({ ...formData, footerSocialYoutubeUrl: e.target.value })} placeholder="Youtube URL" />
                   </div>
                   <div className="space-y-2">
-                    <Label>Cot link footer (JSON)</Label>
+                    <Label>Cột link footer (JSON)</Label>
                     <Textarea className="font-mono text-xs h-[180px]" value={formData.footerLinksJsonStr} onChange={(e) => setFormData({ ...formData, footerLinksJsonStr: e.target.value })} />
                   </div>
                   <div className="space-y-2">
-                    <Label>Thanh loi ich footer (JSON)</Label>
+                    <Label>Thanh lợi ích footer (JSON)</Label>
                     <Textarea className="font-mono text-xs h-[140px]" value={formData.footerFeaturesJsonStr} onChange={(e) => setFormData({ ...formData, footerFeaturesJsonStr: e.target.value })} />
                   </div>
                 </div>

@@ -19,8 +19,8 @@ type TestimonialsSectionProps = {
 };
 
 export function TestimonialsSection({
-  title = "Khach hang noi gi ve chung toi",
-  description = "Nhung danh gia thuc te tu khach hang da mua sam tai cua hang.",
+  title = "Khách hàng nói gì về chúng tôi",
+  description = "Những đánh giá thực tế từ khách hàng đã mua sắm tại cửa hàng.",
   testimonials,
 }: TestimonialsSectionProps) {
   const items = testimonials && testimonials.length > 0 ? testimonials : defaultTestimonials;

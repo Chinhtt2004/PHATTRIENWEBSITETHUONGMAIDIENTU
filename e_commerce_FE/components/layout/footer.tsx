@@ -44,35 +44,35 @@ export type FooterConfig = {
 
 const defaultFooterLinks: Record<string, FooterColumn> = {
   shop: {
-    title: "Mua sam",
+    title: "Mua sắm",
     links: [
-      { name: "Tat ca san pham", href: "/products" },
-      { name: "Cham soc da", href: "/category/cham-soc-da" },
-      { name: "Trang diem", href: "/category/trang-diem" },
-      { name: "Chong nang", href: "/category/chong-nang" },
-      { name: "San pham moi", href: "/products?filter=new" },
-      { name: "Ban chay", href: "/products?filter=bestseller" },
+      { name: "Tất cả sản phẩm", href: "/products" },
+      { name: "Chăm sóc da", href: "/category/cham-soc-da" },
+      { name: "Trang điểm", href: "/category/trang-diem" },
+      { name: "Chống nắng", href: "/category/chong-nang" },
+      { name: "Sản phẩm mới", href: "/products?filter=new" },
+      { name: "Bán chạy", href: "/products?filter=bestseller" },
     ],
   },
   support: {
-    title: "Ho tro",
+    title: "Hỗ trợ",
     links: [
-      { name: "Huong dan mua hang", href: "/help/how-to-buy" },
-      { name: "Phuong thuc thanh toan", href: "/help/payment" },
-      { name: "Van chuyen", href: "/help/shipping" },
-      { name: "Doi tra va hoan tien", href: "/help/returns" },
-      { name: "Cau hoi thuong gap", href: "/help/faq" },
-      { name: "Lien he", href: "/contact" },
+      { name: "Hướng dẫn mua hàng", href: "/help/how-to-buy" },
+      { name: "Phương thức thanh toán", href: "/help/payment" },
+      { name: "Vận chuyển", href: "/help/shipping" },
+      { name: "Đổi trả và hoàn tiền", href: "/help/returns" },
+      { name: "Câu hỏi thường gặp", href: "/help/faq" },
+      { name: "Liên hệ", href: "/contact" },
     ],
   },
   company: {
-    title: "Ve chung toi",
+    title: "Về chúng tôi",
     links: [
-      { name: "Gioi thieu", href: "/about" },
-      { name: "Tuyen dung", href: "/careers" },
-      { name: "Blog lam dep", href: "/blog" },
-      { name: "Dieu khoan su dung", href: "/terms" },
-      { name: "Chinh sach bao mat", href: "/privacy" },
+      { name: "Giới thiệu", href: "/about" },
+      { name: "Tuyển dụng", href: "/careers" },
+      { name: "Blog làm đẹp", href: "/blog" },
+      { name: "Điều khoản sử dụng", href: "/terms" },
+      { name: "Chính sách bảo mật", href: "/privacy" },
     ],
   },
 };
@@ -80,23 +80,23 @@ const defaultFooterLinks: Record<string, FooterColumn> = {
 const defaultFeatures: FooterFeature[] = [
   {
     iconName: "Truck",
-    title: "Mien phi van chuyen",
-    description: "Don hang tu 500.000d",
+    title: "Miễn phí vận chuyển",
+    description: "Đơn hàng từ 500.000đ",
   },
   {
     iconName: "RotateCcw",
-    title: "Doi tra 30 ngay",
-    description: "Khong can ly do",
+    title: "Đổi trả 30 ngày",
+    description: "Không cần lý do",
   },
   {
     iconName: "Shield",
-    title: "Chinh hang 100%",
-    description: "Cam ket chat luong",
+    title: "Chính hãng 100%",
+    description: "Cam kết chất lượng",
   },
   {
     iconName: "CreditCard",
-    title: "Thanh toan an toan",
-    description: "Bao mat tuyet doi",
+    title: "Thanh toán an toàn",
+    description: "Bảo mật tuyệt đối",
   },
 ];
 
@@ -143,8 +143,8 @@ export function Footer({ config }: { config?: FooterConfig }) {
     .filter(Boolean);
   const showNewsletter = config?.showNewsletter ?? settings["footer_show_newsletter"] !== "false";
   const storeName = config?.storeName || settings["store_name"] || "GlowSkin";
-  const storeDescription = config?.storeDescription || settings["store_description"] || "Kham pha ve dep toan dien voi cac san pham my pham cao cap, chinh hang tu cac thuong hieu hang dau the gioi.";
-  const storeAddress = config?.storeAddress || settings["store_address"] || "123 Nguyen Hue, Quan 1, TP.HCM";
+  const storeDescription = config?.storeDescription || settings["store_description"] || "Khám phá vẻ đẹp toàn diện với các sản phẩm mỹ phẩm cao cấp, chính hãng từ các thương hiệu hàng đầu thế giới.";
+  const storeAddress = config?.storeAddress || settings["store_address"] || "123 Nguyễn Huệ, Quận 1, TP.HCM";
   const contactPhone = config?.contactPhone || settings["contact_phone"] || "1900 1234 56";
   const contactEmail = config?.contactEmail || settings["contact_email"] || "support@glowskin.vn";
 
@@ -182,17 +182,17 @@ export function Footer({ config }: { config?: FooterConfig }) {
 
             {showNewsletter && (
               <div className="mb-6">
-                <h4 className="font-medium mb-3">{config?.newsletterTitle || settings["footer_newsletter_title"] || "Dang ky nhan tin"}</h4>
+                <h4 className="font-medium mb-3">{config?.newsletterTitle || settings["footer_newsletter_title"] || "Đăng ký nhận tin"}</h4>
                 <p className="text-sm text-muted-foreground mb-3">
-                  {config?.newsletterDescription || settings["footer_newsletter_description"] || "Nhan uu dai doc quyen va cap nhat xu huong lam dep moi nhat."}
+                  {config?.newsletterDescription || settings["footer_newsletter_description"] || "Nhận ưu đãi độc quyền và cập nhật xu hướng làm đẹp mới nhất."}
                 </p>
                 <div className="flex gap-2">
                   <Input
                     type="email"
-                    placeholder={config?.newsletterPlaceholder || settings["footer_newsletter_placeholder"] || "Email cua ban"}
+                    placeholder={config?.newsletterPlaceholder || settings["footer_newsletter_placeholder"] || "Email của bạn"}
                     className="flex-1 bg-background"
                   />
-                  <Button>{config?.newsletterButton || settings["footer_newsletter_button"] || "Dang ky"}</Button>
+                  <Button>{config?.newsletterButton || settings["footer_newsletter_button"] || "Đăng ký"}</Button>
                 </div>
               </div>
             )}
@@ -267,9 +267,9 @@ export function Footer({ config }: { config?: FooterConfig }) {
 
       <div className="container mx-auto px-4 py-4 border-t border-border">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted-foreground">
-          <p>© {new Date().getFullYear()} {storeName}. Tat ca quyen duoc bao luu.</p>
+          <p>© {new Date().getFullYear()} {storeName}. Tất cả quyền được bảo lưu.</p>
           <div className="flex items-center gap-4">
-            <span>Thanh toan:</span>
+            <span>Thanh toán:</span>
             <div className="flex gap-2">
               {paymentMethods.map((method) => (
                 <div key={method} className="min-w-10 h-6 px-2 bg-background border border-border rounded flex items-center justify-center text-xs font-medium">

@@ -29,8 +29,8 @@ type CategoriesSectionProps = {
 };
 
 export function CategoriesSection({
-  title = "Danh muc san pham",
-  description = "Kham pha cac danh muc san pham dang co tren website.",
+  title = "Danh mục sản phẩm",
+  description = "Khám phá các danh mục sản phẩm đang có trên website.",
   categoryIds = [],
   limit,
   showProductCount = true,
@@ -177,7 +177,7 @@ export function CategoriesSection({
                     </h3>
                     {showProductCount && (
                       <p className="text-white/80 text-sm flex items-center gap-1">
-                        {category.productCount} san pham
+                        {category.productCount} sản phẩm
                         <ArrowRight className="h-4 w-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                       </p>
                     )}
